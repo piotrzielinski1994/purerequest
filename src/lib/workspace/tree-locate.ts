@@ -40,6 +40,36 @@ export function findNode(nodes: TreeNode[], id: string): TreeNode | null {
 
 export type DropPosition = "before" | "after" | "inside";
 
+// Pointer-relative drop projection. For a folder the middle 50% reparents
+// (drop inside), so even an empty/collapsed folder has a large, reliable
+// target; the top/bottom 25% reorder around it. A request splits 50/50.
+export function projectDropPosition({
+  pointerY,
+  rectTop,
+  rectHeight,
+  isOverFolder,
+}: {
+  pointerY: number;
+  rectTop: number;
+  rectHeight: number;
+  isOverFolder: boolean;
+}): DropPosition {
+  if (rectHeight <= 0) {
+    return "before";
+  }
+  const fraction = (pointerY - rectTop) / rectHeight;
+  if (isOverFolder) {
+    if (fraction < 0.25) {
+      return "before";
+    }
+    if (fraction > 0.75) {
+      return "after";
+    }
+    return "inside";
+  }
+  return fraction < 0.5 ? "before" : "after";
+}
+
 export function dropTarget(
   tree: TreeNode[],
   dragId: string,

@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 
-import { locateNode, findNode, dropTarget } from "@/lib/workspace/tree-locate";
+import {
+  locateNode,
+  findNode,
+  dropTarget,
+  projectDropPosition,
+} from "@/lib/workspace/tree-locate";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (id: string): RequestNode => ({
@@ -109,5 +114,46 @@ describe("dropTarget", () => {
   // behavior
   it("should return null if the over node is unknown", () => {
     expect(dropTarget(tree, "r1", "ghost", "before")).toBeNull();
+  });
+});
+
+describe("projectDropPosition", () => {
+  const overFolder = (pointerY: number) =>
+    projectDropPosition({ pointerY, rectTop: 100, rectHeight: 20, isOverFolder: true });
+  const overRequest = (pointerY: number) =>
+    projectDropPosition({ pointerY, rectTop: 100, rectHeight: 20, isOverFolder: false });
+
+  // behavior: a folder's middle 50% reparents (drop inside) - the wide,
+  // reliable target that fixes the "can't drop into a folder" bug.
+  it("should drop inside if the pointer is in a folder's middle band", () => {
+    expect(overFolder(110)).toBe("inside"); // dead center
+    expect(overFolder(106)).toBe("inside"); // ~30% down
+    expect(overFolder(114)).toBe("inside"); // ~70% down
+  });
+
+  // behavior: top/bottom quarters of a folder reorder around it
+  it("should reorder around a folder if the pointer is near its top or bottom edge", () => {
+    expect(overFolder(102)).toBe("before"); // top 10%
+    expect(overFolder(118)).toBe("after"); // bottom 10%
+  });
+
+  // behavior: an empty/collapsed folder still gets the full inside band
+  it("should drop inside an empty folder if the pointer is in its middle", () => {
+    // No child rows exist, but the folder row's own middle band is the target.
+    expect(overFolder(111)).toBe("inside");
+  });
+
+  // behavior: a request never accepts inside - just 50/50 before/after
+  it("should split a request row before/after at its midpoint", () => {
+    expect(overRequest(104)).toBe("before");
+    expect(overRequest(116)).toBe("after");
+    expect(overRequest(111)).toBe("after");
+  });
+
+  // behavior: a zero-height rect degrades gracefully
+  it("should fall back to before if the row has no height", () => {
+    expect(
+      projectDropPosition({ pointerY: 50, rectTop: 50, rectHeight: 0, isOverFolder: true }),
+    ).toBe("before");
   });
 });

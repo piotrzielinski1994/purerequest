@@ -17,24 +17,38 @@ import {
   TreeDndProvider,
   type DropIndicator,
 } from "@/components/workspace/tree-dnd";
-import { findNode, dropTarget, locateNode } from "@/lib/workspace/tree-locate";
+import {
+  findNode,
+  dropTarget,
+  locateNode,
+  projectDropPosition,
+} from "@/lib/workspace/tree-locate";
+
+function pointerY(event: DragOverEvent): number | null {
+  const activator = event.activatorEvent;
+  if (activator instanceof PointerEvent || activator instanceof MouseEvent) {
+    return activator.clientY + event.delta.y;
+  }
+  // Fallback (e.g. keyboard sensor): dragged element's vertical center.
+  const activeRect = event.active.rect.current.translated;
+  return activeRect ? activeRect.top + activeRect.height / 2 : null;
+}
 
 function projectPosition(
   event: DragOverEvent,
   isOverFolder: boolean,
 ): DropIndicator["position"] {
   const overRect = event.over?.rect;
-  const activeRect = event.active.rect.current.translated;
-  if (!overRect || !activeRect) {
+  const y = pointerY(event);
+  if (!overRect || y === null) {
     return "before";
   }
-  const activeCenter = activeRect.top + activeRect.height / 2;
-  const offset = activeCenter - overRect.top;
-  const third = overRect.height / 3;
-  if (isOverFolder && offset > third && offset < third * 2) {
-    return "inside";
-  }
-  return offset < overRect.height / 2 ? "before" : "after";
+  return projectDropPosition({
+    pointerY: y,
+    rectTop: overRect.top,
+    rectHeight: overRect.height,
+    isOverFolder,
+  });
 }
 
 export function SidebarTree() {
