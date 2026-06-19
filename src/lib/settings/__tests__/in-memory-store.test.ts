@@ -17,6 +17,8 @@ describe("createInMemorySettingsStore", () => {
       version: 1,
       layouts: { workspace: { sidebar: 25, content: 75 } },
       consoleHidden: true,
+      sidebarHidden: false,
+      shortcuts: {},
     };
     const store = createInMemorySettingsStore(initial);
 
@@ -30,6 +32,8 @@ describe("createInMemorySettingsStore", () => {
       version: 1,
       layouts: { workspace: { sidebar: 40, content: 60 } },
       consoleHidden: false,
+      sidebarHidden: false,
+      shortcuts: {},
     };
 
     await store.save(saved);
@@ -45,17 +49,23 @@ describe("createInMemorySettingsStore", () => {
       version: 1,
       layouts: { workspace: { sidebar: 40, content: 60 } },
       consoleHidden: false,
+      sidebarHidden: false,
+      shortcuts: {},
     });
     await store.save({
       version: 1,
       layouts: { main: { content: 70, console: 30 } },
       consoleHidden: true,
+      sidebarHidden: false,
+      shortcuts: {},
     });
 
     expect(await store.load()).toEqual({
       version: 1,
       layouts: { main: { content: 70, console: 30 } },
       consoleHidden: true,
+      sidebarHidden: false,
+      shortcuts: {},
     });
   });
 });

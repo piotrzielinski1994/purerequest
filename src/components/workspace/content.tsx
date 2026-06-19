@@ -7,14 +7,15 @@ import { ContentHeader } from "@/components/workspace/content-header";
 import { UrlBar } from "@/components/workspace/url-bar";
 import { RequestPane } from "@/components/workspace/request-pane";
 import { ResponsePane } from "@/components/workspace/response-pane";
+import { ShortcutsSection } from "@/components/settings/shortcuts-section";
+import { useWorkspace } from "@/components/workspace/workspace-context";
 import { useSettings } from "@/lib/settings/settings-context";
 
-export function Content() {
+function RequestView() {
   const { settings, saveLayout } = useSettings();
 
   return (
-    <div className="flex h-full flex-col">
-      <ContentHeader />
+    <>
       <UrlBar />
       <ResizablePanelGroup
         orientation="horizontal"
@@ -30,6 +31,23 @@ export function Content() {
           <ResponsePane />
         </ResizablePanel>
       </ResizablePanelGroup>
+    </>
+  );
+}
+
+export function Content() {
+  const { isSettingsActive } = useWorkspace();
+
+  return (
+    <div className="flex h-full flex-col">
+      <ContentHeader />
+      {isSettingsActive ? (
+        <div className="flex-1 overflow-auto p-6">
+          <ShortcutsSection />
+        </div>
+      ) : (
+        <RequestView />
+      )}
     </div>
   );
 }

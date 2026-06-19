@@ -23,6 +23,7 @@
     "@tanstack/react-router": "^1.170.16",
     "@tanstack/react-table": "^8.21.3",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-fs": "^2.5.1",
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-store": "^2.4.3",

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import {
   createRouter,
   createMemoryHistory,
@@ -9,20 +10,20 @@ import {
 import { AppProviders } from "@/app/providers";
 import { rootRoute } from "@/routes/__root";
 import { indexRoute } from "@/routes/index";
-import { settingsRoute } from "@/routes/settings";
 
 function renderApp(initialPath = "/") {
-  const routeTree = rootRoute.addChildren([indexRoute, settingsRoute]);
+  const routeTree = rootRoute.addChildren([indexRoute]);
   const router = createRouter({
     routeTree,
     history: createMemoryHistory({ initialEntries: [initialPath] }),
   });
 
-  return render(
+  const result = render(
     <AppProviders>
       <RouterProvider router={router} />
     </AppProviders>,
   );
+  return { ...result, router };
 }
 
 describe("app routing", () => {
@@ -43,12 +44,12 @@ describe("app routing", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("should render the settings route when navigated to directly", async () => {
+  // AC-005 — behavior: /settings is no longer a route, so it 404s like any unknown path.
+  it("should render a not-found view for the removed settings route", async () => {
     renderApp("/settings");
 
-    expect(
-      await screen.findByText(/configuration lives here/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/404/i)).toBeInTheDocument();
+    expect(screen.getByText(/does not exist/i)).toBeInTheDocument();
   });
 
   it("should render a not-found view for an unknown route", async () => {
@@ -56,5 +57,26 @@ describe("app routing", () => {
 
     expect(await screen.findByText(/404/i)).toBeInTheDocument();
     expect(screen.getByText(/does not exist/i)).toBeInTheDocument();
+  });
+
+  // AC-002, AC-003, TC-002, TC-003 — behavior: jsdom resolves Mod -> Control (learnings).
+  it("should open settings as content in the shell and close it back to the workspace", async () => {
+    const user = userEvent.setup();
+    const { router } = renderApp("/");
+    await screen.findByText(/no workspace/i);
+
+    await user.keyboard("{Control>}{Shift>}s{/Shift}{/Control}");
+    expect(
+      await screen.findByRole("heading", { name: /keyboard shortcuts/i }),
+    ).toBeInTheDocument();
+    // Still the same shell: the workspace path did not change to a settings route.
+    expect(screen.getByRole("region", { name: /console/i })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/");
+
+    await user.keyboard("{Escape}");
+    expect(await screen.findByText(/no workspace/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /keyboard shortcuts/i }),
+    ).not.toBeInTheDocument();
   });
 });

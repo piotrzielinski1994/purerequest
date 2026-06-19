@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { Main } from "@/components/workspace/main";
@@ -26,6 +27,17 @@ function renderMain(consoleHidden: boolean) {
   );
 }
 
+function renderMainWithoutRequest() {
+  const store = createInMemorySettingsStore(DEFAULT_SETTINGS);
+  return render(
+    <SettingsProvider store={store}>
+      <WorkspaceProvider tree={fixtureTree} consoleLines={["[12:00:00] Ready."]}>
+        <Main />
+      </WorkspaceProvider>
+    </SettingsProvider>,
+  );
+}
+
 describe("Main console visibility", () => {
   // AC-003 — behavior
   it("should render the console body if consoleHidden is false", async () => {
@@ -46,5 +58,23 @@ describe("Main console visibility", () => {
         screen.queryByRole("region", { name: /console/i }),
       ).not.toBeInTheDocument();
     });
+  });
+});
+
+describe("Main workspace shortcuts with no open request", () => {
+  // AC-009, TC-007 — behavior: jsdom resolves Mod -> Control (learnings).
+  it("should not throw if close/next-request fire when no request is open", async () => {
+    const user = userEvent.setup();
+    renderMainWithoutRequest();
+
+    await screen.findByRole("region", { name: /console/i });
+
+    await user.keyboard("{Control>}w{/Control}");
+    await user.keyboard("{Control>}{Tab}{/Control}");
+    await user.keyboard("{Control>}{Shift>}{Tab}{/Shift}{/Control}");
+
+    expect(
+      screen.getByRole("region", { name: /console/i }),
+    ).toBeInTheDocument();
   });
 });

@@ -42,10 +42,21 @@ Rust backend tests: `cd src-tauri && cargo test`.
 > The home route renders the workspace layout (sidebar collection tree, request tabs,
 > URL bar, request/response panes, console). No real HTTP or in-app request editing yet.
 >
-> Per-installation UI settings (panel split sizes + whether the console is hidden) persist
-> to a `settings.json` in the OS app-config dir via the Tauri Store plugin, restored on
-> launch. In `npm run dev` (browser, no native shell) there is no Tauri host, so settings
-> fall back to defaults and saving is a no-op.
+> Per-installation UI settings (panel split sizes, whether the console is hidden, and
+> keyboard-shortcut overrides) persist to a `settings.json` in the OS app-config dir via
+> the Tauri Store plugin, restored on launch. In `npm run dev` (browser, no native shell)
+> there is no Tauri host, so settings fall back to defaults and saving is a no-op.
+>
+> Every wired action has a configurable keyboard shortcut (TanStack Hotkeys). Defaults:
+> open settings `Mod+Shift+S`, close settings `Esc`, toggle console `Mod+J`, toggle sidebar
+> `Mod+B`, next/prev request `Ctrl+Tab`/`Ctrl+Shift+Tab`, close request `Mod+W`, new request
+> `Mod+T`, open workspace `Mod+O` (`Mod` = Cmd on macOS, Ctrl elsewhere). Settings open as a
+> tab inside the workspace (sidebar + console stay visible); `Mod+Shift+S` opens/activates it,
+> `Esc` or the tab's close button returns to the request. `Mod+W` closes whatever tab is
+> active (settings or a request). New request opens an in-memory draft tab (not yet saved to
+> disk). Open workspace shows a native folder picker and loads the chosen folder. Rebind any
+> shortcut there (no on-screen link yet); a new binding is rejected if another action already
+> uses it. Settings is not a route, so it never resets the workspace.
 >
 > A **workspace** is a folder on disk holding the collection tree + config. Point the app
 > at one by hand-editing `workspacePath` in that same `settings.json`; it loads on launch

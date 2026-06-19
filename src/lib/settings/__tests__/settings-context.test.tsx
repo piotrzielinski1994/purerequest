@@ -11,6 +11,36 @@ import {
   type SettingsStore,
 } from "@/lib/settings/settings";
 
+// Consumer that exercises the shortcut/console additions to the context.
+function ShortcutProbe() {
+  const { settings, saveShortcut, resetShortcut, saveConsoleHidden } =
+    useSettings();
+
+  return (
+    <div>
+      <span data-testid="console-hidden">{String(settings.consoleHidden)}</span>
+      <span data-testid="toggle-console-binding">
+        {settings.shortcuts["toggle-console"] ?? "none"}
+      </span>
+      <button
+        type="button"
+        onClick={() => saveShortcut("toggle-console", "Mod+K")}
+      >
+        save shortcut
+      </button>
+      <button type="button" onClick={() => resetShortcut("toggle-console")}>
+        reset shortcut
+      </button>
+      <button
+        type="button"
+        onClick={() => saveConsoleHidden(!settings.consoleHidden)}
+      >
+        toggle console hidden
+      </button>
+    </div>
+  );
+}
+
 // Tiny consumer that renders settings values into the DOM so we assert on
 // observable behavior, not on the context object shape directly.
 function SettingsProbe({ saveOnClick }: { saveOnClick?: PanelLayout }) {
@@ -57,6 +87,8 @@ describe("SettingsProvider", () => {
       version: 1,
       layouts: { workspace: { sidebar: 22, content: 78 } },
       consoleHidden: true,
+      sidebarHidden: false,
+      shortcuts: {},
     };
     const store = createInMemorySettingsStore(seeded);
 
@@ -152,5 +184,191 @@ describe("SettingsProvider", () => {
     expect(await screen.findByTestId("workspace-layout")).toHaveTextContent(
       JSON.stringify({ sidebar: 33, content: 67 }),
     );
+  });
+});
+
+describe("SettingsProvider shortcut actions", () => {
+  // AC-003 — behavior
+  it("should set settings.shortcuts[id] if saveShortcut is called", async () => {
+    const user = userEvent.setup();
+    const store = createInMemorySettingsStore();
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+    expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+      "none",
+    );
+
+    await user.click(screen.getByRole("button", { name: /save shortcut/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        "Mod+K",
+      );
+    });
+  });
+
+  // AC-003 — side-effect-contract
+  it("should persist the override via store.save if saveShortcut is called", async () => {
+    const user = userEvent.setup();
+    const inner = createInMemorySettingsStore();
+    const saveSpy = vi.fn(inner.save);
+    const store: SettingsStore = { load: inner.load, save: saveSpy };
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+
+    await user.click(screen.getByRole("button", { name: /save shortcut/i }));
+
+    await waitFor(() => {
+      expect(saveSpy).toHaveBeenCalledTimes(1);
+    });
+    const persisted = saveSpy.mock.calls[0][0];
+    expect(persisted.shortcuts["toggle-console"]).toBe("Mod+K");
+  });
+
+  // AC-004 — behavior
+  it("should remove the override if resetShortcut is called", async () => {
+    const user = userEvent.setup();
+    const store = createInMemorySettingsStore();
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+
+    await user.click(screen.getByRole("button", { name: /save shortcut/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        "Mod+K",
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: /reset shortcut/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        "none",
+      );
+    });
+  });
+
+  // AC-004 — side-effect-contract
+  it("should persist the removal via store.save if resetShortcut is called", async () => {
+    const user = userEvent.setup();
+    const inner = createInMemorySettingsStore();
+    const saveSpy = vi.fn(inner.save);
+    const store: SettingsStore = { load: inner.load, save: saveSpy };
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+
+    await user.click(screen.getByRole("button", { name: /save shortcut/i }));
+    await user.click(screen.getByRole("button", { name: /reset shortcut/i }));
+
+    await waitFor(() => {
+      expect(saveSpy).toHaveBeenCalledTimes(2);
+    });
+    const lastPersisted = saveSpy.mock.calls[1][0];
+    expect(lastPersisted.shortcuts).not.toHaveProperty("toggle-console");
+  });
+
+  // AC-002 — behavior
+  it("should flip settings.consoleHidden if saveConsoleHidden is called", async () => {
+    const user = userEvent.setup();
+    const store = createInMemorySettingsStore();
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    expect(await screen.findByTestId("console-hidden")).toHaveTextContent(
+      "false",
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /toggle console hidden/i }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("console-hidden")).toHaveTextContent("true");
+    });
+  });
+
+  // AC-002 — side-effect-contract
+  it("should persist via store.save if saveConsoleHidden is called", async () => {
+    const user = userEvent.setup();
+    const inner = createInMemorySettingsStore();
+    const saveSpy = vi.fn(inner.save);
+    const store: SettingsStore = { load: inner.load, save: saveSpy };
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("console-hidden");
+
+    await user.click(
+      screen.getByRole("button", { name: /toggle console hidden/i }),
+    );
+
+    await waitFor(() => {
+      expect(saveSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(saveSpy.mock.calls[0][0].consoleHidden).toBe(true);
+  });
+
+  // TC-002, AC-003 — side-effect-contract
+  it("should round-trip a saved shortcut through the store to a fresh provider", async () => {
+    const user = userEvent.setup();
+    const store = createInMemorySettingsStore();
+
+    const first = render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+    await user.click(screen.getByRole("button", { name: /save shortcut/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        "Mod+K",
+      );
+    });
+
+    first.unmount();
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    expect(
+      await screen.findByTestId("toggle-console-binding"),
+    ).toHaveTextContent("Mod+K");
   });
 });

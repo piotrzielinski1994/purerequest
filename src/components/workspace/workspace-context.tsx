@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -37,12 +38,17 @@ type WorkspaceContextValue = {
   requestsById: Map<string, RequestNode>;
   activeRequest: RequestNode | null;
   effectiveConfig: EffectiveConfig | null;
+  isSettingsOpen: boolean;
+  isSettingsActive: boolean;
   toggleFolder: (id: string) => void;
   selectNode: (id: string) => void;
   setActiveRequest: (id: string) => void;
   closeRequest: (id: string) => void;
   setRequestTab: (tab: RequestTab) => void;
   setResponseTab: (tab: ResponseTab) => void;
+  openSettings: () => void;
+  closeSettings: () => void;
+  newRequest: () => void;
 };
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -78,7 +84,14 @@ export function WorkspaceProvider({
   initialExpandedIds = [],
   initialActiveRequestId,
 }: WorkspaceProviderProps) {
-  const requestsById = useMemo(() => indexRequests(tree), [tree]);
+  const [drafts, setDrafts] = useState<RequestNode[]>([]);
+  const draftCounter = useRef(0);
+
+  const requestsById = useMemo(() => {
+    const byId = indexRequests(tree);
+    drafts.forEach((draft) => byId.set(draft.id, draft));
+    return byId;
+  }, [tree, drafts]);
 
   const [expandedFolderIds, setExpandedFolderIds] = useState(
     () => new Set(initialExpandedIds),
@@ -95,6 +108,8 @@ export function WorkspaceProvider({
   const [activeRequestTab, setActiveRequestTab] = useState<RequestTab>("params");
   const [activeResponseTab, setActiveResponseTab] =
     useState<ResponseTab>("response");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSettingsActive, setIsSettingsActive] = useState(false);
 
   const value = useMemo<WorkspaceContextValue>(() => {
     const selectNode = (id: string) => {
@@ -107,6 +122,7 @@ export function WorkspaceProvider({
       setOpenRequestIds((current) =>
         current.includes(id) ? current : [...current, id],
       );
+      setIsSettingsActive(false);
       setActiveRequestId(id);
     };
 
@@ -125,6 +141,25 @@ export function WorkspaceProvider({
         });
         return next;
       });
+      setDrafts((current) => current.filter((draft) => draft.id !== id));
+    };
+
+    const newRequest = () => {
+      draftCounter.current += 1;
+      const id = `draft-${draftCounter.current}`;
+      const draft: RequestNode = {
+        kind: "request",
+        id,
+        name: "Untitled",
+        method: "GET",
+        url: "",
+        body: "",
+        config: {},
+      };
+      setDrafts((current) => [...current, draft]);
+      setOpenRequestIds((current) => [...current, id]);
+      setIsSettingsActive(false);
+      setActiveRequestId(id);
     };
 
     return {
@@ -145,13 +180,27 @@ export function WorkspaceProvider({
         activeRequestId !== null
           ? resolveConfig(tree, activeRequestId)
           : null,
+      isSettingsOpen,
+      isSettingsActive,
       toggleFolder: (id) =>
         setExpandedFolderIds((current) => toggleInSet(current, id)),
       selectNode,
-      setActiveRequest: setActiveRequestId,
+      setActiveRequest: (id) => {
+        setIsSettingsActive(false);
+        setActiveRequestId(id);
+      },
       closeRequest,
       setRequestTab: setActiveRequestTab,
       setResponseTab: setActiveResponseTab,
+      openSettings: () => {
+        setIsSettingsOpen(true);
+        setIsSettingsActive(true);
+      },
+      closeSettings: () => {
+        setIsSettingsOpen(false);
+        setIsSettingsActive(false);
+      },
+      newRequest,
     };
   }, [
     tree,
@@ -162,6 +211,8 @@ export function WorkspaceProvider({
     activeRequestId,
     activeRequestTab,
     activeResponseTab,
+    isSettingsOpen,
+    isSettingsActive,
     requestsById,
   ]);
 

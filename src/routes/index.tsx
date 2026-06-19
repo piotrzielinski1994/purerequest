@@ -1,20 +1,15 @@
 import { useState } from "react";
 import { createRoute } from "@tanstack/react-router";
 import { WorkspaceLoader } from "@/components/workspace/workspace-loader";
-import { SettingsProvider } from "@/lib/settings/settings-context";
-import { createTauriSettingsStore } from "@/lib/settings/tauri-store";
 import { createTauriWorkspaceFs } from "@/lib/workspace/tauri-fs";
+import { createTauriFolderPicker } from "@/lib/workspace/folder-picker";
 import { rootRoute } from "@/routes/__root";
 
 function HomePage() {
-  const [settingsStore] = useState(createTauriSettingsStore);
   const [workspaceFs] = useState(createTauriWorkspaceFs);
+  const [picker] = useState(createTauriFolderPicker);
 
-  return (
-    <SettingsProvider store={settingsStore}>
-      <WorkspaceLoader fs={workspaceFs} />
-    </SettingsProvider>
-  );
+  return <WorkspaceLoader fs={workspaceFs} picker={picker} />;
 }
 
 export const indexRoute = createRoute({
