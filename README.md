@@ -42,10 +42,14 @@ Rust backend tests: `cd src-tauri && cargo test`.
 > The home route renders the workspace layout (sidebar collection tree, request tabs,
 > URL bar, request/response panes, console). No real HTTP or in-app request editing yet.
 >
-> Per-installation UI settings (panel split sizes, whether the console is hidden, and
-> keyboard-shortcut overrides) persist to a `settings.json` in the OS app-config dir via
-> the Tauri Store plugin, restored on launch. In `npm run dev` (browser, no native shell)
-> there is no Tauri host, so settings fall back to defaults and saving is a no-op.
+> Per-installation UI settings (panel split sizes, whether the console is hidden, and the
+> set of open request tabs + the active one) persist to a `settings.json` in the OS
+> app-config dir via the Tauri Store plugin, restored on launch (open tabs reopen on
+> restart; ids no longer in the workspace are dropped, in-memory drafts are not persisted).
+> Keyboard-shortcut overrides are stored separately in a `keymap.json` in the same dir, so
+> a user can sync their keymap across devices independently of the device-local UI state.
+> In `npm run dev` (browser, no native shell) there is no Tauri host, so settings fall back
+> to defaults and saving is a no-op.
 >
 > Every wired action has a configurable keyboard shortcut (TanStack Hotkeys). Defaults:
 > open settings `Mod+Shift+S`, close settings `Esc`, toggle console `Mod+J`, toggle sidebar

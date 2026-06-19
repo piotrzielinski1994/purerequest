@@ -14,6 +14,8 @@ export type Settings = {
   consoleHidden: boolean;
   sidebarHidden: boolean;
   shortcuts: ShortcutOverrides;
+  openRequestIds: string[];
+  activeRequestId: string | null;
   workspacePath?: string;
 };
 
@@ -28,6 +30,8 @@ export const DEFAULT_SETTINGS: Settings = {
   consoleHidden: false,
   sidebarHidden: false,
   shortcuts: {},
+  openRequestIds: [],
+  activeRequestId: null,
 };
 
 const GROUP_KEYS: PanelGroupKey[] = ["workspace", "main", "content"];
@@ -71,10 +75,23 @@ function mergeShortcuts(partial: unknown): ShortcutOverrides {
   );
 }
 
+function mergeOpenRequestIds(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((id): id is string => typeof id === "string");
+}
+
 export function mergeSettings(defaults: Settings, partial: unknown): Settings {
   if (!isRecord(partial)) {
     return defaults;
   }
+  const openRequestIds = mergeOpenRequestIds(partial.openRequestIds);
+  const activeRequestId =
+    typeof partial.activeRequestId === "string" &&
+    openRequestIds.includes(partial.activeRequestId)
+      ? partial.activeRequestId
+      : null;
   return {
     version: defaults.version,
     layouts: mergeLayouts(partial.layouts),
@@ -87,6 +104,8 @@ export function mergeSettings(defaults: Settings, partial: unknown): Settings {
         ? partial.sidebarHidden
         : defaults.sidebarHidden,
     shortcuts: mergeShortcuts(partial.shortcuts),
+    openRequestIds,
+    activeRequestId,
     workspacePath:
       typeof partial.workspacePath === "string"
         ? partial.workspacePath

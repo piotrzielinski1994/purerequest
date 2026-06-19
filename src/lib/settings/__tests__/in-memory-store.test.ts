@@ -19,6 +19,8 @@ describe("createInMemorySettingsStore", () => {
       consoleHidden: true,
       sidebarHidden: false,
       shortcuts: {},
+      openRequestIds: [],
+      activeRequestId: null,
     };
     const store = createInMemorySettingsStore(initial);
 
@@ -34,6 +36,8 @@ describe("createInMemorySettingsStore", () => {
       consoleHidden: false,
       sidebarHidden: false,
       shortcuts: {},
+      openRequestIds: [],
+      activeRequestId: null,
     };
 
     await store.save(saved);
@@ -51,6 +55,8 @@ describe("createInMemorySettingsStore", () => {
       consoleHidden: false,
       sidebarHidden: false,
       shortcuts: {},
+      openRequestIds: [],
+      activeRequestId: null,
     });
     await store.save({
       version: 1,
@@ -58,6 +64,8 @@ describe("createInMemorySettingsStore", () => {
       consoleHidden: true,
       sidebarHidden: false,
       shortcuts: {},
+      openRequestIds: [],
+      activeRequestId: null,
     });
 
     expect(await store.load()).toEqual({
@@ -66,6 +74,8 @@ describe("createInMemorySettingsStore", () => {
       consoleHidden: true,
       sidebarHidden: false,
       shortcuts: {},
+      openRequestIds: [],
+      activeRequestId: null,
     });
   });
 });

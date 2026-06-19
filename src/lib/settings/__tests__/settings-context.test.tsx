@@ -89,6 +89,8 @@ describe("SettingsProvider", () => {
       consoleHidden: true,
       sidebarHidden: false,
       shortcuts: {},
+      openRequestIds: [],
+      activeRequestId: null,
     };
     const store = createInMemorySettingsStore(seeded);
 

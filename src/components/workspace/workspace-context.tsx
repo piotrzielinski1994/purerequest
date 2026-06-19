@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -75,6 +76,11 @@ type WorkspaceProviderProps = {
   consoleLines?: string[];
   initialExpandedIds?: string[];
   initialActiveRequestId?: string;
+  initialOpenRequestIds?: string[];
+  onTabsChange?: (
+    openRequestIds: string[],
+    activeRequestId: string | null,
+  ) => void;
 };
 
 export function WorkspaceProvider({
@@ -83,6 +89,8 @@ export function WorkspaceProvider({
   consoleLines = mockConsoleLines,
   initialExpandedIds = [],
   initialActiveRequestId,
+  initialOpenRequestIds,
+  onTabsChange,
 }: WorkspaceProviderProps) {
   const [drafts, setDrafts] = useState<RequestNode[]>([]);
   const draftCounter = useRef(0);
@@ -93,23 +101,55 @@ export function WorkspaceProvider({
     return byId;
   }, [tree, drafts]);
 
+  const restoredOpenIds = useMemo(() => {
+    const known = indexRequests(tree);
+    const restored = (initialOpenRequestIds ?? []).filter((id) =>
+      known.has(id),
+    );
+    if (restored.length > 0) {
+      return restored;
+    }
+    return initialActiveRequestId ? [initialActiveRequestId] : [];
+  }, [tree, initialOpenRequestIds, initialActiveRequestId]);
+
   const [expandedFolderIds, setExpandedFolderIds] = useState(
     () => new Set(initialExpandedIds),
   );
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
-    initialActiveRequestId ?? null,
+    initialActiveRequestId ?? restoredOpenIds[0] ?? null,
   );
   const [openRequestIds, setOpenRequestIds] = useState<string[]>(
-    initialActiveRequestId ? [initialActiveRequestId] : [],
+    restoredOpenIds,
   );
   const [activeRequestId, setActiveRequestId] = useState<string | null>(
-    initialActiveRequestId ?? null,
+    initialActiveRequestId ?? restoredOpenIds[0] ?? null,
   );
   const [activeRequestTab, setActiveRequestTab] = useState<RequestTab>("params");
   const [activeResponseTab, setActiveResponseTab] =
     useState<ResponseTab>("response");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSettingsActive, setIsSettingsActive] = useState(false);
+
+  const onTabsChangeRef = useRef(onTabsChange);
+  useEffect(() => {
+    onTabsChangeRef.current = onTabsChange;
+  }, [onTabsChange]);
+  const isFirstTabsRender = useRef(true);
+  useEffect(() => {
+    if (isFirstTabsRender.current) {
+      isFirstTabsRender.current = false;
+      return;
+    }
+    const persistableIds = openRequestIds.filter(
+      (id) => !id.startsWith("draft-"),
+    );
+    onTabsChangeRef.current?.(
+      persistableIds,
+      activeRequestId !== null && persistableIds.includes(activeRequestId)
+        ? activeRequestId
+        : null,
+    );
+  }, [openRequestIds, activeRequestId]);
 
   const value = useMemo<WorkspaceContextValue>(() => {
     const selectNode = (id: string) => {

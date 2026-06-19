@@ -47,6 +47,8 @@ describe("mergeSettings sidebarHidden", () => {
       consoleHidden: false,
       sidebarHidden: true,
       shortcuts: {},
+      openRequestIds: [],
+      activeRequestId: null,
     };
 
     expect(mergeSettings(DEFAULT_SETTINGS, full)).toEqual(full);

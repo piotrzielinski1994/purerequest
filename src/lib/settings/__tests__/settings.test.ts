@@ -16,6 +16,8 @@ describe("mergeSettings", () => {
       consoleHidden: true,
       sidebarHidden: false,
       shortcuts: {},
+      openRequestIds: [],
+      activeRequestId: null,
     };
 
     expect(mergeSettings(DEFAULT_SETTINGS, full)).toEqual(full);
@@ -54,6 +56,8 @@ describe("mergeSettings", () => {
       consoleHidden: true,
       sidebarHidden: false,
       shortcuts: {},
+      openRequestIds: [],
+      activeRequestId: null,
     });
     expect(merged).not.toHaveProperty("bogus");
     expect(merged).not.toHaveProperty("extra");
@@ -88,6 +92,62 @@ describe("mergeSettings", () => {
     expect(() => mergeSettings(DEFAULT_SETTINGS, [])).not.toThrow();
     expect(() => mergeSettings(DEFAULT_SETTINGS, true)).not.toThrow();
     expect(() => mergeSettings(DEFAULT_SETTINGS, null)).not.toThrow();
+  });
+});
+
+describe("mergeSettings open tabs", () => {
+  it("should default openRequestIds to empty and activeRequestId to null if absent", () => {
+    const merged = mergeSettings(DEFAULT_SETTINGS, { consoleHidden: true });
+
+    expect(merged.openRequestIds).toEqual([]);
+    expect(merged.activeRequestId).toBeNull();
+  });
+
+  it("should keep a valid openRequestIds list and active id", () => {
+    const partial = {
+      openRequestIds: ["req-a", "req-b"],
+      activeRequestId: "req-b",
+    };
+
+    const merged = mergeSettings(DEFAULT_SETTINGS, partial);
+
+    expect(merged.openRequestIds).toEqual(["req-a", "req-b"]);
+    expect(merged.activeRequestId).toBe("req-b");
+  });
+
+  it("should drop non-string entries from openRequestIds", () => {
+    const partial = { openRequestIds: ["req-a", 42, null, "req-b"] };
+
+    const merged = mergeSettings(DEFAULT_SETTINGS, partial);
+
+    expect(merged.openRequestIds).toEqual(["req-a", "req-b"]);
+  });
+
+  it("should null the activeRequestId if it is not among the open ids", () => {
+    const partial = {
+      openRequestIds: ["req-a"],
+      activeRequestId: "req-gone",
+    };
+
+    const merged = mergeSettings(DEFAULT_SETTINGS, partial);
+
+    expect(merged.activeRequestId).toBeNull();
+  });
+
+  it("should yield an empty list if openRequestIds is not an array", () => {
+    const merged = mergeSettings(DEFAULT_SETTINGS, { openRequestIds: "nope" });
+
+    expect(merged.openRequestIds).toEqual([]);
+    expect(merged.activeRequestId).toBeNull();
+  });
+
+  it("should not throw if the open-tab fields are garbage", () => {
+    expect(() =>
+      mergeSettings(DEFAULT_SETTINGS, {
+        openRequestIds: 42,
+        activeRequestId: [],
+      }),
+    ).not.toThrow();
   });
 });
 
