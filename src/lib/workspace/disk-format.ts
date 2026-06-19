@@ -2,7 +2,6 @@ import type {
   ConfigScope,
   FolderNode,
   HttpMethod,
-  RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
 
@@ -20,9 +19,10 @@ type ParsedRequest = {
   url?: string;
   body?: string;
   config?: ConfigScope;
+  order?: number;
 };
 
-type ParsedFolder = { name?: string; config?: ConfigScope };
+type ParsedFolder = { name?: string; config?: ConfigScope; order?: number };
 
 function tryParse<T>(raw: string): T | undefined {
   try {
@@ -54,6 +54,8 @@ function uniqueSlug(base: string, used: Set<string>): string {
   return slug;
 }
 
+type Ordered = { node: TreeNode; order?: number };
+
 function sortNodes(nodes: TreeNode[]): TreeNode[] {
   return [...nodes].sort((a, b) => {
     if (a.kind !== b.kind) {
@@ -63,23 +65,36 @@ function sortNodes(nodes: TreeNode[]): TreeNode[] {
   });
 }
 
+function sortOrdered(entries: Ordered[]): TreeNode[] {
+  const ordered = entries
+    .filter((entry): entry is Ordered & { order: number } =>
+      entry.order !== undefined,
+    )
+    .sort((a, b) => a.order - b.order)
+    .map((entry) => entry.node);
+  const unordered = sortNodes(
+    entries.filter((entry) => entry.order === undefined).map((e) => e.node),
+  );
+  return [...ordered, ...unordered];
+}
+
 function serializeInto(
   files: FileMap,
   nodes: TreeNode[],
   prefix: string,
 ): void {
   const used = new Set<string>();
-  for (const node of sortNodes(nodes)) {
+  nodes.forEach((node, order) => {
     const slug = uniqueSlug(slugify(node.name), used);
     if (node.kind === "folder") {
       const dir = `${prefix}${slug}`;
       files[`${dir}/folder.json`] = JSON.stringify(
-        { name: node.name, config: node.config },
+        { name: node.name, config: node.config, order },
         null,
         2,
       );
       serializeInto(files, node.children, `${dir}/`);
-      continue;
+      return;
     }
     files[`${prefix}${slug}.req.json`] = JSON.stringify(
       {
@@ -88,11 +103,12 @@ function serializeInto(
         url: node.url,
         body: node.body,
         config: node.config,
+        order,
       },
       null,
       2,
     );
-  }
+  });
 }
 
 export function serialize(
@@ -101,7 +117,7 @@ export function serialize(
 ): FileMap {
   const files: FileMap = {
     [MANIFEST]: JSON.stringify(
-      { schemaVersion: 1, name: workspaceName },
+      { schemaVersion: 2, name: workspaceName },
       null,
       2,
     ),
@@ -114,20 +130,23 @@ function parseRequest(
   files: FileMap,
   path: string,
   prefix: string,
-): RequestNode | null {
+): Ordered | null {
   const parsed = tryParse<ParsedRequest>(files[path]);
   if (!parsed) {
     return null;
   }
   const slug = path.slice(prefix.length).replace(/\.req\.json$/, "");
   return {
-    kind: "request",
-    id: path.replace(/\.req\.json$/, ""),
-    name: parsed.name ?? slug,
-    method: parsed.method ?? "GET",
-    url: parsed.url ?? "",
-    body: parsed.body ?? "",
-    config: parsed.config ?? {},
+    order: parsed.order,
+    node: {
+      kind: "request",
+      id: path.replace(/\.req\.json$/, ""),
+      name: parsed.name ?? slug,
+      method: parsed.method ?? "GET",
+      url: parsed.url ?? "",
+      body: parsed.body ?? "",
+      config: parsed.config ?? {},
+    },
   };
 }
 
@@ -155,15 +174,15 @@ function buildLevel(
   }
 
   const requests = requestPaths.flatMap((path) => {
-    const node = parseRequest(files, path, prefix);
-    if (!node) {
+    const entry = parseRequest(files, path, prefix);
+    if (!entry) {
       skipped.push(path);
       return [];
     }
-    return [node];
+    return [entry];
   });
 
-  const folders = [...subdirs].flatMap<TreeNode>((segment) => {
+  const folders = [...subdirs].flatMap<Ordered>((segment) => {
     const dir = `${prefix}${segment}`;
     const folderJsonPath = `${dir}/folder.json`;
     const raw = files[folderJsonPath];
@@ -179,10 +198,10 @@ function buildLevel(
       config: parsed?.config ?? {},
       children: buildLevel(files, `${dir}/`, skipped),
     };
-    return [folder];
+    return [{ order: parsed?.order, node: folder }];
   });
 
-  return sortNodes([...requests, ...folders]);
+  return sortOrdered([...requests, ...folders]);
 }
 
 export function deserialize(files: FileMap): DeserializeResult {

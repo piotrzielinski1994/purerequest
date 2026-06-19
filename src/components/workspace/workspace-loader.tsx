@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { useSettings } from "@/lib/settings/settings-context";
-import { deserialize } from "@/lib/workspace/disk-format";
+import { deserialize, serialize } from "@/lib/workspace/disk-format";
 import type { WorkspaceFs } from "@/lib/workspace/fs";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
 import type { TreeNode } from "@/lib/workspace/model";
@@ -10,7 +10,24 @@ import type { TreeNode } from "@/lib/workspace/model";
 type LoadState =
   | { status: "loading" }
   | { status: "empty" }
-  | { status: "loaded"; tree: TreeNode[]; consoleLines: string[] };
+  | {
+      status: "loaded";
+      tree: TreeNode[];
+      consoleLines: string[];
+      workspaceName: string;
+    };
+
+function readWorkspaceName(manifestRaw: string | undefined): string {
+  if (manifestRaw === undefined) {
+    return "Workspace";
+  }
+  try {
+    const parsed = JSON.parse(manifestRaw) as { name?: string };
+    return parsed.name ?? "Workspace";
+  } catch {
+    return "Workspace";
+  }
+}
 
 const EMPTY_CONSOLE_LINES = [
   '[workspace] Set "workspacePath" in settings.json to an exported workspace folder.',
@@ -51,7 +68,12 @@ export function WorkspaceLoader({
       const consoleLines = parsed.skipped.map(
         (path) => `[workspace] skipped malformed file: ${path}`,
       );
-      setState({ status: "loaded", tree: parsed.tree, consoleLines });
+      setState({
+        status: "loaded",
+        tree: parsed.tree,
+        consoleLines,
+        workspaceName: readWorkspaceName(read.files["requi.workspace.json"]),
+      });
     });
     return () => {
       isMounted = false;
@@ -70,12 +92,17 @@ export function WorkspaceLoader({
     );
   }
 
+  const workspaceName = state.workspaceName;
   return (
     <WorkspaceProvider
+      key={workspacePath}
       tree={state.tree}
       consoleLines={state.consoleLines}
       initialOpenRequestIds={initialOpenRequestIds}
       onTabsChange={saveOpenTabs}
+      onTreeChange={(tree) =>
+        fs.writeWorkspace(workspacePath ?? "", serialize(tree, workspaceName))
+      }
     >
       <WorkspaceLayout picker={picker} />
     </WorkspaceProvider>

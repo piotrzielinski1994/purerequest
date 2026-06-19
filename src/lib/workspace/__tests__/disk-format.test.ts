@@ -138,13 +138,13 @@ describe("disk-format round-trip", () => {
 
 describe("disk-format serialize", () => {
   // AC-012 - behavior
-  it("should emit a requi.workspace.json manifest with schemaVersion 1 and the workspace name", () => {
+  it("should emit a requi.workspace.json manifest with schemaVersion 2 and the workspace name", () => {
     const map = serialize([], "My API");
 
     const manifestRaw = map["requi.workspace.json"];
     expect(manifestRaw).toBeDefined();
     expect(JSON.parse(manifestRaw)).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       name: "My API",
     });
   });

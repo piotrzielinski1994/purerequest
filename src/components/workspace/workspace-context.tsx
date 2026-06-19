@@ -17,6 +17,8 @@ import {
   resolveConfig,
   type EffectiveConfig,
 } from "@/lib/workspace/resolve";
+import { moveNode as applyMove, type MoveTarget } from "@/lib/workspace/move";
+import type { WriteResult } from "@/lib/workspace/fs";
 
 export type RequestTab =
   | "auth"
@@ -44,6 +46,8 @@ type WorkspaceContextValue = {
   toggleFolder: (id: string) => void;
   selectNode: (id: string) => void;
   setActiveRequest: (id: string) => void;
+  reorderRequests: (nextIds: string[]) => void;
+  moveNode: (dragId: string, target: MoveTarget) => void;
   closeRequest: (id: string) => void;
   closeAllRequests: () => void;
   setRequestBody: (id: string, body: string) => void;
@@ -83,17 +87,22 @@ type WorkspaceProviderProps = {
     openRequestIds: string[],
     activeRequestId: string | null,
   ) => void;
+  onTreeChange?: (tree: TreeNode[]) => Promise<WriteResult>;
 };
 
 export function WorkspaceProvider({
   children,
-  tree = mockTree,
-  consoleLines = mockConsoleLines,
+  tree: initialTree = mockTree,
+  consoleLines: initialConsoleLines = mockConsoleLines,
   initialExpandedIds = [],
   initialActiveRequestId,
   initialOpenRequestIds,
   onTabsChange,
+  onTreeChange,
 }: WorkspaceProviderProps) {
+  const [tree, setTree] = useState<TreeNode[]>(initialTree);
+  const [consoleLines, setConsoleLines] =
+    useState<string[]>(initialConsoleLines);
   const [drafts, setDrafts] = useState<RequestNode[]>([]);
   const [bodyOverrides, setBodyOverrides] = useState<Map<string, string>>(
     () => new Map(),
@@ -145,6 +154,10 @@ export function WorkspaceProvider({
   useEffect(() => {
     onTabsChangeRef.current = onTabsChange;
   }, [onTabsChange]);
+  const onTreeChangeRef = useRef(onTreeChange);
+  useEffect(() => {
+    onTreeChangeRef.current = onTreeChange;
+  }, [onTreeChange]);
   const isFirstTabsRender = useRef(true);
   useEffect(() => {
     if (isFirstTabsRender.current) {
@@ -264,6 +277,28 @@ export function WorkspaceProvider({
       setActiveRequest: (id) => {
         setIsSettingsActive(false);
         setActiveRequestId(id);
+      },
+      reorderRequests: (nextIds) =>
+        setOpenRequestIds((current) => {
+          const isPermutation =
+            nextIds.length === current.length &&
+            nextIds.every((id) => current.includes(id));
+          return isPermutation ? nextIds : current;
+        }),
+      moveNode: (dragId, target) => {
+        const next = applyMove(tree, dragId, target);
+        if (next === tree) {
+          return;
+        }
+        setTree(next);
+        onTreeChangeRef.current?.(next).then((result) => {
+          if (!result.ok) {
+            setConsoleLines((lines) => [
+              ...lines,
+              `[workspace] failed to persist move: ${result.error}`,
+            ]);
+          }
+        });
       },
       closeRequest,
       closeAllRequests,

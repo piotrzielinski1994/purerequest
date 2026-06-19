@@ -68,20 +68,29 @@ Rust backend tests: `cd src-tauri && cargo test`.
 > shortcut there (no on-screen link yet); a new binding is rejected if another action already
 > uses it. Settings is not a route, so it never resets the workspace.
 >
+> Drag-and-drop: open request tabs can be dragged to reorder them (the new order persists
+> like the rest of the tab state). In the sidebar collection tree, drag a request or folder
+> onto another folder to move it inside, or between two rows to reorder siblings; the change
+> is written back to the workspace on disk so it survives a reload (in `npm run dev` there is
+> no Tauri host, so the move stays in-session only).
+>
 > A **workspace** is a folder on disk holding the collection tree + config. Point the app
 > at one by hand-editing `workspacePath` in that same `settings.json`; it loads on launch
 > (empty state if unset/invalid). Folders/requests carry an inheritable config (variables,
 > headers, params, auth, scripts, timeout); a request resolves it by inheriting from its
 > folder chain (child overrides parent) - the request pane's read-only **Effective** tab
 > shows each resolved value and where it came from. Config is authored by hand-editing the
-> workspace files (no in-app editing or save yet). On-disk format:
+> workspace files (no in-app editing or save yet). On-disk format (schemaVersion 2):
 >
 > ```
 > <workspace>/
 >   requi.workspace.json        manifest { schemaVersion, name }
->   <folder>/folder.json        { name, config }
->   <folder>/<request>.req.json { name, method, url, body, config }
+>   <folder>/folder.json        { name, config, order }
+>   <folder>/<request>.req.json { name, method, url, body, config, order }
 > ```
+>
+> `order` is the node's position among its siblings (written on a drag-move; siblings sort by
+> it on load, folders-first-then-name for legacy v1 files that lack it).
 >
 > Workspace files (including auth tokens / variable values) are stored **plaintext** -
 > treat a workspace folder as sensitive and gitignore secrets accordingly.
