@@ -1,5 +1,5 @@
 import type { FileMap } from "@/lib/workspace/disk-format";
-import type { ReadResult, WorkspaceFs } from "@/lib/workspace/fs";
+import type { ReadResult, WorkspaceFs, WriteResult } from "@/lib/workspace/fs";
 
 export function createInMemoryWorkspaceFs(
   workspaces: Record<string, FileMap>,
@@ -14,6 +14,10 @@ export function createInMemoryWorkspaceFs(
         });
       }
       return Promise.resolve({ ok: true, files });
+    },
+    writeWorkspace: (rootPath, files): Promise<WriteResult> => {
+      workspaces[rootPath] = files;
+      return Promise.resolve({ ok: true });
     },
   };
 }

@@ -1,6 +1,7 @@
-import { readDir, readTextFile } from "@tauri-apps/plugin-fs";
+import { mkdir, readDir, readTextFile, remove, writeTextFile } from "@tauri-apps/plugin-fs";
 import type { FileMap } from "@/lib/workspace/disk-format";
-import type { ReadResult, WorkspaceFs } from "@/lib/workspace/fs";
+import type { ReadResult, WorkspaceFs, WriteResult } from "@/lib/workspace/fs";
+import { planReconcile } from "@/lib/workspace/reconcile";
 
 const MANAGED_FILE =
   /(?:^|\/)folder\.json$|\.req\.json$|^requi\.workspace\.json$/;
@@ -24,6 +25,33 @@ async function collect(
   }
 }
 
+function parentDir(relPath: string): string | null {
+  const slash = relPath.lastIndexOf("/");
+  return slash === -1 ? null : relPath.slice(0, slash);
+}
+
+function emptyDirsAfterRemoval(next: FileMap, removed: string[]): string[] {
+  const survivingDirs = new Set<string>();
+  for (const path of Object.keys(next)) {
+    let dir = parentDir(path);
+    while (dir !== null) {
+      survivingDirs.add(dir);
+      dir = parentDir(dir);
+    }
+  }
+  const candidates = new Set<string>();
+  for (const path of removed) {
+    let dir = parentDir(path);
+    while (dir !== null) {
+      candidates.add(dir);
+      dir = parentDir(dir);
+    }
+  }
+  return [...candidates]
+    .filter((dir) => !survivingDirs.has(dir))
+    .sort((a, b) => b.length - a.length);
+}
+
 export function createTauriWorkspaceFs(): WorkspaceFs {
   return {
     readWorkspace: async (rootPath): Promise<ReadResult> => {
@@ -33,6 +61,33 @@ export function createTauriWorkspaceFs(): WorkspaceFs {
         return { ok: true, files };
       } catch (error) {
         return { ok: false, error: `Failed to read workspace: ${error}` };
+      }
+    },
+    writeWorkspace: async (rootPath, files): Promise<WriteResult> => {
+      const current: FileMap = {};
+      try {
+        await collect(rootPath, "", current);
+      } catch {
+        // Fresh/unreadable target: treat as empty, write everything.
+      }
+      const plan = planReconcile(current, files);
+      try {
+        for (const [relPath, content] of Object.entries(plan.write)) {
+          const dir = parentDir(relPath);
+          if (dir !== null) {
+            await mkdir(`${rootPath}/${dir}`, { recursive: true });
+          }
+          await writeTextFile(`${rootPath}/${relPath}`, content);
+        }
+        for (const relPath of plan.remove) {
+          await remove(`${rootPath}/${relPath}`);
+        }
+        for (const dir of emptyDirsAfterRemoval(files, plan.remove)) {
+          await remove(`${rootPath}/${dir}`).catch(() => undefined);
+        }
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: `Failed to write workspace: ${error}` };
       }
     },
   };
