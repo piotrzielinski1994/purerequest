@@ -13,6 +13,10 @@ if (!("ResizeObserver" in globalThis)) {
     ResizeObserverStub as unknown as typeof ResizeObserver;
 }
 
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 afterEach(() => {
   cleanup();
 });

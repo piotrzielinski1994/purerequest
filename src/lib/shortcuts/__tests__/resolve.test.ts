@@ -21,6 +21,7 @@ const ACTION_IDS: ShortcutActionId[] = [
   "close-request",
   "new-request",
   "open-workspace",
+  "open-command-palette",
 ];
 
 describe("SHORTCUT_ACTIONS registry", () => {

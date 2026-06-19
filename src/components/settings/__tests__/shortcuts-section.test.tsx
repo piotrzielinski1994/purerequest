@@ -18,7 +18,7 @@ import {
 } from "@/lib/shortcuts/registry";
 
 // jsdom reports a non-mac platform, so Mod records as Control (learnings).
-// Recording Control+K should canonicalize to the "Mod+K" override.
+// Recording Control+Y should canonicalize to the "Mod+Y" override.
 
 function renderSection(overrides: ShortcutOverrides = {}) {
   const seeded: Settings = { ...DEFAULT_SETTINGS, shortcuts: overrides };
@@ -50,6 +50,15 @@ describe("ShortcutsSection", () => {
     }
   });
 
+  // AC-008 — behavior
+  it("should show an Open command palette row in the shortcuts list", async () => {
+    renderSection();
+
+    expect(
+      await screen.findByText("Open command palette"),
+    ).toBeInTheDocument();
+  });
+
   // AC-006 — behavior
   it("should show each action's current binding formatted for display", async () => {
     renderSection();
@@ -60,9 +69,9 @@ describe("ShortcutsSection", () => {
 
   // AC-006 — behavior
   it("should show the override binding label if an override is set", async () => {
-    renderSection({ "toggle-console": "Mod+K" });
+    renderSection({ "toggle-console": "Mod+Y" });
 
-    const overrideLabel = formatForDisplay("Mod+K");
+    const overrideLabel = formatForDisplay("Mod+Y");
     expect(await screen.findByText(overrideLabel)).toBeInTheDocument();
   });
 
@@ -76,14 +85,14 @@ describe("ShortcutsSection", () => {
     });
     await user.click(editButton);
 
-    // Mod+K is unused by any other action -> free.
-    await user.keyboard("{Control>}k{/Control}");
+    // Mod+Y is unused by any other action -> free.
+    await user.keyboard("{Control>}y{/Control}");
 
     await waitFor(() => {
       expect(saveSpy).toHaveBeenCalled();
     });
     const persisted = saveSpy.mock.calls.at(-1)![0];
-    expect(persisted.shortcuts["toggle-console"]).toBe("Mod+K");
+    expect(persisted.shortcuts["toggle-console"]).toBe("Mod+Y");
   });
 
   // AC-004, TC-003 — side-effect-contract
