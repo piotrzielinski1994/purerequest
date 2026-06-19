@@ -7,7 +7,8 @@ export type ShortcutActionId =
   | "prev-request"
   | "close-request"
   | "new-request"
-  | "open-workspace";
+  | "open-workspace"
+  | "open-command-palette";
 
 export type ShortcutAction = {
   id: ShortcutActionId;
@@ -72,5 +73,11 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     name: "Open workspace",
     description: "Pick a workspace folder to load.",
     defaultHotkey: "Mod+O",
+  },
+  {
+    id: "open-command-palette",
+    name: "Open command palette",
+    description: "Search and run any action from a command list.",
+    defaultHotkey: "Mod+K",
   },
 ];
