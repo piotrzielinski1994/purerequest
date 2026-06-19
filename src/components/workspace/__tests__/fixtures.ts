@@ -113,3 +113,36 @@ export const fixtureTree: TreeNode[] = [
   profileRequest,
   sessionRequest,
 ];
+
+// Body-editor fixtures: the shared tree above has only empty bodies, but the
+// body-editor spec (TC-001/AC-004) needs a request seeded with real JSON text,
+// plus a sibling with a distinct body to prove per-id isolation (TC-005/AC-006).
+export const JSON_BODY = '{\n  "grant_type": "client_credentials"\n}';
+export const OTHER_BODY = '{\n  "id": 42\n}';
+
+export const jsonBodyRequest: RequestNode = {
+  ...tokenRequest,
+  id: "req-json-body",
+  name: "json-body",
+  body: JSON_BODY,
+};
+
+export const otherBodyRequest: RequestNode = {
+  ...profileRequest,
+  id: "req-other-body",
+  name: "other-body",
+  body: OTHER_BODY,
+};
+
+export const emptyBodyRequest: RequestNode = {
+  ...sessionRequest,
+  id: "req-empty-body",
+  name: "empty-body",
+  body: "",
+};
+
+export const bodyFixtureTree: TreeNode[] = [
+  jsonBodyRequest,
+  otherBodyRequest,
+  emptyBodyRequest,
+];

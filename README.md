@@ -40,7 +40,10 @@ npm install
 Rust backend tests: `cd src-tauri && cargo test`.
 
 > The home route renders the workspace layout (sidebar collection tree, request tabs,
-> URL bar, request/response panes, console). No real HTTP or in-app request editing yet.
+> URL bar, request/response panes, console). No real HTTP yet. The request pane's **Body**
+> tab is a CodeMirror editor (JetBrains Darcula theme, JSON syntax highlighting, auto-closing
+> brackets, and inline JSON syntax linting - malformed JSON gets a red underline + gutter
+> marker); edits live in session memory only and are not yet written back to disk.
 >
 > Per-installation UI settings (panel split sizes, whether the console is hidden, and the
 > set of open request tabs + the active one) persist to a `settings.json` in the OS

@@ -46,6 +46,7 @@ type WorkspaceContextValue = {
   setActiveRequest: (id: string) => void;
   closeRequest: (id: string) => void;
   closeAllRequests: () => void;
+  setRequestBody: (id: string, body: string) => void;
   setRequestTab: (tab: RequestTab) => void;
   setResponseTab: (tab: ResponseTab) => void;
   openSettings: () => void;
@@ -94,13 +95,22 @@ export function WorkspaceProvider({
   onTabsChange,
 }: WorkspaceProviderProps) {
   const [drafts, setDrafts] = useState<RequestNode[]>([]);
+  const [bodyOverrides, setBodyOverrides] = useState<Map<string, string>>(
+    () => new Map(),
+  );
   const draftCounter = useRef(0);
 
   const requestsById = useMemo(() => {
     const byId = indexRequests(tree);
     drafts.forEach((draft) => byId.set(draft.id, draft));
+    bodyOverrides.forEach((body, id) => {
+      const base = byId.get(id);
+      if (base) {
+        byId.set(id, { ...base, body });
+      }
+    });
     return byId;
-  }, [tree, drafts]);
+  }, [tree, drafts, bodyOverrides]);
 
   const restoredOpenIds = useMemo(() => {
     const known = indexRequests(tree);
@@ -183,14 +193,31 @@ export function WorkspaceProvider({
         return next;
       });
       setDrafts((current) => current.filter((draft) => draft.id !== id));
+      setBodyOverrides((current) => {
+        if (!current.has(id)) {
+          return current;
+        }
+        const next = new Map(current);
+        next.delete(id);
+        return next;
+      });
     };
 
     const closeAllRequests = () => {
       setOpenRequestIds([]);
       setActiveRequestId(null);
       setDrafts([]);
+      setBodyOverrides(new Map());
       setIsSettingsOpen(false);
       setIsSettingsActive(false);
+    };
+
+    const setRequestBody = (id: string, body: string) => {
+      setBodyOverrides((current) => {
+        const next = new Map(current);
+        next.set(id, body);
+        return next;
+      });
     };
 
     const newRequest = () => {
@@ -240,6 +267,7 @@ export function WorkspaceProvider({
       },
       closeRequest,
       closeAllRequests,
+      setRequestBody,
       setRequestTab: setActiveRequestTab,
       setResponseTab: setActiveResponseTab,
       openSettings: () => {

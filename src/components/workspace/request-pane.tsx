@@ -13,6 +13,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { KeyValueTable } from "@/components/workspace/key-value-table";
+import { BodyEditor } from "@/components/workspace/body-editor";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import type { Auth, RequestNode } from "@/components/workspace/mock-data";
 import type { EffectiveConfig, ResolvedValue } from "@/lib/workspace/resolve";
@@ -201,7 +202,8 @@ function EffectivePanel({ effective }: { effective: EffectiveConfig }) {
 }
 
 function RequestTabs({ request }: { request: RequestNode }) {
-  const { activeRequestTab, setRequestTab, effectiveConfig } = useWorkspace();
+  const { activeRequestTab, setRequestTab, setRequestBody, effectiveConfig } =
+    useWorkspace();
 
   return (
     <Tabs
@@ -246,10 +248,12 @@ function RequestTabs({ request }: { request: RequestNode }) {
           emptyLabel="No query params"
         />
       </TabsContent>
-      <TabsContent value="body">
-        <pre className="p-3 font-mono text-xs text-muted-foreground">
-          {request.body || "No body"}
-        </pre>
+      <TabsContent value="body" className="min-h-0 flex-1">
+        <BodyEditor
+          key={request.id}
+          value={request.body}
+          onChange={(body) => setRequestBody(request.id, body)}
+        />
       </TabsContent>
       <TabsContent value="script">
         <pre className="p-3 font-mono text-xs text-muted-foreground">
