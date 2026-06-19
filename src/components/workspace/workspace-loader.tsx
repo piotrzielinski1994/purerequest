@@ -23,11 +23,12 @@ export function WorkspaceLoader({
   fs: WorkspaceFs;
   picker?: FolderPicker;
 }) {
-  const { settings } = useSettings();
+  const { settings, saveOpenTabs } = useSettings();
   const workspacePath = settings.workspacePath;
   const [state, setState] = useState<LoadState>(
     workspacePath ? { status: "loading" } : { status: "empty" },
   );
+  const [initialOpenRequestIds] = useState(settings.openRequestIds);
 
   useEffect(() => {
     if (!workspacePath) {
@@ -70,7 +71,12 @@ export function WorkspaceLoader({
   }
 
   return (
-    <WorkspaceProvider tree={state.tree} consoleLines={state.consoleLines}>
+    <WorkspaceProvider
+      tree={state.tree}
+      consoleLines={state.consoleLines}
+      initialOpenRequestIds={initialOpenRequestIds}
+      onTabsChange={saveOpenTabs}
+    >
       <WorkspaceLayout picker={picker} />
     </WorkspaceProvider>
   );
