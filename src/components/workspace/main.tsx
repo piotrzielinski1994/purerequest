@@ -10,6 +10,7 @@ import {
   CommandPalette,
   type PaletteCommand,
 } from "@/components/workspace/command-palette";
+import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import { useSettings } from "@/lib/settings/settings-context";
 import { useActionHotkeys } from "@/lib/shortcuts/use-action-hotkeys";
@@ -27,14 +28,17 @@ export function Main({ picker }: { picker?: FolderPicker }) {
     openRequestIds,
     activeRequestId,
     isSettingsActive,
+    editTarget,
     setActiveRequest,
-    closeRequest,
-    closeAllRequests,
+    requestCloseRequest,
+    requestCloseAll,
+    requestCloseEditor,
     openSettings,
     closeSettings,
     newRequest,
     sendRequest,
     saveActiveEditor,
+    saveActiveRequest,
   } = useWorkspace();
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
 
@@ -76,11 +80,15 @@ export function Main({ picker }: { picker?: FolderPicker }) {
         closeSettings();
         return;
       }
+      if (editTarget !== null) {
+        requestCloseEditor();
+        return;
+      }
       if (activeRequestId !== null) {
-        closeRequest(activeRequestId);
+        requestCloseRequest(activeRequestId);
       }
     },
-    "close-all-requests": () => closeAllRequests(),
+    "close-all-requests": () => requestCloseAll(),
     "new-request": () => newRequest(),
     "open-workspace": openWorkspace,
     "send-request": () => {
@@ -88,7 +96,11 @@ export function Main({ picker }: { picker?: FolderPicker }) {
         sendRequest(activeRequestId);
       }
     },
-    "save-active-editor": () => saveActiveEditor(),
+    "save-active-editor": () => {
+      if (!saveActiveEditor()) {
+        saveActiveRequest();
+      }
+    },
   };
 
   useActionHotkeys({
@@ -110,11 +122,14 @@ export function Main({ picker }: { picker?: FolderPicker }) {
     .filter((command): command is PaletteCommand => command !== null);
 
   const palette = (
-    <CommandPalette
-      open={isPaletteOpen}
-      onOpenChange={setIsPaletteOpen}
-      commands={commands}
-    />
+    <>
+      <CommandPalette
+        open={isPaletteOpen}
+        onOpenChange={setIsPaletteOpen}
+        commands={commands}
+      />
+      <CloseConfirmDialog />
+    </>
   );
 
   if (settings.consoleHidden) {

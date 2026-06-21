@@ -113,13 +113,15 @@ function resolveHeaders(path: Scope[]): Record<string, ResolvedValue<string>> {
       return acc;
     }
     const from = provenanceOf(scope);
-    return headers.reduce(
-      (inner, { key, value }) => ({
-        ...inner,
-        [key.toLowerCase()]: { name: key, value: { value, from } },
-      }),
-      acc,
-    );
+    return headers
+      .filter((header) => header.enabled !== false)
+      .reduce(
+        (inner, { key, value }) => ({
+          ...inner,
+          [key.toLowerCase()]: { name: key, value: { value, from } },
+        }),
+        acc,
+      );
   }, {});
   return Object.values(byLowerName).reduce(
     (acc, { name, value }) => ({ ...acc, [name]: value }),
@@ -183,7 +185,11 @@ export function resolveConfig(
       path,
       (config) =>
         config.params &&
-        Object.fromEntries(config.params.map(({ key, value }) => [key, value])),
+        Object.fromEntries(
+          config.params
+            .filter((param) => param.enabled !== false)
+            .map(({ key, value }) => [key, value]),
+        ),
     ),
     auth: resolveAuth(path),
     scripts: {

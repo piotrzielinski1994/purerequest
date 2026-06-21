@@ -7,7 +7,8 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
-import { KeyValueTable } from "@/components/workspace/key-value-table";
+import { EditableKeyValueTable } from "@/components/workspace/editable-key-value-table";
+import { useWorkspace } from "@/components/workspace/workspace-context";
 import type { Auth, ConfigScope } from "@/components/workspace/mock-data";
 
 const AUTH_TYPE_LABELS: Record<Auth["type"], string> = {
@@ -17,17 +18,34 @@ const AUTH_TYPE_LABELS: Record<Auth["type"], string> = {
   basic: "Basic Auth",
 };
 
-function PasswordField({ value }: { value: string }) {
+function PasswordField({
+  value,
+  onCommit,
+}: {
+  value: string;
+  onCommit: (value: string) => void;
+}) {
   const [isVisible, setIsVisible] = useState(false);
   const Icon = isVisible ? EyeOff : Eye;
+  const [draft, setDraft] = useState(value);
+  const [seed, setSeed] = useState(value);
+  if (seed !== value) {
+    setSeed(value);
+    setDraft(value);
+  }
 
   return (
     <div className="relative">
       <Input
         id="auth-password"
         type={isVisible ? "text" : "password"}
-        readOnly
-        value={value}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => {
+          if (draft !== value) {
+            onCommit(draft);
+          }
+        }}
         className="pr-9"
       />
       <button
@@ -43,7 +61,53 @@ function PasswordField({ value }: { value: string }) {
   );
 }
 
-function AuthFields({ auth }: { auth: Auth }) {
+// Single-field commit-on-blur input (auth token / username).
+function AuthTextField({
+  id,
+  label,
+  value,
+  mono = false,
+  onCommit,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  mono?: boolean;
+  onCommit: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const [seed, setSeed] = useState(value);
+  if (seed !== value) {
+    setSeed(value);
+    setDraft(value);
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-xs text-muted-foreground">
+        {label}
+      </label>
+      <Input
+        id={id}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => {
+          if (draft !== value) {
+            onCommit(draft);
+          }
+        }}
+        className={mono ? "font-mono" : undefined}
+      />
+    </div>
+  );
+}
+
+function AuthFields({
+  auth,
+  onChange,
+}: {
+  auth: Auth;
+  onChange: (auth: Auth) => void;
+}) {
   if (auth.type === "inherit") {
     return (
       <p className="text-sm text-muted-foreground">
@@ -58,50 +122,69 @@ function AuthFields({ auth }: { auth: Auth }) {
 
   if (auth.type === "bearer") {
     return (
-      <div className="flex flex-col gap-1">
-        <label htmlFor="auth-token" className="text-xs text-muted-foreground">
-          Token
-        </label>
-        <Input
-          id="auth-token"
-          readOnly
-          value={auth.token}
-          className="font-mono"
-        />
-      </div>
+      <AuthTextField
+        id="auth-token"
+        label="Token"
+        value={auth.token}
+        mono
+        onCommit={(token) => onChange({ type: "bearer", token })}
+      />
     );
   }
 
   return (
     <div className="flex flex-col gap-3">
+      <AuthTextField
+        id="auth-username"
+        label="Username"
+        value={auth.username}
+        onCommit={(username) => onChange({ ...auth, username })}
+      />
       <div className="flex flex-col gap-1">
-        <label
-          htmlFor="auth-username"
-          className="text-xs text-muted-foreground"
-        >
-          Username
-        </label>
-        <Input id="auth-username" readOnly value={auth.username} />
-      </div>
-      <div className="flex flex-col gap-1">
-        <label
-          htmlFor="auth-password"
-          className="text-xs text-muted-foreground"
-        >
+        <label htmlFor="auth-password" className="text-xs text-muted-foreground">
           Password
         </label>
-        <PasswordField value={auth.password} />
+        <PasswordField
+          value={auth.password}
+          onCommit={(password) => onChange({ ...auth, password })}
+        />
       </div>
     </div>
   );
 }
 
-export function AuthPanel({ auth }: { auth: Auth }) {
+// Switching auth type seeds sensible empty fields for the new variant.
+export function authForType(type: Auth["type"]): Auth {
+  if (type === "bearer") {
+    return { type: "bearer", token: "" };
+  }
+  if (type === "basic") {
+    return { type: "basic", username: "", password: "" };
+  }
+  return { type };
+}
+
+export function AuthPanel({
+  id,
+  config,
+}: {
+  id: string;
+  config: ConfigScope;
+}) {
+  const { saveNodeConfig } = useWorkspace();
+  const auth = config.auth ?? { type: "inherit" };
+
+  const change = (nextAuth: Auth) =>
+    saveNodeConfig(id, { ...config, auth: nextAuth });
+
   return (
     <div className="flex flex-col gap-3 p-3">
       <div className="flex flex-col gap-1">
         <label className="text-xs text-muted-foreground">Type</label>
-        <Select value={auth.type}>
+        <Select
+          value={auth.type}
+          onValueChange={(type) => change(authForType(type as Auth["type"]))}
+        >
           <SelectTrigger aria-label="Auth type" className="w-48 text-xs">
             {AUTH_TYPE_LABELS[auth.type]}
           </SelectTrigger>
@@ -113,37 +196,106 @@ export function AuthPanel({ auth }: { auth: Auth }) {
           </SelectContent>
         </Select>
       </div>
-      <AuthFields auth={auth} />
+      <AuthFields auth={auth} onChange={change} />
     </div>
   );
 }
 
-export function VarsPanel({ config }: { config: ConfigScope }) {
+export function VarsPanel({ id, config }: { id: string; config: ConfigScope }) {
+  const { saveNodeConfig } = useWorkspace();
+  const rows = Object.entries(config.variables ?? {}).map(([key, value]) => ({
+    key,
+    value,
+  }));
   return (
-    <KeyValueTable
-      rows={Object.entries(config.variables ?? {}).map(([key, value]) => ({
-        key,
-        value,
-      }))}
-      emptyLabel="No variables"
+    <EditableKeyValueTable
+      rows={rows}
+      keyPlaceholder="name"
+      onChange={(next) =>
+        saveNodeConfig(id, {
+          ...config,
+          variables: Object.fromEntries(next.map((r) => [r.key, r.value])),
+        })
+      }
     />
   );
 }
 
-export function HeadersPanel({ config }: { config: ConfigScope }) {
-  return <KeyValueTable rows={config.headers ?? []} emptyLabel="No headers" />;
-}
-
-export function ParamsPanel({ config }: { config: ConfigScope }) {
+export function HeadersPanel({ id, config }: { id: string; config: ConfigScope }) {
+  const { saveNodeConfig } = useWorkspace();
   return (
-    <KeyValueTable rows={config.params ?? []} emptyLabel="No query params" />
+    <EditableKeyValueTable
+      rows={config.headers ?? []}
+      withToggle
+      onChange={(headers) => saveNodeConfig(id, { ...config, headers })}
+    />
   );
 }
 
-export function ScriptPanel({ config }: { config: ConfigScope }) {
+export function ParamsPanel({ id, config }: { id: string; config: ConfigScope }) {
+  const { saveNodeConfig } = useWorkspace();
   return (
-    <pre className="p-3 font-mono text-xs text-muted-foreground">
-      {config.scripts?.pre || "// no pre-request script"}
-    </pre>
+    <EditableKeyValueTable
+      rows={config.params ?? []}
+      withToggle
+      onChange={(params) => saveNodeConfig(id, { ...config, params })}
+    />
+  );
+}
+
+export function ScriptPanel({ id, config }: { id: string; config: ConfigScope }) {
+  const { saveNodeConfig } = useWorkspace();
+  const commit = (patch: { pre?: string; post?: string }) =>
+    saveNodeConfig(id, {
+      ...config,
+      scripts: { ...config.scripts, ...patch },
+    });
+  return (
+    <div className="flex flex-col gap-3 p-3">
+      <ScriptField
+        label="Pre-request"
+        value={config.scripts?.pre ?? ""}
+        onCommit={(pre) => commit({ pre })}
+      />
+      <ScriptField
+        label="Post-response"
+        value={config.scripts?.post ?? ""}
+        onCommit={(post) => commit({ post })}
+      />
+    </div>
+  );
+}
+
+function ScriptField({
+  label,
+  value,
+  onCommit,
+}: {
+  label: string;
+  value: string;
+  onCommit: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const [seed, setSeed] = useState(value);
+  if (seed !== value) {
+    setSeed(value);
+    setDraft(value);
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs text-muted-foreground">{label}</label>
+      <textarea
+        aria-label={label}
+        value={draft}
+        spellCheck={false}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => {
+          if (draft !== value) {
+            onCommit(draft);
+          }
+        }}
+        className="min-h-24 w-full resize-y border bg-transparent p-2 font-mono text-xs shadow-none outline-none focus-visible:ring-0"
+      />
+    </div>
   );
 }

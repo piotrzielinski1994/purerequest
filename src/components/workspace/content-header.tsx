@@ -49,12 +49,14 @@ function RequestTab({
   id,
   request,
   isActive,
+  isDirty,
   onActivate,
   onClose,
 }: {
   id: string;
   request: RequestNode;
   isActive: boolean;
+  isDirty: boolean;
   onActivate: () => void;
   onClose: () => void;
 }) {
@@ -94,6 +96,12 @@ function RequestTab({
         >
           {request.method}
         </span>
+        {isDirty && (
+          <span
+            aria-label="Unsaved changes"
+            className="size-2 shrink-0 rounded-full bg-foreground"
+          />
+        )}
         {request.name}
       </button>
       <button
@@ -113,9 +121,11 @@ export function ContentHeader() {
     openRequestIds,
     activeRequestId,
     requestsById,
+    dirtyRequestIds,
     setActiveRequest,
     reorderRequests,
-    closeRequest,
+    requestCloseRequest,
+    editorDirty,
     isSettingsOpen,
     isSettingsActive,
     editTarget,
@@ -174,8 +184,9 @@ export function ContentHeader() {
                     !isSettingsActive &&
                     editTarget === null
                   }
+                  isDirty={dirtyRequestIds.has(id)}
                   onActivate={() => setActiveRequest(id)}
-                  onClose={() => closeRequest(id)}
+                  onClose={() => requestCloseRequest(id)}
                 />
               );
             })}
@@ -189,6 +200,12 @@ export function ContentHeader() {
               className="flex items-center gap-1.5 truncate text-foreground"
             >
               <FileCog aria-hidden="true" className="size-3.5 shrink-0" />
+              {editorDirty && (
+                <span
+                  aria-label="Unsaved changes"
+                  className="size-2 shrink-0 rounded-full bg-foreground"
+                />
+              )}
               {editorTabLabel(editTarget, tree)}
             </span>
             <button

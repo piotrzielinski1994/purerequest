@@ -183,6 +183,36 @@ describe("resolveConfig - headers", () => {
     expect(effective.headers.Authorization.value).toBe("secret");
     expect(effective.headers.Authorization.from.scopeId).toBe("root");
   });
+
+  // config-grid - behavior: a header with enabled:false is excluded.
+  it("should exclude a header explicitly disabled (enabled:false)", () => {
+    const req = request("req-1", "Req", {
+      headers: [
+        { key: "Accept", value: "json" },
+        { key: "X-Debug", value: "1", enabled: false },
+      ],
+    });
+
+    const effective = resolveConfig([req], "req-1");
+
+    expect(effective.headers.Accept).toBeDefined();
+    expect(effective.headers["X-Debug"]).toBeUndefined();
+  });
+
+  // config-grid - behavior: enabled:true (or absent) is kept.
+  it("should keep a header that is enabled:true or has no enabled flag", () => {
+    const req = request("req-1", "Req", {
+      headers: [
+        { key: "Accept", value: "json" },
+        { key: "X-On", value: "1", enabled: true },
+      ],
+    });
+
+    const effective = resolveConfig([req], "req-1");
+
+    expect(effective.headers.Accept).toBeDefined();
+    expect(effective.headers["X-On"]).toBeDefined();
+  });
 });
 
 describe("resolveConfig - params", () => {
@@ -222,6 +252,21 @@ describe("resolveConfig - params", () => {
     expect(effective.params.page.from.scopeId).toBe("root");
     expect(effective.params.Page.value).toBe("child");
     expect(effective.params.Page.from.scopeId).toBe("req-1");
+  });
+
+  // config-grid - behavior: a param with enabled:false is excluded.
+  it("should exclude a param explicitly disabled (enabled:false)", () => {
+    const req = request("req-1", "Req", {
+      params: [
+        { key: "page", value: "1" },
+        { key: "debug", value: "1", enabled: false },
+      ],
+    });
+
+    const effective = resolveConfig([req], "req-1");
+
+    expect(effective.params.page).toBeDefined();
+    expect(effective.params.debug).toBeUndefined();
   });
 });
 

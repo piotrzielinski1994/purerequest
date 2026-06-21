@@ -76,9 +76,6 @@ describe("Sidebar row edit-config control", () => {
       const editor = document.querySelector(".cm-editor");
       expect(editor).not.toBeNull();
     });
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save/i })).toBeInTheDocument();
-    });
   });
 });
 
@@ -94,9 +91,6 @@ describe("Sidebar .env control", () => {
 
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
-    });
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save/i })).toBeInTheDocument();
     });
   });
 });

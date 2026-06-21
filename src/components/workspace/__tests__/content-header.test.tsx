@@ -19,6 +19,15 @@ function OpenEnvButton() {
   );
 }
 
+function EditUrlButton({ id }: { id: string }) {
+  const { setRequestUrl } = useWorkspace();
+  return (
+    <button type="button" onClick={() => setRequestUrl(id, "https://edited.test")}>
+      edit url
+    </button>
+  );
+}
+
 describe("ContentHeader", () => {
   // AC-007 — behavior
   it("should make a tab active when it is clicked", async () => {
@@ -287,6 +296,32 @@ describe("ContentHeader", () => {
     expect(
       within(tablist).getByRole("tab", { name: /\.env/i }),
     ).toHaveAttribute("aria-selected", "true");
+  });
+
+  // AC-004 - behavior: an unsaved edit renders a dirty marker on the request's tab.
+  it("should show an unsaved-changes marker on a tab if the request has a pending edit", async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkspaceProvider
+        tree={fixtureTree}
+        initialExpandedIds={[]}
+        initialActiveRequestId="req-profile"
+      >
+        <ContentHeader />
+        <EditUrlButton id="req-profile" />
+      </WorkspaceProvider>,
+    );
+
+    const tablist = screen.getByRole("tablist", { name: /open requests/i });
+    expect(
+      within(tablist).queryByLabelText(/unsaved changes/i),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /edit url/i }));
+
+    expect(
+      within(tablist).getByLabelText(/unsaved changes/i),
+    ).toBeInTheDocument();
   });
 
   // AC-007 — behavior

@@ -46,7 +46,7 @@ describe("RequestPane Vars tab", () => {
     expect(within(tablist).getByRole("tab", { name: "Vars" })).toBeInTheDocument();
   });
 
-  // behavior: the Vars tab lists the request's own variables (key + value)
+  // behavior: the Vars tab lists the request's own variables as editable inputs
   it("should list the request's own variables if the Vars tab is opened", async () => {
     const user = userEvent.setup();
     renderPane("req");
@@ -54,20 +54,23 @@ describe("RequestPane Vars tab", () => {
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
     await user.click(within(tablist).getByRole("tab", { name: "Vars" }));
 
-    expect(screen.getByText("token")).toBeInTheDocument();
-    expect(screen.getByText("tok-123")).toBeInTheDocument();
-    expect(screen.getByText("scope")).toBeInTheDocument();
-    expect(screen.getByText("read")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("token")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("tok-123")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("scope")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("read")).toBeInTheDocument();
   });
 
-  // behavior: an empty-variables request shows an empty hint, not a crash
-  it("should show an empty hint if the request defines no variables", async () => {
+  // behavior: an empty-variables request shows just the trailing blank row, not a crash
+  it("should show an empty editable row if the request defines no variables", async () => {
     const user = userEvent.setup();
     renderPane("req-empty");
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
     await user.click(within(tablist).getByRole("tab", { name: "Vars" }));
 
-    expect(screen.getByText(/no variables/i)).toBeInTheDocument();
+    // only the trailing blank row: one empty key + one empty value input.
+    const inputs = screen.getAllByRole("textbox");
+    expect(inputs).toHaveLength(2);
+    inputs.forEach((input) => expect(input).toHaveValue(""));
   });
 });

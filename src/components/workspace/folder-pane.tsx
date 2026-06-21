@@ -54,19 +54,19 @@ export function FolderPane() {
         </TabsList>
       </div>
       <TabsContent value="vars">
-        <VarsPanel config={node.config} />
+        <VarsPanel id={node.id} config={node.config} />
       </TabsContent>
       <TabsContent value="auth">
-        <AuthPanel auth={node.config.auth ?? { type: "inherit" }} />
+        <AuthPanel id={node.id} config={node.config} />
       </TabsContent>
       <TabsContent value="headers">
-        <HeadersPanel config={node.config} />
+        <HeadersPanel id={node.id} config={node.config} />
       </TabsContent>
       <TabsContent value="params">
-        <ParamsPanel config={node.config} />
+        <ParamsPanel id={node.id} config={node.config} />
       </TabsContent>
       <TabsContent value="script">
-        <ScriptPanel config={node.config} />
+        <ScriptPanel id={node.id} config={node.config} />
       </TabsContent>
       <TabsContent value="settings" className="min-h-0 flex-1">
         <ConfigEditorForm key={node.id} id={node.id} config={node.config} />

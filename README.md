@@ -48,11 +48,18 @@ Rust backend tests: `cd src-tauri && cargo test`.
 > (the failure reason), or success (status/time/size + body + headers) per request; with no
 > send yet it falls back to the seeded response. The response **Filter** input narrows the
 > shown body by a JSONPath-ish path (`$.args.foo`, `$.headers[0]`); an empty path shows the
-> full body, a path that matches nothing (or a non-JSON body) shows "No match". URL/method
-> edits live in session memory only (like body edits) and are not written back to disk.
+> full body, a path that matches nothing (or a non-JSON body) shows "No match". URL/method/body
+> edits live in session memory until saved: `Mod+S` (the same Save action, also in the command
+> palette) writes the active **saved** request's url/method/body back to its `*.req.json` (a
+> config/`.env` editor, when open, wins the Save). **Every unsaved edit surface shows a dirty
+> dot** - a request's dot sits beside its tab name (set by url/method/body edits **or** an
+> unsaved config edit), a folder config / `.env` editor's dot sits on its editor tab. Closing
+> any tab/editor with unsaved edits (its `X`, `Mod+W`, or close-all) asks to confirm before
+> discarding. Drafts show a dot once edited (so an accidental close warns), but a draft has no
+> file yet, so saving one is a no-op (creating its file is a later feature).
 > The request pane's **Body** tab is a CodeMirror editor (JetBrains Darcula theme, JSON
 > syntax highlighting, auto-closing brackets, and inline JSON syntax linting - malformed
-> JSON gets a red underline + gutter marker); edits live in session memory only too.
+> JSON gets a red underline + gutter marker).
 >
 > Per-installation UI settings (panel split sizes, whether the console is hidden, and the
 > set of open request tabs + the active one) persist to a `settings.json` in the OS
@@ -87,13 +94,21 @@ Rust backend tests: `cd src-tauri && cargo test`.
 > at one by hand-editing `workspacePath` in that same `settings.json`; it loads on launch
 > (empty state if unset/invalid). Folders/requests carry an inheritable config (variables,
 > environments, headers, params, auth, scripts, timeout); a request resolves it by inheriting
-> from its folder chain (child overrides parent) - the request pane's read-only **Effective**
-> tab shows each resolved value and where it came from. Config can be edited in the app (a
-> pencil on each sidebar row opens a raw-JSON editor for that node's `config` in the content
-> area; **Save** writes it back to the node's `folder.json`/`*.req.json`, disabled while the
-> JSON is invalid) or by hand-editing the files. The `.env` file has its own raw-text editor
-> (the **.env** button in the sidebar header; Save writes `<workspace>/.env` and re-parses it
-> live so token previews update without reload).
+> from its folder chain (child overrides parent), and that resolved config is what Send uses.
+> The request/folder pane's **Vars / Auth / Headers / Params / Script** tabs are structured
+> editors: Vars/Headers/Params are key→value grids (edit a cell, or type into the always-present
+> trailing blank row to add; trash icon removes; Headers/Params rows have a full-cell enable
+> checkbox - a disabled row is kept on disk but excluded from the sent request),
+> Auth is a type select + fields, Script is pre/post text areas. These commit **immediately on
+> blur** (or selection) via the same write path. Config can also be edited as raw JSON (a
+> pencil on each sidebar row opens a raw-JSON editor in the content area - a **folder** edits
+> its `config` block, while a **request**'s Settings tab edits the **whole request** JSON
+> `{name, method, url, body, config}` so everything about it lives in one place (saving a new
+> body/url/method there re-syncs the Body tab + URL bar). The raw-JSON editors have no Save
+> button - save with `Mod+S` or via the close-confirm popup (its **Save** is disabled while the
+> JSON is invalid); malformed JSON shows a red lint underline. You can also hand-edit the files. The `.env` file has its own raw-text editor
+> (the **.env** button in the sidebar header; saving - `Mod+S` or the close popup - writes
+> `<workspace>/.env` and re-parses it live so token previews update without reload).
 >
 > **Variables & environments** (Bruno-style): any `{{name}}` token in a URL, header/param
 > value, auth field, or body is interpolated on send. Values come from `config.variables`
@@ -107,7 +122,7 @@ Rust backend tests: `cd src-tauri && cargo test`.
 > reference another `{{var}}`), cycle-guarded, and leaves unknown tokens verbatim. A `.env`
 > file at the workspace root (standard `KEY=value`, gitignore it) is the one dedicated config
 > file; reference its values as `{{process.env.KEY}}` (a separate namespace - a bare
-> `{{KEY}}` does not read `.env`). On-disk format (schemaVersion 2):
+> `{{KEY}}` does not read `.env`). On-disk format (schemaVersion 3):
 >
 > ```
 > <workspace>/
@@ -116,6 +131,11 @@ Rust backend tests: `cd src-tauri && cargo test`.
 >   <folder>/<request>.req.json { name, method, url, body, config, order }
 >   .env                        KEY=value (read-only, gitignored; {{process.env.KEY}})
 > ```
+>
+> `body` is a tagged value: `{ "type": "json", "payload": <parsed JSON> }` (a JSON body is
+> stored as real nested JSON, not an escaped string) or `{ "type": "text", "payload": "<raw>" }`.
+> Legacy v2 workspaces stored `body` as a bare string; those still load and migrate to the
+> tagged shape on the next save.
 >
 > A `config` with environments looks like:
 >

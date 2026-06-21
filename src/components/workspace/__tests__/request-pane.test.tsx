@@ -37,15 +37,15 @@ describe("RequestPane", () => {
     expect(within(tablist).getByRole("tab", { name: "Body" })).toBeInTheDocument();
     expect(within(tablist).getByRole("tab", { name: "Script" })).toBeInTheDocument();
 
-    // Params panel visible by default: shows the active request's params.
-    expect(screen.getByText("grant_type")).toBeInTheDocument();
-    expect(screen.getByText("client_credentials")).toBeInTheDocument();
+    // Params panel visible by default: shows the active request's params as inputs.
+    expect(screen.getByDisplayValue("grant_type")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("client_credentials")).toBeInTheDocument();
 
     await user.click(within(tablist).getByRole("tab", { name: "Headers" }));
 
-    expect(screen.getByText("Content-Type")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Content-Type")).toBeInTheDocument();
     expect(
-      screen.getByText("application/x-www-form-urlencoded"),
+      screen.getByDisplayValue("application/x-www-form-urlencoded"),
     ).toBeInTheDocument();
   });
 

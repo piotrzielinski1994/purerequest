@@ -1,6 +1,8 @@
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
-export type KeyValue = { key: string; value: string };
+// `enabled` defaults to true when absent (legacy rows + the common case); a row
+// explicitly `enabled: false` is kept on disk but excluded from the sent request.
+export type KeyValue = { key: string; value: string; enabled?: boolean };
 
 export type Auth =
   | { type: "inherit" }

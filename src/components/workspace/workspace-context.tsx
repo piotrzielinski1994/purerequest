@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -29,6 +30,7 @@ import {
   setDotenvValue,
 } from "@/lib/workspace/environment";
 import { updateNodeConfig } from "@/lib/workspace/update-config";
+import { updateRequest, type RequestPatch } from "@/lib/workspace/update-request";
 import { findNode } from "@/lib/workspace/tree-locate";
 import type { TokenTarget } from "@/components/workspace/url-token";
 import { useToast } from "@/components/ui/toast";
@@ -40,6 +42,30 @@ export type EditTarget =
   | { kind: "env" }
   | null;
 
+export type EditorScope = { kind: "config"; id: string } | { kind: "env" };
+
+export type ActiveEditor = {
+  scope: EditorScope;
+  isDirty: boolean;
+  // false when the editor content can't be persisted (e.g. invalid JSON); a
+  // popup-save must skip it rather than silently save nothing.
+  canSave: boolean;
+  save: () => void;
+  // Pure fold of this editor's current content into a tree (config/request
+  // editors). Lets a popup-save persist this editor PLUS request overrides in a
+  // single tree write (no stale-tree clobber). Absent for the .env editor, which
+  // writes `envText`, not the tree.
+  commitToTree?: (tree: TreeNode[]) => TreeNode[];
+};
+
+export type PendingClose =
+  | { kind: "one"; id: string }
+  | { kind: "all" }
+  | { kind: "editor" }
+  | null;
+
+const PRISTINE_DRAFT: RequestOverride = { method: "GET", url: "", body: "" };
+
 export type RequestTab =
   | "vars"
   | "auth"
@@ -47,7 +73,6 @@ export type RequestTab =
   | "params"
   | "body"
   | "script"
-  | "effective"
   | "settings";
 export type ResponseTab = "response" | "headers";
 
@@ -74,10 +99,22 @@ type WorkspaceContextValue = {
   openEnvEditor: () => void;
   closeEditor: () => void;
   saveNodeConfig: (id: string, config: ConfigScope) => void;
+  saveRequestNode: (id: string, patch: RequestPatch) => void;
+  saveActiveRequest: () => void;
+  dirtyRequestIds: Set<string>;
   saveEnv: (text: string) => void;
   setTokenValue: (target: TokenTarget, value: string) => void;
-  registerEditorSaver: (save: (() => void) | null) => void;
-  saveActiveEditor: () => void;
+  registerActiveEditor: (editor: ActiveEditor | null) => void;
+  saveActiveEditor: () => boolean;
+  editorDirty: boolean;
+  pendingClose: PendingClose;
+  popupCanSave: boolean;
+  requestCloseRequest: (id: string) => void;
+  requestCloseAll: () => void;
+  requestCloseEditor: () => void;
+  confirmPendingClose: () => void;
+  savePendingClose: () => void;
+  cancelPendingClose: () => void;
   isSettingsOpen: boolean;
   isSettingsActive: boolean;
   toggleFolder: (id: string) => void;
@@ -163,6 +200,7 @@ export function WorkspaceProvider({
       : parseDotenv(initialEnvText),
   );
   const [editTarget, setEditTarget] = useState<EditTarget>(null);
+  const [pendingClose, setPendingClose] = useState<PendingClose>(null);
   const [consoleLines, setConsoleLines] =
     useState<string[]>(initialConsoleLines);
   const [drafts, setDrafts] = useState<RequestNode[]>([]);
@@ -173,7 +211,11 @@ export function WorkspaceProvider({
     Map<string, ResponseState>
   >(() => new Map());
   const draftCounter = useRef(0);
-  const editorSaverRef = useRef<(() => void) | null>(null);
+  const [activeEditor, setActiveEditor] = useState<ActiveEditor | null>(null);
+  const registerActiveEditor = useCallback(
+    (editor: ActiveEditor | null) => setActiveEditor(editor),
+    [],
+  );
   const { show: showToast } = useToast();
   const showToastRef = useRef(showToast);
   useEffect(() => {
@@ -197,6 +239,44 @@ export function WorkspaceProvider({
     });
     return byId;
   }, [tree, drafts, requestOverrides]);
+
+  const dirtyRequestIds = useMemo(() => {
+    const treeRequests = indexRequests(tree);
+    const draftIds = new Set(drafts.map((draft) => draft.id));
+    const dirty = new Set<string>();
+    requestOverrides.forEach((override, id) => {
+      // A draft compares against the pristine GET/""/"" it was created with;
+      // a saved request compares against its on-disk node.
+      const base = treeRequests.get(id) ?? (draftIds.has(id) ? PRISTINE_DRAFT : null);
+      if (!base) {
+        return;
+      }
+      const isDirty = (Object.keys(override) as (keyof RequestOverride)[]).some(
+        (field) => override[field] !== undefined && override[field] !== base[field],
+      );
+      if (isDirty) {
+        dirty.add(id);
+      }
+    });
+    // A mounted, dirty request-config editor makes its request dirty too.
+    if (
+      activeEditor?.isDirty &&
+      activeEditor.scope.kind === "config" &&
+      requestsById.has(activeEditor.scope.id)
+    ) {
+      dirty.add(activeEditor.scope.id);
+    }
+    return dirty;
+  }, [tree, drafts, requestOverrides, activeEditor, requestsById]);
+
+  // The active editor (folder config pane / .env) is dirty AND not just a
+  // request-config editor already reflected in dirtyRequestIds.
+  const editorDirty = activeEditor?.isDirty ?? false;
+
+  // A popup "Save" can persist only when there is no active editor blocking it
+  // with unsaveable (e.g. invalid-JSON) content. No editor mounted -> saving the
+  // request override is always fine.
+  const popupCanSave = activeEditor === null || activeEditor.canSave;
 
   const restoredOpenIds = useMemo(() => {
     const known = indexRequests(tree);
@@ -380,8 +460,7 @@ export function WorkspaceProvider({
       setActiveRequestId(id);
     };
 
-    const saveNodeConfig = (id: string, config: ConfigScope) => {
-      const next = updateNodeConfig(tree, id, config);
+    const persistTree = (next: TreeNode[], failLabel: string) => {
       setTree(next);
       const persist = onTreeChangeRef.current;
       if (!persist) {
@@ -396,10 +475,159 @@ export function WorkspaceProvider({
         showToastRef.current(`Save failed: ${result.error}`);
         setConsoleLines((lines) => [
           ...lines,
-          `[workspace] failed to persist config: ${result.error}`,
+          `[workspace] failed to persist ${failLabel}: ${result.error}`,
         ]);
       });
     };
+
+    const saveNodeConfig = (id: string, config: ConfigScope) =>
+      persistTree(updateNodeConfig(tree, id, config), "config");
+
+    const saveActiveRequest = () => {
+      if (activeRequestId === null || !dirtyRequestIds.has(activeRequestId)) {
+        return;
+      }
+      // A draft has no file yet - saving it is a no-op (creating its file is
+      // the tree-crud feature). Only saved (in-tree) requests persist.
+      if (!indexRequests(tree).has(activeRequestId)) {
+        return;
+      }
+      const patch = requestOverrides.get(activeRequestId) as
+        | RequestPatch
+        | undefined;
+      if (!patch) {
+        return;
+      }
+      const id = activeRequestId;
+      setRequestOverrides((current) => {
+        if (!current.has(id)) {
+          return current;
+        }
+        const nextOverrides = new Map(current);
+        nextOverrides.delete(id);
+        return nextOverrides;
+      });
+      persistTree(updateRequest(tree, id, patch), "edits");
+    };
+
+    const saveRequestNode = (id: string, patch: RequestPatch) => {
+      // Full-request Settings save. A draft has no file yet - no-op (file
+      // creation is the tree-crud feature).
+      if (!indexRequests(tree).has(id)) {
+        return;
+      }
+      // Drop any url/method/body override so the URL bar / Body tab re-sync to
+      // the just-saved values instead of masking them.
+      setRequestOverrides((current) => {
+        if (!current.has(id)) {
+          return current;
+        }
+        const nextOverrides = new Map(current);
+        nextOverrides.delete(id);
+        return nextOverrides;
+      });
+      persistTree(updateRequest(tree, id, patch), "edits");
+    };
+
+    const requestCloseRequest = (id: string) => {
+      if (dirtyRequestIds.has(id)) {
+        setPendingClose({ kind: "one", id });
+        return;
+      }
+      closeRequest(id);
+    };
+
+    const requestCloseAll = () => {
+      const hasDirtyOpen = openRequestIds.some((id) => dirtyRequestIds.has(id));
+      if (hasDirtyOpen) {
+        setPendingClose({ kind: "all" });
+        return;
+      }
+      closeAllRequests();
+    };
+
+    const requestCloseEditor = () => {
+      if (editorDirty) {
+        setPendingClose({ kind: "editor" });
+        return;
+      }
+      setEditTarget(null);
+    };
+
+    const confirmPendingClose = () => {
+      if (pendingClose === null) {
+        return;
+      }
+      if (pendingClose.kind === "all") {
+        closeAllRequests();
+      } else if (pendingClose.kind === "editor") {
+        setEditTarget(null);
+      } else {
+        closeRequest(pendingClose.id);
+      }
+      setPendingClose(null);
+    };
+
+    // Persist everything dirty for the pending close in ONE tree write, then
+    // close. Folds the active config/request editor (commitToTree) and the saved
+    // requests' url/method/body overrides into a single tree so close-all over
+    // several dirty tabs can't clobber. The .env editor (no commitToTree) writes
+    // its own text via save(). No-op when the active editor can't be saved.
+    const savePendingClose = () => {
+      if (pendingClose === null || !popupCanSave) {
+        return;
+      }
+      const editor = activeEditor;
+      const treeRequests = indexRequests(tree);
+      const overrideIdsToFold =
+        pendingClose.kind === "one"
+          ? [pendingClose.id]
+          : pendingClose.kind === "all"
+            ? openRequestIds
+            : [];
+
+      let nextTree = tree;
+      const foldedOverrideIds: string[] = [];
+      overrideIdsToFold.forEach((id) => {
+        if (!treeRequests.has(id)) {
+          return; // draft: no file to write
+        }
+        const patch = requestOverrides.get(id) as RequestPatch | undefined;
+        if (patch) {
+          nextTree = updateRequest(nextTree, id, patch);
+          foldedOverrideIds.push(id);
+        }
+      });
+      if (editor?.commitToTree) {
+        nextTree = editor.commitToTree(nextTree);
+      }
+
+      if (foldedOverrideIds.length > 0) {
+        setRequestOverrides((current) => {
+          const nextOverrides = new Map(current);
+          foldedOverrideIds.forEach((id) => nextOverrides.delete(id));
+          return nextOverrides;
+        });
+      }
+      if (nextTree !== tree) {
+        persistTree(nextTree, "edits");
+      }
+      // The .env editor isn't a tree write - persist it on its own.
+      if (editor && !editor.commitToTree) {
+        editor.save();
+      }
+
+      if (pendingClose.kind === "all") {
+        closeAllRequests();
+      } else if (pendingClose.kind === "editor") {
+        setEditTarget(null);
+      } else {
+        closeRequest(pendingClose.id);
+      }
+      setPendingClose(null);
+    };
+
+    const cancelPendingClose = () => setPendingClose(null);
 
     const saveEnv = (text: string) => {
       setEnvText(text);
@@ -485,14 +713,30 @@ export function WorkspaceProvider({
         setIsSettingsActive(false);
         setEditTarget({ kind: "env" });
       },
-      closeEditor: () => setEditTarget(null),
+      closeEditor: requestCloseEditor,
       saveNodeConfig,
+      saveRequestNode,
+      saveActiveRequest,
+      dirtyRequestIds,
       saveEnv,
       setTokenValue,
-      registerEditorSaver: (save: (() => void) | null) => {
-        editorSaverRef.current = save;
+      registerActiveEditor,
+      saveActiveEditor: () => {
+        if (!activeEditor) {
+          return false;
+        }
+        activeEditor.save();
+        return true;
       },
-      saveActiveEditor: () => editorSaverRef.current?.(),
+      editorDirty,
+      pendingClose,
+      popupCanSave,
+      requestCloseRequest,
+      requestCloseAll,
+      requestCloseEditor,
+      confirmPendingClose,
+      savePendingClose,
+      cancelPendingClose,
       setActiveEnvironment: (name: string | null) => {
         setActiveEnvironmentState(name);
         onActiveEnvironmentChangeRef.current?.(name);
@@ -565,6 +809,13 @@ export function WorkspaceProvider({
     processEnv,
     envText,
     editTarget,
+    dirtyRequestIds,
+    requestOverrides,
+    pendingClose,
+    activeEditor,
+    editorDirty,
+    popupCanSave,
+    registerActiveEditor,
   ]);
 
   return (

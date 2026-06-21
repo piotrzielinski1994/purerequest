@@ -236,15 +236,15 @@ describe("disk-format deserialize order field", () => {
   });
 });
 
-describe("disk-format manifest schemaVersion 2", () => {
+describe("disk-format manifest schemaVersion 3", () => {
   // AC-011 - behavior
-  it("should emit a manifest with schemaVersion 2", () => {
+  it("should emit a manifest with schemaVersion 3", () => {
     const map = serialize([], "My API");
 
     const manifestRaw = map["requi.workspace.json"];
     expect(manifestRaw).toBeDefined();
     expect(JSON.parse(manifestRaw)).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       name: "My API",
     });
   });

@@ -4,6 +4,11 @@ import type {
   HttpMethod,
   TreeNode,
 } from "@/lib/workspace/model";
+import {
+  bodyToStored,
+  storedToBody,
+  type StoredBody,
+} from "@/lib/workspace/body-codec";
 
 export type FileMap = Record<string, string>;
 
@@ -17,7 +22,7 @@ type ParsedRequest = {
   name?: string;
   method?: HttpMethod;
   url?: string;
-  body?: string;
+  body?: string | StoredBody;
   config?: ConfigScope;
   order?: number;
 };
@@ -101,7 +106,7 @@ function serializeInto(
         name: node.name,
         method: node.method,
         url: node.url,
-        body: node.body,
+        body: bodyToStored(node.body),
         config: node.config,
         order,
       },
@@ -117,7 +122,7 @@ export function serialize(
 ): FileMap {
   const files: FileMap = {
     [MANIFEST]: JSON.stringify(
-      { schemaVersion: 2, name: workspaceName },
+      { schemaVersion: 3, name: workspaceName },
       null,
       2,
     ),
@@ -144,7 +149,7 @@ function parseRequest(
       name: parsed.name ?? slug,
       method: parsed.method ?? "GET",
       url: parsed.url ?? "",
-      body: parsed.body ?? "",
+      body: storedToBody(parsed.body),
       config: parsed.config ?? {},
     },
   };

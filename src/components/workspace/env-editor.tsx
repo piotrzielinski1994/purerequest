@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { syntaxHighlighting } from "@codemirror/language";
-import { Button } from "@/components/ui/button";
 import {
   darculaChrome,
   darculaHighlight,
@@ -10,39 +9,38 @@ import { useWorkspace } from "@/components/workspace/workspace-context";
 
 const extensions = [darculaChrome, syntaxHighlighting(darculaHighlight)];
 
+// No Save bar - saved via Mod+S or the close-confirm popup. `.env` is free text
+// (always saveable), so no `commitToTree`; save writes envText directly.
 function EnvEditorForm({ seed }: { seed: string }) {
-  const { saveEnv, registerEditorSaver } = useWorkspace();
+  const { saveEnv, registerActiveEditor } = useWorkspace();
   const [text, setText] = useState(seed);
 
+  const saveRef = useRef<() => void>(() => {});
   useEffect(() => {
-    registerEditorSaver(() => saveEnv(text));
-    return () => registerEditorSaver(null);
-  }, [text, saveEnv, registerEditorSaver]);
+    saveRef.current = () => saveEnv(text);
+  }, [text, saveEnv]);
+
+  const isDirty = text !== seed;
+  useEffect(() => {
+    registerActiveEditor({
+      scope: { kind: "env" },
+      isDirty,
+      canSave: true,
+      save: () => saveRef.current(),
+    });
+    return () => registerActiveEditor(null);
+  }, [isDirty, registerActiveEditor]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex h-10.25 items-stretch justify-between border-b bg-muted/30">
-        <span className="flex items-center px-3 font-mono text-xs text-muted-foreground">
-          .env
-        </span>
-        <Button
-          type="button"
-          className="h-full rounded-none border-0 border-l border-l-border"
-          onClick={() => saveEnv(text)}
-        >
-          Save
-        </Button>
-      </div>
-      <div className="min-h-0 flex-1">
-        <CodeMirror
-          value={text}
-          onChange={setText}
-          theme="none"
-          extensions={extensions}
-          height="100%"
-          className="h-full text-xs"
-        />
-      </div>
+    <div className="min-h-0 flex-1">
+      <CodeMirror
+        value={text}
+        onChange={setText}
+        theme="none"
+        extensions={extensions}
+        height="100%"
+        className="h-full text-xs"
+      />
     </div>
   );
 }

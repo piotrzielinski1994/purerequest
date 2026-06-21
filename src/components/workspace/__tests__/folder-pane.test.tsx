@@ -44,11 +44,16 @@ const tree: TreeNode[] = [
 ];
 
 function OpenFolder() {
-  const { openConfigEditor } = useWorkspace();
+  const { openConfigEditor, saveActiveEditor } = useWorkspace();
   return (
-    <button type="button" onClick={() => openConfigEditor("folder-1")}>
-      open folder
-    </button>
+    <>
+      <button type="button" onClick={() => openConfigEditor("folder-1")}>
+        open folder
+      </button>
+      <button type="button" onClick={saveActiveEditor}>
+        fire shortcut
+      </button>
+    </>
   );
 }
 
@@ -115,8 +120,10 @@ describe("FolderPane", () => {
 
     await user.click(await screen.findByRole("button", { name: /open folder/i }));
 
-    expect(await screen.findByText("baseUrl")).toBeInTheDocument();
-    expect(screen.getByText("https://api.example.com")).toBeInTheDocument();
+    expect(await screen.findByDisplayValue("baseUrl")).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue("https://api.example.com"),
+    ).toBeInTheDocument();
   });
 
   // behavior: the Headers sub-tab lists the folder's headers
@@ -130,7 +137,7 @@ describe("FolderPane", () => {
     });
     await user.click(within(tablist).getByRole("tab", { name: "Headers" }));
 
-    expect(await screen.findByText("Accept")).toBeInTheDocument();
+    expect(await screen.findByDisplayValue("Accept")).toBeInTheDocument();
   });
 
   // behavior: the Settings sub-tab shows the folder config as editable JSON
@@ -150,8 +157,8 @@ describe("FolderPane", () => {
     expect(liveDoc()).toBe(JSON.stringify(FOLDER_CONFIG, null, 2));
   });
 
-  // behavior: Save persists the folder config
-  it("should persist the folder config when Save is clicked", async () => {
+  // behavior: Mod+S persists the folder config (the Save bar was removed)
+  it("should persist the folder config when the save shortcut fires", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn().mockResolvedValue({ ok: true });
     renderContent(onTreeChange);
@@ -175,10 +182,7 @@ describe("FolderPane", () => {
         insert: JSON.stringify({ variables: { x: "1" } }),
       },
     });
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /save/i })).toBeEnabled();
-    });
-    await user.click(screen.getByRole("button", { name: /save/i }));
+    await user.click(screen.getByRole("button", { name: /fire shortcut/i }));
 
     await waitFor(() => {
       expect(onTreeChange).toHaveBeenCalledTimes(1);

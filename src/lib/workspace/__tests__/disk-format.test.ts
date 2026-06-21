@@ -79,6 +79,53 @@ describe("disk-format round-trip", () => {
     expect(stripIds(result.tree)).toEqual(stripIds(tree));
   });
 
+  // body-codec - behavior: a JSON body round-trips through the stored {type:"json"} shape.
+  it("should round-trip a JSON request body through the stored form", () => {
+    const jsonBody = '{\n  "grant_type": "client_credentials"\n}';
+    const tree: TreeNode[] = [
+      request("Token", {}, { method: "POST", body: jsonBody }),
+    ];
+
+    const result = expectOk(deserialize(serialize(tree)));
+
+    expect((result.tree[0] as RequestNode).body).toBe(jsonBody);
+  });
+
+  // body-codec - behavior: a JSON body is stored as parsed {type:"json", payload}
+  // (NOT an escaped string) in the on-disk *.req.json.
+  it("should store a JSON body as a parsed json StoredBody on disk", () => {
+    const tree: TreeNode[] = [
+      request("Token", {}, { method: "POST", body: '{"a":1}' }),
+    ];
+
+    const map = serialize(tree);
+    const reqFile = Object.entries(map).find(([path]) =>
+      path.endsWith(".req.json"),
+    );
+    expect(reqFile).toBeDefined();
+    const parsed = JSON.parse(reqFile![1]) as { body: unknown };
+    expect(parsed.body).toEqual({ type: "json", payload: { a: 1 } });
+  });
+
+  // body-codec - behavior: a legacy (v2) bare-string body still deserializes.
+  it("should deserialize a legacy bare-string body (pre-v3 workspace)", () => {
+    const legacy: FileMap = {
+      "requi.workspace.json": JSON.stringify({ schemaVersion: 2, name: "W" }),
+      "token.req.json": JSON.stringify({
+        name: "Token",
+        method: "POST",
+        url: "u",
+        body: '{\n  "a": 1\n}',
+        config: {},
+        order: 0,
+      }),
+    };
+
+    const result = expectOk(deserialize(legacy));
+
+    expect((result.tree[0] as RequestNode).body).toBe('{\n  "a": 1\n}');
+  });
+
   // AC-007, TC-004 - behavior
   it("should not persist the response field on a deserialized request", () => {
     const tree: TreeNode[] = [
@@ -138,13 +185,13 @@ describe("disk-format round-trip", () => {
 
 describe("disk-format serialize", () => {
   // AC-012 - behavior
-  it("should emit a requi.workspace.json manifest with schemaVersion 2 and the workspace name", () => {
+  it("should emit a requi.workspace.json manifest with schemaVersion 3 and the workspace name", () => {
     const map = serialize([], "My API");
 
     const manifestRaw = map["requi.workspace.json"];
     expect(manifestRaw).toBeDefined();
     expect(JSON.parse(manifestRaw)).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       name: "My API",
     });
   });
