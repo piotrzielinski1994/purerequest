@@ -1,7 +1,9 @@
 import type {
+  BodyMode,
   ConfigScope,
   FolderNode,
   HttpMethod,
+  KeyValue,
   TreeNode,
 } from "@/lib/workspace/model";
 import {
@@ -23,9 +25,30 @@ type ParsedRequest = {
   method?: HttpMethod;
   url?: string;
   body?: string | StoredBody;
+  bodyMode?: BodyMode;
+  bodyForm?: KeyValue[];
   config?: ConfigScope;
   order?: number;
 };
+
+// bodyMode/bodyForm only land on disk when non-default (mode !== json or rows
+// present), so a plain JSON request keeps a minimal *.req.json diff.
+function bodyModeFields(node: {
+  bodyMode?: BodyMode;
+  bodyForm?: KeyValue[];
+}): { bodyMode?: BodyMode; bodyForm?: KeyValue[] } {
+  const isDefault =
+    (node.bodyMode ?? "json") === "json" && (node.bodyForm ?? []).length === 0;
+  if (isDefault) {
+    return {};
+  }
+  return {
+    ...(node.bodyMode ? { bodyMode: node.bodyMode } : {}),
+    ...(node.bodyForm && node.bodyForm.length > 0
+      ? { bodyForm: node.bodyForm }
+      : {}),
+  };
+}
 
 type ParsedFolder = { name?: string; config?: ConfigScope; order?: number };
 
@@ -108,6 +131,7 @@ function serializeInto(
         method: node.method,
         url: node.url,
         body: bodyToStored(node.body),
+        ...bodyModeFields(node),
         config: node.config,
         order,
       },
@@ -151,6 +175,8 @@ function parseRequest(
       method: parsed.method ?? "GET",
       url: parsed.url ?? "",
       body: storedToBody(parsed.body),
+      ...(parsed.bodyMode ? { bodyMode: parsed.bodyMode } : {}),
+      ...(parsed.bodyForm ? { bodyForm: parsed.bodyForm } : {}),
       config: parsed.config ?? {},
     },
   };

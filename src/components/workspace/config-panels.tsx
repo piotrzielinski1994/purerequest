@@ -7,6 +7,11 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  PANE_TABS_LIST,
+  PANE_TABS_TRIGGER,
+} from "@/components/workspace/pane-tabs";
 import { EditableKeyValueTable } from "@/components/workspace/editable-key-value-table";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import type { Auth, ConfigScope } from "@/components/workspace/mock-data";
@@ -175,14 +180,16 @@ export function AuthPanel({ id, config }: { id: string; config: ConfigScope }) {
     saveNodeConfig(id, { ...config, auth: nextAuth });
 
   return (
-    <div className="flex flex-col gap-3 p-3">
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">Type</label>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex h-10.25 items-stretch border-b bg-muted/30">
         <Select
           value={auth.type}
           onValueChange={(type) => change(authForType(type as Auth["type"]))}
         >
-          <SelectTrigger aria-label="Auth type" className="w-48 text-xs">
+          <SelectTrigger
+            aria-label="Auth type"
+            className="h-full! w-fit rounded-none border-0 border-r border-r-border bg-transparent text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
+          >
             {AUTH_TYPE_LABELS[auth.type]}
           </SelectTrigger>
           <SelectContent position="popper">
@@ -193,7 +200,9 @@ export function AuthPanel({ id, config }: { id: string; config: ConfigScope }) {
           </SelectContent>
         </Select>
       </div>
-      <AuthFields auth={auth} onChange={change} />
+      <div className="p-3">
+        <AuthFields auth={auth} onChange={change} />
+      </div>
     </div>
   );
 }
@@ -266,18 +275,32 @@ export function ScriptPanel({
       scripts: { ...config.scripts, ...patch },
     });
   return (
-    <div className="flex flex-col gap-3 p-3">
-      <ScriptField
-        label="Pre-request"
-        value={config.scripts?.pre ?? ""}
-        onCommit={(pre) => commit({ pre })}
-      />
-      <ScriptField
-        label="Post-response"
-        value={config.scripts?.post ?? ""}
-        onCommit={(post) => commit({ post })}
-      />
-    </div>
+    <Tabs defaultValue="pre" className="flex h-full min-h-0 flex-col gap-0">
+      <div className="flex h-10.25 items-stretch border-b bg-muted/30">
+        <TabsList aria-label="Script stage" className={PANE_TABS_LIST}>
+          <TabsTrigger value="pre" className={PANE_TABS_TRIGGER}>
+            Pre
+          </TabsTrigger>
+          <TabsTrigger value="post" className={PANE_TABS_TRIGGER}>
+            Post
+          </TabsTrigger>
+        </TabsList>
+      </div>
+      <TabsContent value="pre" className="min-h-0 flex-1">
+        <ScriptField
+          label="Pre-request"
+          value={config.scripts?.pre ?? ""}
+          onCommit={(pre) => commit({ pre })}
+        />
+      </TabsContent>
+      <TabsContent value="post" className="min-h-0 flex-1">
+        <ScriptField
+          label="Post-response"
+          value={config.scripts?.post ?? ""}
+          onCommit={(post) => commit({ post })}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -297,20 +320,17 @@ function ScriptField({
     setDraft(value);
   }
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs text-muted-foreground">{label}</label>
-      <textarea
-        aria-label={label}
-        value={draft}
-        spellCheck={false}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={() => {
-          if (draft !== value) {
-            onCommit(draft);
-          }
-        }}
-        className="min-h-24 w-full resize-y border bg-transparent p-2 font-mono text-xs shadow-none outline-none focus-visible:ring-0"
-      />
-    </div>
+    <textarea
+      aria-label={label}
+      value={draft}
+      spellCheck={false}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        if (draft !== value) {
+          onCommit(draft);
+        }
+      }}
+      className="h-full w-full resize-none bg-transparent p-2 font-mono text-xs shadow-none outline-none focus-visible:ring-0"
+    />
   );
 }

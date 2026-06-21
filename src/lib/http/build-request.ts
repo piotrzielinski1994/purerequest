@@ -2,6 +2,7 @@ import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import type { Auth, KeyValue, RequestNode } from "@/lib/workspace/model";
 import type { HttpRequest } from "@/lib/http/model";
 import { interpolate } from "@/lib/http/interpolate";
+import { encodeBody } from "@/lib/http/body-encode";
 
 const BODYLESS_METHODS = new Set(["GET", "DELETE"]);
 
@@ -57,11 +58,35 @@ export function buildHttpRequest(
   );
   const url = appendParams(subst(node.url), params);
 
+  if (BODYLESS_METHODS.has(node.method)) {
+    return {
+      method: node.method,
+      url,
+      headers,
+      body: null,
+      auth,
+      timeoutMs: effective.timeoutMs.value,
+    };
+  }
+
+  const { body, contentType } = encodeBody(
+    node.bodyMode ?? "json",
+    node.body,
+    node.bodyForm ?? [],
+    subst,
+  );
+  const hasContentType = headers.some(
+    (header) => header.key.toLowerCase() === "content-type",
+  );
+  if (contentType && !hasContentType) {
+    headers.push({ key: "Content-Type", value: contentType });
+  }
+
   return {
     method: node.method,
     url,
     headers,
-    body: BODYLESS_METHODS.has(node.method) ? null : subst(node.body),
+    body,
     auth,
     timeoutMs: effective.timeoutMs.value,
   };

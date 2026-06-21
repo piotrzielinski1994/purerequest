@@ -29,7 +29,12 @@ import type { WriteResult } from "@/lib/workspace/fs";
 import { buildHttpRequest } from "@/lib/http/build-request";
 import { createFakeHttpClient } from "@/lib/http/fake-client";
 import type { HttpClient, ResponseState } from "@/lib/http/model";
-import type { ConfigScope, HttpMethod } from "@/lib/workspace/model";
+import type {
+  BodyMode,
+  ConfigScope,
+  HttpMethod,
+  KeyValue,
+} from "@/lib/workspace/model";
 import {
   listEnvironmentNames,
   parseDotenv,
@@ -45,7 +50,7 @@ import type { TokenTarget } from "@/components/workspace/url-token";
 import { useToast } from "@/components/ui/toast";
 
 type RequestOverride = Partial<
-  Pick<RequestNode, "name" | "url" | "method" | "body">
+  Pick<RequestNode, "name" | "url" | "method" | "body" | "bodyMode" | "bodyForm">
 >;
 
 export type EditTarget =
@@ -147,6 +152,8 @@ type WorkspaceContextValue = {
   confirmPendingDelete: () => void;
   cancelPendingDelete: () => void;
   setRequestBody: (id: string, body: string) => void;
+  setRequestBodyMode: (id: string, mode: BodyMode) => void;
+  setRequestForm: (id: string, rows: KeyValue[]) => void;
   setRequestUrl: (id: string, url: string) => void;
   setRequestMethod: (id: string, method: HttpMethod) => void;
   sendRequest: (id: string) => void;
@@ -446,6 +453,10 @@ export function WorkspaceProvider({
 
     const setRequestBody = (id: string, body: string) =>
       mergeOverride(id, { body });
+    const setRequestBodyMode = (id: string, bodyMode: BodyMode) =>
+      mergeOverride(id, { bodyMode });
+    const setRequestForm = (id: string, bodyForm: KeyValue[]) =>
+      mergeOverride(id, { bodyForm });
     const setRequestUrl = (id: string, url: string) => {
       // A freshly-created request's name tracks the URL path until the user
       // names it. deriveRequestName("") is "" -> fall back to "New Request" so
@@ -989,6 +1000,8 @@ export function WorkspaceProvider({
       confirmPendingDelete,
       cancelPendingDelete,
       setRequestBody,
+      setRequestBodyMode,
+      setRequestForm,
       setRequestUrl,
       setRequestMethod,
       sendRequest,

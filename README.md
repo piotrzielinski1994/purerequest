@@ -56,9 +56,13 @@ Rust backend tests: `cd src-tauri && cargo test`.
 > unsaved config edit), a folder config / `.env` editor's dot sits on its editor tab. Closing
 > any tab/editor with unsaved edits (its `X`, `Mod+W`, or close-all) asks to confirm before
 > discarding.
-> The request pane's **Body** tab is a CodeMirror editor (JetBrains Darcula theme, JSON
-> syntax highlighting, auto-closing brackets, and inline JSON syntax linting - malformed
-> JSON gets a red underline + gutter marker).
+> The request pane's **Body** tab has a body-type selector: **JSON** (a CodeMirror editor -
+> JetBrains Darcula theme, JSON syntax highlighting, auto-closing brackets, and inline JSON
+> linting that red-underlines malformed JSON), **None** (no body sent), **Form URL Encoded**
+> and **Multipart Form** (a key/value grid; multipart is text parts only). Each mode auto-sets
+> its `Content-Type` (an explicit `Content-Type` you set in the Headers tab always wins);
+> switching modes preserves data - form and multipart share their rows, the JSON text keeps its
+> own slot. The mode + rows persist to the request's `*.req.json` and the Settings tab JSON.
 >
 > Per-installation UI settings (panel split sizes, whether the console is hidden, and the
 > set of open request tabs + the active one) persist to a `settings.json` in the OS

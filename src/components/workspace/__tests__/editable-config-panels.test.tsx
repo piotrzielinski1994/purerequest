@@ -231,6 +231,10 @@ describe("editable Script panel", () => {
     renderPane(onTreeChange);
     await openTab(user, "Script");
 
+    // the Script panel shows one stage at a time; switch to the Post tab first.
+    const stages = screen.getByRole("tablist", { name: /script stage/i });
+    await user.click(within(stages).getByRole("tab", { name: "Post" }));
+
     const post = screen.getByLabelText(/post-response/i);
     await user.type(post, "after()");
     await user.tab();

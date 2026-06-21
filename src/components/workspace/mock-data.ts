@@ -1,6 +1,7 @@
 export type {
   HttpMethod,
   KeyValue,
+  BodyMode,
   Auth,
   ScriptConfig,
   ConfigScope,

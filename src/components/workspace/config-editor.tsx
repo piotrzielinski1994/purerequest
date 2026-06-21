@@ -10,8 +10,10 @@ import {
 } from "@/components/workspace/editor-theme";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import type {
+  BodyMode,
   ConfigScope,
   HttpMethod,
+  KeyValue,
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
@@ -142,6 +144,20 @@ export function ConfigEditorForm({
 }
 
 const METHODS: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+const BODY_MODES: BodyMode[] = ["json", "none", "form", "multipart"];
+
+function isKeyValueArray(value: unknown): value is KeyValue[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (row) =>
+        typeof row === "object" &&
+        row !== null &&
+        typeof (row as KeyValue).key === "string" &&
+        typeof (row as KeyValue).value === "string",
+    )
+  );
+}
 
 function isStoredBody(value: unknown): boolean {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -170,11 +186,19 @@ function parseRequest(text: string): RequestPatch | null {
     typeof obj.config === "object" &&
     obj.config !== null &&
     !Array.isArray(obj.config);
+  const validBodyMode =
+    obj.bodyMode === undefined ||
+    (typeof obj.bodyMode === "string" &&
+      (BODY_MODES as string[]).includes(obj.bodyMode));
+  const validBodyForm =
+    obj.bodyForm === undefined || isKeyValueArray(obj.bodyForm);
   if (
     !hasString("name") ||
     !validMethod ||
     !hasString("url") ||
     !isStoredBody(obj.body) ||
+    !validBodyMode ||
+    !validBodyForm ||
     !validConfig
   ) {
     return null;
@@ -184,6 +208,8 @@ function parseRequest(text: string): RequestPatch | null {
     method: obj.method as HttpMethod,
     url: obj.url as string,
     body: storedToBody(obj.body),
+    ...(obj.bodyMode ? { bodyMode: obj.bodyMode as BodyMode } : {}),
+    ...(obj.bodyForm ? { bodyForm: obj.bodyForm as KeyValue[] } : {}),
     config: obj.config as ConfigScope,
   };
 }
@@ -192,12 +218,23 @@ function parseRequest(text: string): RequestPatch | null {
 // (name/method/url/body/config) as one JSON doc.
 export function RequestSettingsForm({ request }: { request: RequestNode }) {
   const { saveRequestNode } = useWorkspace();
+  const isDefaultBody =
+    (request.bodyMode ?? "json") === "json" &&
+    (request.bodyForm ?? []).length === 0;
   const saved = JSON.stringify(
     {
       name: request.name,
       method: request.method,
       url: request.url,
       body: bodyToStored(request.body),
+      ...(isDefaultBody
+        ? {}
+        : {
+            ...(request.bodyMode ? { bodyMode: request.bodyMode } : {}),
+            ...(request.bodyForm && request.bodyForm.length > 0
+              ? { bodyForm: request.bodyForm }
+              : {}),
+          }),
       config: request.config,
     },
     null,

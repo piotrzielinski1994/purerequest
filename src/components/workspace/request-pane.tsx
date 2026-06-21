@@ -3,7 +3,7 @@ import {
   PANE_TABS_LIST,
   PANE_TABS_TRIGGER,
 } from "@/components/workspace/pane-tabs";
-import { BodyEditor } from "@/components/workspace/body-editor";
+import { BodyPanel } from "@/components/workspace/body-panel";
 import { RequestSettingsForm } from "@/components/workspace/config-editor";
 import {
   AuthPanel,
@@ -16,7 +16,7 @@ import { useWorkspace } from "@/components/workspace/workspace-context";
 import type { RequestNode } from "@/components/workspace/mock-data";
 
 function RequestTabs({ request }: { request: RequestNode }) {
-  const { activeRequestTab, setRequestTab, setRequestBody } = useWorkspace();
+  const { activeRequestTab, setRequestTab } = useWorkspace();
 
   return (
     <Tabs
@@ -62,11 +62,7 @@ function RequestTabs({ request }: { request: RequestNode }) {
         <ParamsPanel id={request.id} config={request.config} />
       </TabsContent>
       <TabsContent value="body" className="min-h-0 flex-1">
-        <BodyEditor
-          key={request.id}
-          value={request.body}
-          onChange={(body) => setRequestBody(request.id, body)}
-        />
+        <BodyPanel key={request.id} request={request} />
       </TabsContent>
       <TabsContent value="script">
         <ScriptPanel id={request.id} config={request.config} />

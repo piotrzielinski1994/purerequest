@@ -12,6 +12,8 @@ export type Auth =
 
 export type ScriptConfig = { pre?: string; post?: string };
 
+export type BodyMode = "json" | "none" | "form" | "multipart";
+
 export type ConfigScope = {
   variables?: Record<string, string>;
   environments?: Record<string, Record<string, string>>;
@@ -37,6 +39,8 @@ export type RequestNode = {
   method: HttpMethod;
   url: string;
   body: string;
+  bodyMode?: BodyMode;
+  bodyForm?: KeyValue[];
   config: ConfigScope;
   response?: RequestResponse;
 };

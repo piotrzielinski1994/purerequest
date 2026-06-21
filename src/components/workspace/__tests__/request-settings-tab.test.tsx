@@ -354,6 +354,56 @@ describe("RequestPane Settings sub-tab", () => {
     expect(screen.getByTestId("popup-can-save")).toHaveTextContent("true");
   });
 
+  // AC-009, spec §5 - behavior: editing bodyMode + bodyForm via the Settings JSON
+  // and saving persists them onto the request through onTreeChange.
+  it("should persist bodyMode and bodyForm edited via the Settings JSON", async () => {
+    const user = userEvent.setup();
+    const onTreeChange = vi.fn().mockResolvedValue({ ok: true });
+    renderPane(onTreeChange);
+
+    const tablist = screen.getByRole("tablist", { name: /request sections/i });
+    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await waitFor(() => {
+      expect(document.querySelector(".cm-editor")).not.toBeNull();
+    });
+
+    setDoc(
+      fullRequestDoc({
+        method: "POST",
+        bodyMode: "form",
+        bodyForm: [{ key: "a", value: "1" }],
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: /fire shortcut/i }));
+
+    await waitFor(() => {
+      expect(onTreeChange).toHaveBeenCalledTimes(1);
+    });
+    const next = onTreeChange.mock.calls[0][0] as TreeNode[];
+    const saved = next.find((n) => n.id === "req-1");
+    expect(saved?.kind === "request" && saved.bodyMode).toBe("form");
+    expect(saved?.kind === "request" && saved.bodyForm).toEqual([
+      { key: "a", value: "1" },
+    ]);
+  });
+
+  // AC-009 - behavior: a default json request omits bodyMode/bodyForm from the
+  // Settings JSON document (minimal, matches the on-disk omission).
+  it("should omit bodyMode and bodyForm from the Settings JSON for a default json request", async () => {
+    const user = userEvent.setup();
+    renderPane();
+
+    const tablist = screen.getByRole("tablist", { name: /request sections/i });
+    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await waitFor(() => {
+      expect(document.querySelector(".cm-editor")).not.toBeNull();
+    });
+
+    const doc = JSON.parse(liveDoc()) as Record<string, unknown>;
+    expect("bodyMode" in doc).toBe(false);
+    expect("bodyForm" in doc).toBe(false);
+  });
+
   // behavior: a successful save shows a confirmation toast
   it("should show a saved toast when the request persists successfully", async () => {
     const user = userEvent.setup();
