@@ -11,6 +11,7 @@ import {
 import type { WorkspaceFs } from "@/lib/workspace/fs";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
 import type { HttpClient } from "@/lib/http/model";
+import type { ScriptRunner } from "@/lib/scripts/model";
 import type { TreeNode } from "@/lib/workspace/model";
 
 type LoadState =
@@ -45,10 +46,12 @@ export function WorkspaceLoader({
   fs,
   picker,
   httpClient,
+  scriptRunner,
 }: {
   fs: WorkspaceFs;
   picker?: FolderPicker;
   httpClient?: HttpClient;
+  scriptRunner?: ScriptRunner;
 }) {
   const { settings, saveOpenTabs, saveActiveEnvironment } = useSettings();
   const workspacePath = settings.workspacePath;
@@ -102,6 +105,7 @@ export function WorkspaceLoader({
         tree={[]}
         consoleLines={EMPTY_CONSOLE_LINES}
         httpClient={httpClient}
+        scriptRunner={scriptRunner}
       >
         <WorkspaceLayout picker={picker} />
       </WorkspaceProvider>
@@ -125,6 +129,7 @@ export function WorkspaceLoader({
         fs.writeWorkspace(workspacePath ?? "", serialize(tree, workspaceName))
       }
       httpClient={httpClient}
+      scriptRunner={scriptRunner}
       processEnv={state.processEnv}
       envText={state.envText}
       activeEnvironment={knownEnvironment}

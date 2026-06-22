@@ -24,9 +24,14 @@ describe("Console", () => {
       </WorkspaceProvider>,
     );
 
+    // Lines render as token-colored spans (numbers/strings get their own span),
+    // so a line is split across nodes - assert via the list items' textContent.
     const region = screen.getByRole("region", { name: /console/i });
+    const rendered = within(region)
+      .getAllByRole("listitem")
+      .map((li) => li.textContent);
     consoleLines.forEach((line) => {
-      expect(within(region).getByText(line)).toBeInTheDocument();
+      expect(rendered).toContain(line);
     });
   });
 });

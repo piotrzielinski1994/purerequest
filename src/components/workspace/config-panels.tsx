@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -17,6 +17,8 @@ import {
   type TokenHighlightContext,
 } from "@/components/workspace/editable-key-value-table";
 import { useWorkspace } from "@/components/workspace/workspace-context";
+import { ScriptEditor } from "@/components/workspace/script-editor";
+import type { ScriptStage } from "@/lib/scripts/model";
 import type { Auth, ConfigScope } from "@/components/workspace/mock-data";
 
 const AUTH_TYPE_LABELS: Record<Auth["type"], string> = {
@@ -293,6 +295,7 @@ export function ScriptPanel({
       <TabsContent value="pre" className="min-h-0 flex-1">
         <ScriptField
           label="Pre-request"
+          stage="pre"
           value={config.scripts?.pre ?? ""}
           onCommit={(pre) => commit({ pre })}
         />
@@ -300,6 +303,7 @@ export function ScriptPanel({
       <TabsContent value="post" className="min-h-0 flex-1">
         <ScriptField
           label="Post-response"
+          stage="post"
           value={config.scripts?.post ?? ""}
           onCommit={(post) => commit({ post })}
         />
@@ -310,10 +314,12 @@ export function ScriptPanel({
 
 function ScriptField({
   label,
+  stage,
   value,
   onCommit,
 }: {
   label: string;
+  stage: ScriptStage;
   value: string;
   onCommit: (value: string) => void;
 }) {
@@ -323,18 +329,34 @@ function ScriptField({
     setSeed(value);
     setDraft(value);
   }
+  // Refs mirror state so the empty-dep unmount cleanup reads the latest values
+  // (a closure over `draft`/`value` would capture the mount-time ones). Synced in
+  // a separate effect - never assigned during render (lint react-hooks/refs).
+  const draftRef = useRef(draft);
+  const valueRef = useRef(value);
+  const onCommitRef = useRef(onCommit);
+  useEffect(() => {
+    draftRef.current = draft;
+    valueRef.current = value;
+    onCommitRef.current = onCommit;
+  });
+  const commitIfDirty = () => {
+    if (draftRef.current !== valueRef.current) {
+      onCommitRef.current(draftRef.current);
+    }
+  };
+  // Commit-on-blur loses the last edit on a TAB SWITCH (radix unmounts the panel
+  // before CM's blur fires), so flush any pending edit on unmount too.
+  useEffect(() => () => commitIfDirty(), []);
   return (
-    <textarea
-      aria-label={label}
-      value={draft}
-      spellCheck={false}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={() => {
-        if (draft !== value) {
-          onCommit(draft);
-        }
-      }}
-      className="h-full w-full resize-none bg-transparent p-2 font-mono text-xs shadow-none outline-none focus-visible:ring-0"
-    />
+    <div className="h-full p-2">
+      <ScriptEditor
+        ariaLabel={label}
+        stage={stage}
+        value={draft}
+        onChange={setDraft}
+        onBlur={commitIfDirty}
+      />
+    </div>
   );
 }

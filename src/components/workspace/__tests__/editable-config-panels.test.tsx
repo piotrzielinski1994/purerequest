@@ -1,6 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, within, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  within,
+  waitFor,
+  fireEvent,
+  act,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { EditorView } from "@codemirror/view";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { RequestPane } from "@/components/workspace/request-pane";
@@ -335,6 +343,41 @@ describe("editable Auth panel", () => {
   });
 });
 
+// The script editor is a CodeMirror instance (not a textarea), so jsdom can't
+// type into it - drive it the body-editor way: replace the doc via the live
+// EditorView then fire a blur (the commit-on-blur path). The aria-label is
+// mirrored onto the .cm-content node, so getByLabelText still resolves it.
+async function setScript(label: RegExp, text: string) {
+  const content = screen.getByLabelText(label);
+  const editorEl = content.closest(".cm-editor");
+  const view = EditorView.findFromDOM(editorEl as HTMLElement);
+  if (!view) {
+    throw new Error("live EditorView not found");
+  }
+  // Dispatch inside act so the onChange->setDraft update flushes BEFORE the blur
+  // reads the draft (else the commit-on-blur sees the stale pre-edit value).
+  await act(async () => {
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: text },
+    });
+  });
+  fireEvent.blur(content);
+}
+
+// Type into the editor WITHOUT blurring (the tab-switch-loses-edit scenario).
+async function typeScriptNoBlur(label: RegExp, text: string) {
+  const content = screen.getByLabelText(label);
+  const view = EditorView.findFromDOM(content.closest(".cm-editor") as HTMLElement);
+  if (!view) {
+    throw new Error("live EditorView not found");
+  }
+  await act(async () => {
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: text },
+    });
+  });
+}
+
 describe("editable Script panel", () => {
   // config-grid - behavior: editing the pre-request script persists it.
   it("should persist a pre-request script edit on blur", async () => {
@@ -343,13 +386,27 @@ describe("editable Script panel", () => {
     renderPane(onTreeChange);
     await openTab(user, "Script");
 
-    const pre = screen.getByLabelText(/pre-request/i);
-    await user.clear(pre);
-    await user.type(pre, "console.log(1)");
-    await user.tab();
+    await setScript(/pre-request/i, "console.log(1)");
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
     expect(savedConfig(onTreeChange).scripts?.pre).toBe("console.log(1)");
+  });
+
+  // behavior: a typed-but-not-blurred pre script is flushed when the stage panel
+  // unmounts (switching Pre->Post), so a tab switch never loses the edit.
+  it("should persist a pending pre script when switching to the Post stage without blurring", async () => {
+    const user = userEvent.setup();
+    const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
+    renderPane(onTreeChange);
+    await openTab(user, "Script");
+
+    await typeScriptNoBlur(/pre-request/i, "console.log('pending')");
+    // No blur - switch the stage tab (unmounts the Pre panel).
+    const stages = screen.getByRole("tablist", { name: /script stage/i });
+    await user.click(within(stages).getByRole("tab", { name: "Post" }));
+
+    await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
+    expect(savedConfig(onTreeChange).scripts?.pre).toBe("console.log('pending')");
   });
 
   // config-grid - behavior: editing the post-response script persists it without
@@ -364,9 +421,7 @@ describe("editable Script panel", () => {
     const stages = screen.getByRole("tablist", { name: /script stage/i });
     await user.click(within(stages).getByRole("tab", { name: "Post" }));
 
-    const post = screen.getByLabelText(/post-response/i);
-    await user.type(post, "after()");
-    await user.tab();
+    await setScript(/post-response/i, "after()");
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
     const scripts = savedConfig(onTreeChange).scripts;

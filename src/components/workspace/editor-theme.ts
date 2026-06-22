@@ -42,6 +42,37 @@ export const darculaChrome = EditorView.theme(
     ".cm-scroller": {
       fontFamily: "var(--font-mono, ui-monospace, monospace)",
     },
+    // Autocomplete popup follows the app theme tokens, not CodeMirror's default
+    // light chrome: popover bg/fg, 1px border-border, no rounded corners
+    // (design.md), accent for the selected row, primary for the matched chars.
+    ".cm-tooltip.cm-tooltip-autocomplete": {
+      backgroundColor: "var(--popover)",
+      color: "var(--popover-foreground)",
+      border: "1px solid var(--border)",
+      borderRadius: "0",
+      fontFamily: "var(--font-mono, ui-monospace, monospace)",
+    },
+    ".cm-tooltip-autocomplete > ul": {
+      fontFamily: "var(--font-mono, ui-monospace, monospace)",
+    },
+    ".cm-tooltip-autocomplete > ul > li": {
+      color: "var(--popover-foreground)",
+    },
+    ".cm-tooltip-autocomplete > ul > li[aria-selected]": {
+      backgroundColor: "var(--accent)",
+      color: "var(--accent-foreground)",
+    },
+    ".cm-completionLabel": { color: "inherit" },
+    ".cm-completionMatchedText": {
+      color: "var(--primary)",
+      textDecoration: "none",
+      fontWeight: "600",
+    },
+    ".cm-completionIcon": { color: "var(--muted-foreground)", opacity: "1" },
+    ".cm-completionDetail": {
+      color: "var(--muted-foreground)",
+      fontStyle: "normal",
+    },
   },
   { dark: true },
 );

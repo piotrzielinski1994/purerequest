@@ -26,9 +26,9 @@ const DEFAULT_PROVENANCE: Provenance = {
   scopeName: "default",
 };
 
-type Scope = { id: string; name: string; config: TreeNode["config"] };
+export type Scope = { id: string; name: string; config: TreeNode["config"] };
 
-function findScopePath(
+export function findScopePath(
   nodes: TreeNode[],
   requestId: string,
   ancestors: Scope[],

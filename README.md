@@ -135,7 +135,17 @@ Rust backend tests: `cd src-tauri && cargo test`.
 > trailing blank row to add; trash icon removes; Headers/Params rows have a full-cell enable
 > checkbox - a disabled row is kept on disk but excluded from the sent request),
 > Auth is a type select + fields, Script is pre/post text areas. These commit **immediately on
-> blur** (or selection) via the same write path. Config can also be edited as raw JSON
+> blur** (or selection) via the same write path. The **Script** tab's `pre`/`post` JavaScript runs
+> on every send (in a sandboxed QuickJS-WASM realm - no `window`/`fetch`/`process`): a **pre**
+> script runs before the request is built and can mutate it (`req.setUrl/setMethod/setHeader/
+> setBody`, still `{{var}}`-interpolated downstream) or set variables (`requi.setVar`); a **post**
+> script runs after the response and can read it (`res.getStatus/getBody/getJson/getHeader`) and
+> set variables for chaining the next request. `requi.setVar(name, value)` persists the variable to
+> `config.variables` on disk (nearest scope that already defines it, else the request's own config).
+> `console.log/info/warn/error` output lands in the Console (prefixed `[pre]`/`[post]`),
+> `console.clear()` wipes it; scripts may
+> use `async`/`await`. A throwing **pre** script aborts the send (error in the response pane); a
+> throwing **post** script only logs (the response stays). Config can also be edited as raw JSON
 > (**Edit** in a sidebar row's right-click menu opens a raw-JSON editor in the content
 > area - a **folder** edits its `config` block, while a **request**'s Settings tab edits the
 > **whole request** JSON

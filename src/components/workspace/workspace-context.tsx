@@ -29,6 +29,15 @@ import type { WriteResult } from "@/lib/workspace/fs";
 import { buildHttpRequest } from "@/lib/http/build-request";
 import { createFakeHttpClient } from "@/lib/http/fake-client";
 import type { HttpClient, ResponseState } from "@/lib/http/model";
+import type { ScriptRunner } from "@/lib/scripts/model";
+import { createFakeScriptRunner } from "@/lib/scripts/fake-runner";
+import {
+  applyPreToEffective,
+  buildScriptApi,
+  type ReqDraft,
+  type VarWrite,
+} from "@/lib/scripts/script-context";
+import { findVarWriteTarget, setNodeVar } from "@/lib/scripts/var-write";
 import type {
   BodyMode,
   ConfigScope,
@@ -206,6 +215,7 @@ type WorkspaceProviderProps = {
   ) => void;
   onTreeChange?: (tree: TreeNode[]) => Promise<WriteResult>;
   httpClient?: HttpClient;
+  scriptRunner?: ScriptRunner;
   activeEnvironment?: string;
   processEnv?: Record<string, string>;
   envText?: string;
@@ -223,6 +233,7 @@ export function WorkspaceProvider({
   onTabsChange,
   onTreeChange,
   httpClient,
+  scriptRunner,
   activeEnvironment: initialActiveEnvironment,
   processEnv: initialProcessEnv = {},
   envText: initialEnvText = "",
@@ -281,6 +292,14 @@ export function WorkspaceProvider({
       httpClientRef.current = httpClient;
     }
   }, [httpClient]);
+  const scriptRunnerRef = useRef<ScriptRunner>(
+    scriptRunner ?? createFakeScriptRunner(),
+  );
+  useEffect(() => {
+    if (scriptRunner) {
+      scriptRunnerRef.current = scriptRunner;
+    }
+  }, [scriptRunner]);
   // Per-request send generation: bumped on each send so a stale result (one
   // resolving after a cancel + re-send) can be ignored. The in-flight wire id
   // lets a Stop cancel exactly the send it belongs to.
@@ -486,44 +505,148 @@ export function WorkspaceProvider({
     const setRequestMethod = (id: string, method: HttpMethod) =>
       mergeOverride(id, { method });
 
-    const sendRequest = (id: string) => {
+    const sendRequest = async (id: string) => {
       const node = requestsById.get(id);
       if (!node || responseStates.get(id)?.status === "sending") {
         return;
       }
-      const wire = buildHttpRequest(
-        node,
-        resolveConfig(tree, id, {
-          environment: activeEnvironment ?? undefined,
-        }),
-        processEnv,
-      );
+      const effective = resolveConfig(tree, id, {
+        environment: activeEnvironment ?? undefined,
+      });
       const generation = (sendGeneration.current.get(id) ?? 0) + 1;
       sendGeneration.current.set(id, generation);
-      inFlightRequestId.current.set(id, wire.requestId);
       setResponseStates((current) =>
         new Map(current).set(id, { status: "sending" }),
       );
-      httpClientRef.current.send(wire).then((result) => {
-        if (sendGeneration.current.get(id) !== generation) {
+
+      const isStale = () => sendGeneration.current.get(id) !== generation;
+      const setState = (state: ResponseState) =>
+        setResponseStates((current) =>
+          current.has(id) ? new Map(current).set(id, state) : current,
+        );
+      const pendingLines: string[] = [];
+      const flushLines = () => {
+        if (pendingLines.length === 0) {
           return;
         }
-        inFlightRequestId.current.delete(id);
-        setResponseStates((current) => {
-          if (!current.has(id)) {
-            return current;
-          }
-          if (!result.ok && result.cancelled) {
-            return new Map(current).set(id, { status: "idle" });
-          }
-          return new Map(current).set(
-            id,
-            result.ok
-              ? { status: "success", response: result.response }
-              : { status: "error", message: result.error },
-          );
+        const drained = pendingLines.splice(0);
+        setConsoleLines((lines) => [...lines, ...drained]);
+      };
+      // A script's console.clear wipes the panel + any lines buffered this run.
+      const clearConsole = () => {
+        pendingLines.splice(0);
+        setConsoleLines([]);
+      };
+      const persistVarWrites = (writes: VarWrite[]) => {
+        if (writes.length === 0) {
+          return;
+        }
+        const next = writes.reduce(
+          (acc, write) =>
+            setNodeVar(
+              acc,
+              findVarWriteTarget(acc, id, write.name),
+              write.name,
+              write.value,
+            ),
+          tree,
+        );
+        persistTree(next, "script");
+      };
+
+      // PRE-request script: may mutate a reqDraft + set runtime/persisted vars.
+      const runtimeVars = new Map<string, string>();
+      const reqDraft: ReqDraft = {
+        method: node.method,
+        url: node.url,
+        body: node.body,
+        headerOverrides: {},
+      };
+      const preCode = effective.scripts.pre.value;
+      if (preCode.trim() !== "") {
+        const preVarWrites: VarWrite[] = [];
+        const api = buildScriptApi({
+          stage: "pre",
+          effective,
+          processEnv,
+          envName: activeEnvironment ?? null,
+          runtimeVars,
+          varWrites: preVarWrites,
+          log: (line) => pendingLines.push(line),
+          clear: clearConsole,
+          reqDraft,
         });
-      });
+        const outcome = await scriptRunnerRef.current.run(preCode, api);
+        if (isStale()) {
+          flushLines();
+          return;
+        }
+        if (!outcome.ok) {
+          pendingLines.push(`[pre] error: ${outcome.error}`);
+          flushLines();
+          setState({ status: "error", message: outcome.error });
+          return;
+        }
+        persistVarWrites(preVarWrites);
+        flushLines();
+      }
+
+      const node2: RequestNode = {
+        ...node,
+        method: reqDraft.method,
+        url: reqDraft.url,
+        body: reqDraft.body,
+      };
+      const wire = buildHttpRequest(
+        node2,
+        applyPreToEffective(effective, runtimeVars, reqDraft.headerOverrides),
+        processEnv,
+      );
+      inFlightRequestId.current.set(id, wire.requestId);
+
+      const result = await httpClientRef.current.send(wire);
+      if (isStale()) {
+        return;
+      }
+      inFlightRequestId.current.delete(id);
+      if (!result.ok) {
+        setState(
+          result.cancelled
+            ? { status: "idle" }
+            : { status: "error", message: result.error },
+        );
+        return;
+      }
+
+      // POST-response script: read-only res + may set vars. A throw never
+      // downgrades the success state; writes recorded before a throw still persist.
+      const response = result.response;
+      const postCode = effective.scripts.post.value;
+      if (postCode.trim() !== "") {
+        const postVarWrites: VarWrite[] = [];
+        const api = buildScriptApi({
+          stage: "post",
+          effective,
+          processEnv,
+          envName: activeEnvironment ?? null,
+          runtimeVars: new Map(runtimeVars),
+          varWrites: postVarWrites,
+          log: (line) => pendingLines.push(line),
+          clear: clearConsole,
+          response,
+        });
+        const outcome = await scriptRunnerRef.current.run(postCode, api);
+        if (isStale()) {
+          flushLines();
+          return;
+        }
+        persistVarWrites(postVarWrites);
+        if (!outcome.ok) {
+          pendingLines.push(`[post] error: ${outcome.error}`);
+        }
+        flushLines();
+      }
+      setState({ status: "success", response });
     };
 
     const cancelRequest = (id: string) => {
