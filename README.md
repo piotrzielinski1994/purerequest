@@ -44,6 +44,17 @@ Rust backend tests: `cd src-tauri && cargo test`.
 > browser build wired to fakes (in-memory fs + fake HTTP), not the native Tauri boundary - that
 > stays covered by `cargo test`.
 
+## Releasing installers
+
+The [`Release` workflow](.github/workflows/release.yml) builds installers for all three OSes and
+publishes them to a GitHub Release. It is **manual only**: GitHub -> Actions -> "Release" -> "Run
+workflow", enter a tag (e.g. `v0.1.0`). It produces a single universal macOS `.dmg`, a Windows
+installer, and a Linux `.AppImage`, attached to a **draft** Release. The binaries are **unsigned**:
+on macOS right-click the app and choose Open; on Windows choose "More info -> Run anyway".
+
+To take installers down later, delete the Release (and its tag) or remove individual assets - the
+download links 404 immediately. Anyone who already downloaded keeps their local copy.
+
 > The home route renders the workspace layout (sidebar collection tree, request tabs,
 > URL bar, request/response panes, console). The URL bar is editable (URL field + method
 > select); **Send** issues a real HTTP request through a Rust `send_http_request` command
