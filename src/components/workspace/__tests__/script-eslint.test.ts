@@ -34,6 +34,15 @@ describe("jsUndefLinter", () => {
     expect(jsUndefLinter("post")(view)).toEqual([]);
   });
 
+  // bru is the Bruno-compat alias - an imported collection's script using it
+  // must not be flagged as an undefined global.
+  it("should not flag the bru global in any stage", () => {
+    const view = viewOf('bru.setVar("x", bru.getCollectionVar("CULTURE"));');
+
+    expect(jsUndefLinter("pre")(view)).toEqual([]);
+    expect(jsUndefLinter("post")(view)).toEqual([]);
+  });
+
   it("should not flag req in a pre script but should flag it in a post script", () => {
     const view = viewOf("req.setUrl('x');");
 

@@ -124,6 +124,59 @@ describe("createQuickJsScriptRunner", () => {
     expect(outcome.ok).toBe(false);
   });
 
+  // Bruno-compat - side-effect-contract: a pasted Bruno script's `bru.setVar`
+  // reaches the host setVar (aliased onto requi), so imported Bruno collections
+  // run without a `ReferenceError: 'bru' is not defined`.
+  it("should alias bru.setVar onto the host setVar", async () => {
+    const setVar = vi.fn<NonNullable<ScriptApi["requi"]>["setVar"]>();
+    const api = makeApi({
+      requi: {
+        getVar: () => undefined,
+        setVar,
+        getProcessEnv: () => undefined,
+        getEnvName: () => null,
+      },
+    });
+    const runner = createQuickJsScriptRunner();
+
+    const outcome = await runner.run("bru.setVar('a', '1')", api);
+
+    expect(setVar).toHaveBeenCalledWith("a", "1");
+    expect(outcome).toEqual({ ok: true });
+  });
+
+  // Bruno-compat - behavior: bru.getVar / bru.getEnvVar / bru.getCollectionVar
+  // all read through the host getVar (ReqUI has one variable space).
+  it("should alias bru read accessors onto the host getVar", async () => {
+    const getVar = vi.fn<NonNullable<ScriptApi["requi"]>["getVar"]>(
+      (name) => `val-${name}`,
+    );
+    const setVar = vi.fn<NonNullable<ScriptApi["requi"]>["setVar"]>();
+    const api = makeApi({
+      requi: { getVar, setVar, getProcessEnv: () => undefined, getEnvName: () => null },
+    });
+    const runner = createQuickJsScriptRunner();
+
+    const outcome = await runner.run(
+      "bru.setVar('out', bru.getCollectionVar('CULTURE'))",
+      api,
+    );
+
+    expect(getVar).toHaveBeenCalledWith("CULTURE");
+    expect(setVar).toHaveBeenCalledWith("out", "val-CULTURE");
+    expect(outcome).toEqual({ ok: true });
+  });
+
+  // Bruno-compat - behavior: bru.cwd() is a defined no-op ("") so a script that
+  // calls it doesn't crash with a ReferenceError before its real work.
+  it("should expose bru.cwd as a defined function", async () => {
+    const runner = createQuickJsScriptRunner();
+
+    const outcome = await runner.run("bru.cwd();", makeApi());
+
+    expect(outcome).toEqual({ ok: true });
+  });
+
   // AC-008 - behavior: neither fetch nor process leak either.
   it("should not expose fetch or process in the sandbox", async () => {
     const runner = createQuickJsScriptRunner();

@@ -7,14 +7,21 @@ import { Sidebar } from "@/components/workspace/sidebar";
 import { Main } from "@/components/workspace/main";
 import { useSettings } from "@/lib/settings/settings-context";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
+import type { BrunoCollectionReader } from "@/lib/bruno/reader";
 
-export function WorkspaceLayout({ picker }: { picker?: FolderPicker }) {
+export function WorkspaceLayout({
+  picker,
+  reader,
+}: {
+  picker?: FolderPicker;
+  reader?: BrunoCollectionReader;
+}) {
   const { settings, saveLayout } = useSettings();
 
   if (settings.sidebarHidden) {
     return (
       <div className="h-full w-full">
-        <Main picker={picker} />
+        <Main picker={picker} reader={reader} />
       </div>
     );
   }
@@ -36,7 +43,7 @@ export function WorkspaceLayout({ picker }: { picker?: FolderPicker }) {
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel id="content" defaultSize="80%">
-        <Main picker={picker} />
+        <Main picker={picker} reader={reader} />
       </ResizablePanel>
     </ResizablePanelGroup>
   );

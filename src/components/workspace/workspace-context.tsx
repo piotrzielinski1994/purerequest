@@ -41,6 +41,7 @@ import type {
 } from "@/lib/workspace/model";
 import {
   listEnvironmentNames,
+  mergeDotenv,
   parseDotenv,
   setDotenvValue,
 } from "@/lib/workspace/environment";
@@ -54,6 +55,11 @@ import type { TokenTarget } from "@/components/workspace/url-token";
 import { useToast } from "@/components/ui/toast";
 import { toCurl } from "@/lib/curl/to-curl";
 import { parseCurl, type CurlParseResult } from "@/lib/curl/parse-curl";
+import {
+  brunoToTree,
+  collectDotenv,
+  type BrunoFileMap,
+} from "@/lib/bruno/bruno-to-tree";
 
 type RequestOverride = Partial<
   Pick<RequestNode, "name" | "url" | "method" | "body" | "bodyMode" | "bodyForm">
@@ -174,6 +180,7 @@ type WorkspaceContextValue = {
   openCurlImport: () => void;
   closeCurlImport: () => void;
   importCurl: (text: string) => CurlParseResult;
+  importBruno: (files: BrunoFileMap, name: string) => void;
   focusUrlNonce: number;
 };
 
@@ -782,6 +789,28 @@ export function WorkspaceProvider({
       return result;
     };
 
+    const importBruno = (files: BrunoFileMap, name: string) => {
+      const [root] = brunoToTree(files, name);
+      if (!root || root.kind !== "folder" || root.children.length === 0) {
+        return;
+      }
+      nodeCounter.current += 1;
+      const folder = { ...root, id: `new-${nodeCounter.current}` };
+      setExpandedFolderIds((current) => new Set(current).add(folder.id));
+      setIsSettingsActive(false);
+      setIsEditorActive(false);
+      setSelectedNodeId(folder.id);
+      persistTree(insertNode(tree, null, tree.length, folder), "import");
+      // A collection's .env feeds {{process.env.X}} - merge every .env found
+      // (at any depth) into the workspace .env so imported requests resolve
+      // their process-env tokens.
+      const collectionEnv = collectDotenv(files);
+      if (collectionEnv.trim() !== "") {
+        saveEnv(mergeDotenv(envText, collectionEnv));
+      }
+      showToastRef.current("Imported Bruno collection");
+    };
+
     const persistTree = (next: TreeNode[], failLabel: string) => {
       setTree(next);
       const persist = onTreeChangeRef.current;
@@ -1248,6 +1277,7 @@ export function WorkspaceProvider({
       openCurlImport,
       closeCurlImport,
       importCurl,
+      importBruno,
       focusUrlNonce,
     };
   }, [

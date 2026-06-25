@@ -99,7 +99,8 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > open settings `Mod+Shift+S`, close settings `Esc`, toggle console `Mod+J`, toggle sidebar
 > `Mod+B`, next/prev request `Ctrl+Tab`/`Ctrl+Shift+Tab`, close request `Mod+W`, close all
 > request tabs `Mod+Shift+W`, new request `Mod+T`, open workspace `Mod+O`, send request
-> `Mod+Enter`, copy as cURL `Mod+Shift+C`, import cURL `Mod+Shift+I`, command palette `Mod+K`
+> `Mod+Enter`, copy as cURL `Mod+Shift+C`, import cURL `Mod+Shift+I`, import Bruno collection
+> `Mod+Shift+B`, command palette `Mod+K`
 > (`Mod` = Cmd on macOS, Ctrl
 > elsewhere). The command palette is an overlay listing every wired action with its shortcut;
 > type to filter, arrow to move, Enter (or click) to run, Esc to close. Settings open as a
@@ -141,6 +142,18 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > unknown flags ignored) into a **new** request node placed relative to the tree selection and
 > persisted - it never overwrites the active request.
 >
+> **Import Bruno collection** (`Mod+Shift+B` + palette) opens a folder picker and reads a Bruno
+> collection directory in **either on-disk format** - the legacy `.bru` markup (`.bru` +
+> `bruno.json` + `environments/*.bru`) **or** OpenCollection YAML (`*.yml` + `opencollection.yml`/
+> `folder.yml` + `environments/*.yml`; what real Bruno/Postman-converted exports use). The collection
+> is parsed (method/url/headers/params/body/auth/scripts/vars; disabled rows kept disabled;
+> `tests`/`assert`/`docs`/`body:graphql` skipped) into a ReqUI subtree and inserted as a **new
+> top-level folder** named from `bruno.json`/`opencollection.yml` (Bruno `environments/<name>` fold
+> into that folder's `config.environments`). The collection's own root `.env` is **merged into the
+> workspace `.env`** (imported keys win on a clash) so its `{{process.env.X}}` tokens resolve.
+> Additive like cURL import - it never replaces the open workspace; an empty collection adds nothing.
+> In `npm run dev` (no native host) the action is a no-op.
+>
 > A **workspace** is a folder on disk holding the collection tree + config. Point the app
 > at one by hand-editing `workspacePath` in that same `settings.json`; it loads on launch
 > (empty state if unset/invalid). Folders/requests carry an inheritable config (variables,
@@ -158,6 +171,9 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > script runs after the response and can read it (`res.getStatus/getBody/getJson/getHeader`) and
 > set variables for chaining the next request. `requi.setVar(name, value)` persists the variable to
 > `config.variables` on disk (nearest scope that already defines it, else the request's own config).
+> Bruno's `bru.*` API is aliased onto the same surface (`bru.setVar`, `bru.getVar`/`getEnvVar`/
+> `getCollectionVar` -> `getVar`, `bru.getProcessEnv`, `bru.cwd()` is a no-op), so scripts in an
+> imported Bruno collection run instead of throwing `'bru' is not defined`.
 > `console.log/info/warn/error` output lands in the Console (prefixed `[pre]`/`[post]`),
 > `console.clear()` wipes it; scripts may
 > use `async`/`await`. A throwing **pre** script aborts the send (error in the response pane); a
@@ -228,6 +244,7 @@ src/
     ui/                 shadcn primitives
   lib/                  utils.ts (cn)
     runtime/            environment.ts (isDevBrowser: gates the dev-browser fakes)
+    bruno/              Bruno import: parseBru (.bru) + parseOpenCollection (.yml), brunoToTree (ext-dispatch), reader port
     http/               HTTP loop: buildHttpRequest, filterJson, HttpClient port + Tauri/fake adapters
     settings/           per-installation settings: model + port, Tauri-store + in-memory adapters, provider
     workspace/          workspace domain: model, resolveConfig, disk-format, fs port + adapters, demo-seed

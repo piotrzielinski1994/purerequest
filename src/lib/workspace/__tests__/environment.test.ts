@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import {
   listEnvironmentNames,
+  mergeDotenv,
   parseDotenv,
   setDotenvValue,
 } from "@/lib/workspace/environment";
@@ -185,6 +186,37 @@ describe("setDotenvValue", () => {
   it("should create the key from empty content", () => {
     expect(parseDotenv(setDotenvValue("", "TOKEN", "abc"))).toEqual({
       TOKEN: "abc",
+    });
+  });
+});
+
+describe("mergeDotenv", () => {
+  // behavior: keys unique to each side are both kept.
+  it("should keep keys from both the existing and the incoming env", () => {
+    const out = mergeDotenv("HOST=local", "CULTURE=en-CA");
+
+    expect(parseDotenv(out)).toEqual({ HOST: "local", CULTURE: "en-CA" });
+  });
+
+  // behavior: an incoming key wins for keys present in both (the imported
+  // collection is authoritative for the keys it ships).
+  it("should let the incoming value win on a key present in both", () => {
+    const out = mergeDotenv("CULTURE=de-DE\nHOST=local", "CULTURE=en-CA");
+
+    expect(parseDotenv(out)).toEqual({ CULTURE: "en-CA", HOST: "local" });
+  });
+
+  // behavior: merging into empty existing content yields the incoming env.
+  it("should produce the incoming env when existing is empty", () => {
+    const out = mergeDotenv("", "A=1\nB=2");
+
+    expect(parseDotenv(out)).toEqual({ A: "1", B: "2" });
+  });
+
+  // behavior: an empty incoming env leaves the existing content unchanged.
+  it("should leave existing unchanged for an empty incoming env", () => {
+    expect(parseDotenv(mergeDotenv("HOST=local", ""))).toEqual({
+      HOST: "local",
     });
   });
 });

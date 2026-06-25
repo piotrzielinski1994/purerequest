@@ -67,6 +67,36 @@ describe("buildScriptApi - requi", () => {
     expect(api.requi.getVar("token")).toBe("resolved");
   });
 
+  // A var whose value is a {{...}} token is interpolated before it reaches a
+  // script (Bruno returns resolved values); otherwise scripts that string-op the
+  // value (split/toLowerCase) crash on the raw token.
+  it("should interpolate a {{process.env.X}} var value via processEnv", () => {
+    const eff = effective({
+      variables: {
+        CULTURE: { value: "{{process.env.CULTURE}}", from: PROV },
+      },
+    });
+    const ctx = {
+      ...preCtx(eff, draftOf()),
+      processEnv: { CULTURE: "en-CA" },
+    };
+    const api = buildScriptApi(ctx);
+
+    expect(api.requi.getVar("CULTURE")).toBe("en-CA");
+  });
+
+  it("should interpolate a var that references another var", () => {
+    const eff = effective({
+      variables: {
+        base: { value: "https://api", from: PROV },
+        url: { value: "{{base}}/v1", from: PROV },
+      },
+    });
+    const api = buildScriptApi(preCtx(eff, draftOf()));
+
+    expect(api.requi.getVar("url")).toBe("https://api/v1");
+  });
+
   it("should record a setVar to both the runtime map and the var-writes list", () => {
     const ctx = preCtx(effective(), draftOf());
     const api = buildScriptApi(ctx);

@@ -7,6 +7,10 @@ import {
   createTauriFolderPicker,
   createNoopFolderPicker,
 } from "@/lib/workspace/folder-picker";
+import {
+  createTauriBrunoReader,
+  createNoopBrunoReader,
+} from "@/lib/bruno/reader";
 import { createTauriHttpClient } from "@/lib/http/tauri-client";
 import { createFakeHttpClient } from "@/lib/http/fake-client";
 import { createQuickJsScriptRunner } from "@/lib/scripts/quickjs-runner";
@@ -18,12 +22,14 @@ import {
 } from "@/lib/workspace/demo-seed";
 import type { WorkspaceFs } from "@/lib/workspace/fs";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
+import type { BrunoCollectionReader } from "@/lib/bruno/reader";
 import type { HttpClient } from "@/lib/http/model";
 import { rootRoute } from "@/routes/__root";
 
 type Adapters = {
   fs: WorkspaceFs;
   picker: FolderPicker;
+  reader: BrunoCollectionReader;
   httpClient: HttpClient;
 };
 
@@ -32,12 +38,14 @@ function createAdapters(): Adapters {
     return {
       fs: createInMemoryWorkspaceFs({ [DEMO_WORKSPACE_PATH]: demoFiles() }),
       picker: createNoopFolderPicker(),
+      reader: createNoopBrunoReader(),
       httpClient: createFakeHttpClient({ ok: true, response: DEMO_RESPONSE }),
     };
   }
   return {
     fs: createTauriWorkspaceFs(),
     picker: createTauriFolderPicker(),
+    reader: createTauriBrunoReader(),
     httpClient: createTauriHttpClient(),
   };
 }
@@ -50,6 +58,7 @@ function HomePage() {
     <WorkspaceLoader
       fs={adapters.fs}
       picker={adapters.picker}
+      reader={adapters.reader}
       httpClient={adapters.httpClient}
       scriptRunner={scriptRunner}
     />

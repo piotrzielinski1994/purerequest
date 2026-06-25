@@ -17,6 +17,7 @@ export type ShortcutActionId =
   | "save-active-editor"
   | "copy-as-curl"
   | "import-curl"
+  | "import-bruno"
   | "open-command-palette";
 
 export type ShortcutAction = {
@@ -136,6 +137,12 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     name: "Import cURL",
     description: "Paste a curl command to create a new request.",
     defaultHotkey: "Mod+Shift+I",
+  },
+  {
+    id: "import-bruno",
+    name: "Import Bruno collection",
+    description: "Pick a Bruno collection folder to import as a new folder.",
+    defaultHotkey: "Mod+Shift+B",
   },
   {
     id: "open-command-palette",

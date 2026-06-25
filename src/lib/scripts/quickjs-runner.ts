@@ -30,6 +30,20 @@ globalThis.requi = {
   getProcessEnv: (n) => __call("requi.getProcessEnv", n),
   getEnvName: () => __call("requi.getEnvName"),
 };
+// Bruno's script API is \`bru\`. ReqUI has one variable space + no filesystem, so
+// the reader accessors all map to getVar and fs-only methods (cwd) are no-ops -
+// enough for pasted/imported Bruno scripts to run instead of ReferenceError-ing.
+globalThis.bru = {
+  getVar: (n) => __call("requi.getVar", n),
+  setVar: (n, v) => __call("requi.setVar", n, v),
+  getEnvVar: (n) => __call("requi.getVar", n),
+  getCollectionVar: (n) => __call("requi.getVar", n),
+  getFolderVar: (n) => __call("requi.getVar", n),
+  getRequestVar: (n) => __call("requi.getVar", n),
+  getProcessEnv: (n) => __call("requi.getProcessEnv", n),
+  getEnvName: () => __call("requi.getEnvName"),
+  cwd: () => "",
+};
 globalThis.console = {
   log: (...a) => __call("console.log", ...a),
   info: (...a) => __call("console.info", ...a),

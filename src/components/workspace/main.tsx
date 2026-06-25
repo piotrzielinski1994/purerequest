@@ -22,8 +22,15 @@ import {
   type ShortcutActionId,
 } from "@/lib/shortcuts/registry";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
+import type { BrunoCollectionReader } from "@/lib/bruno/reader";
 
-export function Main({ picker }: { picker?: FolderPicker }) {
+export function Main({
+  picker,
+  reader,
+}: {
+  picker?: FolderPicker;
+  reader?: BrunoCollectionReader;
+}) {
   const {
     settings,
     saveLayout,
@@ -53,6 +60,7 @@ export function Main({ picker }: { picker?: FolderPicker }) {
     saveActiveRequest,
     copyAsCurl,
     openCurlImport,
+    importBruno,
   } = useWorkspace();
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
 
@@ -78,6 +86,17 @@ export function Main({ picker }: { picker?: FolderPicker }) {
     picker.pick().then((path) => {
       if (path !== null) {
         saveWorkspacePath(path);
+      }
+    });
+  };
+
+  const importBrunoCollection = () => {
+    if (!reader) {
+      return;
+    }
+    reader.pick().then((picked) => {
+      if (picked !== null) {
+        importBruno(picked.files, picked.name);
       }
     });
   };
@@ -150,6 +169,7 @@ export function Main({ picker }: { picker?: FolderPicker }) {
     },
     "copy-as-curl": copyAsCurl,
     "import-curl": openCurlImport,
+    "import-bruno": importBrunoCollection,
   };
 
   useActionHotkeys({

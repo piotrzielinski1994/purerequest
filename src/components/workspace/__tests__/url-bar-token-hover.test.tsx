@@ -97,6 +97,49 @@ describe("UrlBar token hover preview", () => {
     expect(reopened).toHaveValue("https://written.example.com");
   });
 
+  // behavior: a var whose raw value is itself a token shows the FULLY-RESOLVED
+  // value (not just the raw token) so a hover answers "what does this become?".
+  it("should show the resolved value when the raw value is itself a token", async () => {
+    const user = userEvent.setup();
+    const indirectTree: TreeNode[] = [
+      {
+        kind: "folder",
+        id: "root",
+        name: "C",
+        config: { variables: { CULTURE: "{{process.env.CULTURE}}" } },
+        children: [
+          {
+            kind: "request",
+            id: "req",
+            name: "Req",
+            method: "GET",
+            url: "{{LTS_URL}}/references?culture={{CULTURE}}",
+            body: "",
+            config: {},
+          },
+        ],
+      },
+    ];
+    render(
+      <WorkspaceProvider
+        tree={indirectTree}
+        initialActiveRequestId="req"
+        initialExpandedIds={["root"]}
+        processEnv={{ CULTURE: "en-CA" }}
+      >
+        <UrlBar />
+      </WorkspaceProvider>,
+    );
+
+    await user.hover(screen.getByText("{{CULTURE}}"));
+
+    // the raw editable value stays the token (edits the var at its scope)...
+    const input = await screen.findByRole("textbox", { name: /value/i });
+    expect(input).toHaveValue("{{process.env.CULTURE}}");
+    // ...and the resolved value en-CA is shown too.
+    expect(await screen.findByText("en-CA")).toBeInTheDocument();
+  });
+
   // behavior: an unresolved token shows an explicit "unresolved" hint, no input
   it("should show an unresolved hint if the token has no value", async () => {
     const user = userEvent.setup();

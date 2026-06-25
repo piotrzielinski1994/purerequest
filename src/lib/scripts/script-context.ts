@@ -6,6 +6,7 @@ import type {
 import type { HttpMethod } from "@/lib/workspace/model";
 import type { HttpResponse } from "@/lib/http/model";
 import type { ScriptApi, ScriptStage } from "@/lib/scripts/model";
+import { interpolate } from "@/lib/http/interpolate";
 
 export type ReqDraft = {
   method: HttpMethod;
@@ -65,10 +66,24 @@ export function buildScriptApi(ctx: ScriptContext): ScriptApi {
     (...args: unknown[]) =>
       ctx.log(`[${ctx.stage}] ${marker}${args.map(formatArg).join(" ")}`);
 
+  // Vars a script reads come back interpolated (Bruno returns resolved values),
+  // so a `{{process.env.X}}`/`{{other}}` value is substituted before string ops.
+  const allVars = Object.fromEntries(
+    Object.entries(ctx.effective.variables).map(([key, resolved]) => [
+      key,
+      resolved.value,
+    ]),
+  );
+  ctx.runtimeVars.forEach((value, key) => {
+    allVars[key] = value;
+  });
+  const resolveVar = (raw: string | undefined): string | undefined =>
+    raw === undefined ? undefined : interpolate(raw, allVars, ctx.processEnv);
+
   const api: ScriptApi = {
     requi: {
       getVar: (name) =>
-        ctx.runtimeVars.get(name) ?? ctx.effective.variables[name]?.value,
+        resolveVar(ctx.runtimeVars.get(name) ?? ctx.effective.variables[name]?.value),
       setVar: (name, value) => {
         ctx.runtimeVars.set(name, value);
         ctx.varWrites.push({ name, value });

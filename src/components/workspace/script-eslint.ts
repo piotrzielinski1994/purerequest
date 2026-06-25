@@ -9,7 +9,12 @@ const linter = new Linter();
 // `req` is pre-only, `res` post-only; everything else (Promise/JSON/Math/...) is
 // a standard ES global ESLint already knows via ecmaVersion.
 function globalsFor(stage: ScriptStage): Record<string, "readonly"> {
-  const shared = { requi: "readonly", console: "readonly" } as const;
+  // `bru` is the Bruno-compat alias of `requi` (both injected in every stage).
+  const shared = {
+    requi: "readonly",
+    bru: "readonly",
+    console: "readonly",
+  } as const;
   if (stage === "pre") {
     return { ...shared, req: "readonly" };
   }

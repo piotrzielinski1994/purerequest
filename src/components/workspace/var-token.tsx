@@ -29,32 +29,46 @@ function TokenValueEditor({ preview }: { preview: TokenPreview }) {
     }
   };
 
+  // When the raw value is itself a {{token}}, its fully-resolved form differs -
+  // show it as a read-only line so a hover answers "what does this become?".
+  const isIndirect = preview.value !== preview.rawValue;
+
   return (
-    <div className="flex items-stretch">
-      <Input
-        aria-label="Value"
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={commit}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            commit();
-            (event.target as HTMLInputElement).blur();
-          }
-        }}
-        className="h-9 flex-1 rounded-none border-0 bg-transparent font-mono text-xs shadow-none focus-visible:ring-0"
-      />
-      <button
-        type="button"
-        aria-label="Copy value"
-        onClick={() => {
-          navigator.clipboard?.writeText(draft);
-          show("Copied to clipboard");
-        }}
-        className="flex shrink-0 items-center border-l px-2.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-      >
-        <Copy className="size-3.5" />
-      </button>
+    <div className="flex flex-col">
+      <div className="flex items-stretch">
+        <Input
+          aria-label="Value"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              commit();
+              (event.target as HTMLInputElement).blur();
+            }
+          }}
+          className="h-9 flex-1 rounded-none border-0 bg-transparent font-mono text-xs shadow-none focus-visible:ring-0"
+        />
+        <button
+          type="button"
+          aria-label="Copy value"
+          onClick={() => {
+            navigator.clipboard?.writeText(isIndirect ? preview.value : draft);
+            show("Copied to clipboard");
+          }}
+          className="flex shrink-0 items-center border-l px-2.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <Copy className="size-3.5" />
+        </button>
+      </div>
+      {isIndirect && (
+        <div className="border-t px-2.5 py-1.5 font-mono text-xs">
+          <span className="text-muted-foreground">= </span>
+          <span className="text-emerald-500 dark:text-emerald-400">
+            {preview.value}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

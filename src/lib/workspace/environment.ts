@@ -41,6 +41,18 @@ export function setDotenvValue(
   return next.join("\n");
 }
 
+// Merge an incoming dotenv (e.g. an imported Bruno collection's .env) into an
+// existing one. Each incoming key is applied via setDotenvValue, so existing
+// formatting/comments survive, existing-only keys are kept, and an incoming key
+// wins for keys present in both (the imported collection is authoritative for
+// the keys it ships).
+export function mergeDotenv(existing: string, incoming: string): string {
+  return Object.entries(parseDotenv(incoming)).reduce(
+    (acc, [key, value]) => setDotenvValue(acc, key, value),
+    existing,
+  );
+}
+
 export function parseDotenv(raw: string): ProcessEnv {
   return raw.split("\n").reduce<ProcessEnv>((acc, line) => {
     const trimmed = line.trim();

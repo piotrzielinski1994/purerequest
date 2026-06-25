@@ -30,6 +30,7 @@ const ACTION_IDS: ShortcutActionId[] = [
   "save-active-editor",
   "copy-as-curl",
   "import-curl",
+  "import-bruno",
   "open-command-palette",
 ];
 
