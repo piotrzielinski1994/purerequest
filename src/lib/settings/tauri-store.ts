@@ -5,6 +5,7 @@ import {
   type Settings,
   type SettingsStore,
 } from "@/lib/settings/settings";
+import { logMessage } from "@/lib/logging/file-log";
 
 const SETTINGS_FILE = "settings.json";
 const KEYMAP_FILE = "keymap.json";
@@ -65,6 +66,6 @@ async function persist(
     .set(key, value)
     .then(() => store.save())
     .catch((error) => {
-      console.warn(`Failed to persist ${key}`, error);
+      logMessage("warn", `Failed to persist ${key}: ${String(error)}`);
     });
 }

@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
+mod logging;
+
 use serde::{Deserialize, Serialize};
 use tokio_util::sync::CancellationToken;
 
@@ -53,6 +55,7 @@ struct HttpResponsePayload {
 
 #[tauri::command]
 async fn send_http_request(request: HttpRequestPayload) -> Result<HttpResponsePayload, String> {
+    log::info!("send {} {}", request.method, request.url);
     let method = reqwest::Method::from_bytes(request.method.as_bytes())
         .map_err(|err| format!("Invalid method: {err}"))?;
     let client = reqwest::Client::builder()
@@ -100,6 +103,7 @@ async fn send_http_request(request: HttpRequestPayload) -> Result<HttpResponsePa
     };
     let time_ms = start.elapsed().as_millis() as u64;
     let size_bytes = body.len();
+    log::info!("recv {} {} ({status} in {time_ms}ms)", request.method, request.url);
 
     Ok(HttpResponsePayload {
         status,
@@ -112,6 +116,7 @@ async fn send_http_request(request: HttpRequestPayload) -> Result<HttpResponsePa
 
 #[tauri::command]
 async fn cancel_http_request(request_id: String) {
+    log::info!("cancel {request_id}");
     let token = CANCELS.lock().unwrap().get(&request_id).cloned();
     if let Some(token) = token {
         token.cancel();
@@ -125,9 +130,14 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            logging::init(app.handle());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             send_http_request,
-            cancel_http_request
+            cancel_http_request,
+            logging::log_message
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
