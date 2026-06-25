@@ -174,7 +174,7 @@ export function AuthPanel({ id, config }: { id: string; config: ConfigScope }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-10.25 items-stretch border-b bg-muted/30">
+      <div className="flex h-10.25 items-stretch overflow-x-auto border-b bg-muted/30">
         <Select
           value={auth.type}
           onValueChange={(type) => change(authForType(type as Auth["type"]))}
@@ -282,7 +282,7 @@ export function ScriptPanel({
     });
   return (
     <Tabs defaultValue="pre" className="flex h-full min-h-0 flex-col gap-0">
-      <div className="flex h-10.25 items-stretch border-b bg-muted/30">
+      <div className="flex h-10.25 items-stretch overflow-x-auto border-b bg-muted/30">
         <TabsList aria-label="Script stage" className={PANE_TABS_LIST}>
           <TabsTrigger value="pre" className={PANE_TABS_TRIGGER}>
             Pre

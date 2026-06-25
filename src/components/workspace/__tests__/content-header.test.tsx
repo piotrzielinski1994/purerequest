@@ -8,6 +8,7 @@ import {
 } from "@/components/workspace/workspace-context";
 import { SidebarTree } from "@/components/workspace/sidebar-tree";
 import { ContentHeader } from "@/components/workspace/content-header";
+import { ToastProvider } from "@/components/ui/toast";
 import { fixtureTree } from "./fixtures";
 
 function OpenEnvButton() {
@@ -418,5 +419,130 @@ describe("ContentHeader", () => {
     expect(
       screen.getByRole("button", { name: /new request/i }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("ContentHeader sticky New-request button (AC-003/004/005)", () => {
+  // AC-003/005 — behavior: the `+` must NOT live inside the scrolling tablist, so
+  // it can never scroll out of reach. jsdom can't measure overflow, so we pin the
+  // structural contract: the tablist is the scroller (carries overflow-x-auto)
+  // and the `+` button is not a descendant of it.
+  it("should keep the New request button outside the scrolling tablist container", () => {
+    render(
+      <WorkspaceProvider
+        tree={fixtureTree}
+        initialOpenRequestIds={["req-profile", "req-token"]}
+        initialActiveRequestId="req-profile"
+      >
+        <ContentHeader />
+      </WorkspaceProvider>,
+    );
+
+    const tablist = screen.getByRole("tablist", { name: /open requests/i });
+    const plus = screen.getByRole("button", { name: /new request/i });
+
+    expect(plus).toBeInTheDocument();
+    // The tablist (cards) is the horizontal scroller (AC-005 relocated here from
+    // the outer bar), while the `+` stays outside it - shrink-0 and not a
+    // descendant - so it can't scroll out of reach (AC-003/004/005).
+    expect((tablist as HTMLElement).className).toContain("overflow-x-auto");
+    expect(plus.className).toContain("shrink-0");
+    expect(tablist.contains(plus)).toBe(false);
+  });
+
+  // The active card overflows the bar by 1px (`-mb-px h-[calc(100%+1px)]` seam
+  // trick), which under `overflow-x-auto` turns `overflow-y` into a stray
+  // draggable vertical scroll. The strip must clip it (`overflow-y-hidden`).
+  it("should clip vertical overflow on the tab strip so it has no stray vertical scroll", () => {
+    render(
+      <WorkspaceProvider
+        tree={fixtureTree}
+        initialOpenRequestIds={["req-profile", "req-token"]}
+        initialActiveRequestId="req-profile"
+      >
+        <ContentHeader />
+      </WorkspaceProvider>,
+    );
+
+    const tablist = screen.getByRole("tablist", { name: /open requests/i });
+    expect((tablist as HTMLElement).className).toContain("overflow-y-hidden");
+  });
+});
+
+describe("ContentHeader tab context menu (AC-006/008)", () => {
+  function renderHeader(
+    openIds: string[],
+    activeId = openIds[0],
+  ): ReturnType<typeof userEvent.setup> {
+    render(
+      <ToastProvider>
+        <WorkspaceProvider
+          tree={fixtureTree}
+          initialOpenRequestIds={openIds}
+          initialActiveRequestId={activeId}
+        >
+          <ContentHeader />
+        </WorkspaceProvider>
+      </ToastProvider>,
+    );
+    return userEvent.setup();
+  }
+
+  // AC-006, TC-004 — behavior: right-clicking a request tab opens a menu with the
+  // three close actions. radix ContextMenu opens under jsdom via
+  // fireEvent.contextMenu (proven by tree-row-crud).
+  it("should open a context menu with Close, Close other tabs and Close all if a request tab is right-clicked", async () => {
+    renderHeader(["req-profile", "req-token"]);
+
+    const tablist = screen.getByRole("tablist", { name: /open requests/i });
+    const profileTab = within(tablist).getByRole("tab", { name: "profile" });
+    fireEvent.contextMenu(profileTab);
+
+    expect(
+      await screen.findByRole("menuitem", { name: /^close$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /close other tabs/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /close all/i }),
+    ).toBeInTheDocument();
+  });
+
+  // AC-006/007, TC-004 — behavior: running "Close other tabs" from the menu leaves
+  // only the right-clicked tab open and active.
+  it("should close every other tab and activate the target if Close other tabs is chosen from a tab's menu", async () => {
+    const user = renderHeader(["req-profile", "req-token", "req-session"]);
+
+    const tablist = screen.getByRole("tablist", { name: /open requests/i });
+    const tokenTab = within(tablist).getByRole("tab", { name: "token" });
+    fireEvent.contextMenu(tokenTab);
+
+    await user.click(
+      await screen.findByRole("menuitem", { name: /close other tabs/i }),
+    );
+
+    expect(within(tablist).queryByRole("tab", { name: "profile" })).toBeNull();
+    expect(within(tablist).queryByRole("tab", { name: "session" })).toBeNull();
+    const survivor = within(tablist).getByRole("tab", { name: "token" });
+    expect(survivor).toHaveAttribute("aria-selected", "true");
+  });
+
+  // AC-008, TC-005 — behavior: with a single open tab the "Close other tabs" item
+  // is disabled.
+  it("should disable Close other tabs in the menu if the target is the only open tab", async () => {
+    renderHeader(["req-profile"]);
+
+    const tablist = screen.getByRole("tablist", { name: /open requests/i });
+    const profileTab = within(tablist).getByRole("tab", { name: "profile" });
+    fireEvent.contextMenu(profileTab);
+
+    const item = await screen.findByRole("menuitem", {
+      name: /close other tabs/i,
+    });
+    const isDisabled =
+      item.getAttribute("aria-disabled") === "true" ||
+      item.hasAttribute("data-disabled");
+    expect(isDisabled).toBe(true);
   });
 });

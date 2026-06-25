@@ -22,7 +22,7 @@ export function BodyPanel({ request }: { request: RequestNode }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-10.25 items-stretch border-b bg-muted/30">
+      <div className="flex h-10.25 items-stretch overflow-x-auto border-b bg-muted/30">
         <Select
           value={mode}
           onValueChange={(next) =>

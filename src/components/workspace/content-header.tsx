@@ -1,5 +1,11 @@
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import { cn } from "@/lib/utils";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { FileCog, Plus, Settings, X } from "lucide-react";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
@@ -50,15 +56,21 @@ function RequestTab({
   request,
   isActive,
   isDirty,
+  canCloseOthers,
   onActivate,
   onClose,
+  onCloseOthers,
+  onCloseAll,
 }: {
   id: string;
   request: RequestNode;
   isActive: boolean;
   isDirty: boolean;
+  canCloseOthers: boolean;
   onActivate: () => void;
   onClose: () => void;
+  onCloseOthers: () => void;
+  onCloseAll: () => void;
 }) {
   const {
     attributes,
@@ -70,55 +82,66 @@ function RequestTab({
   } = useSortable({ id });
 
   return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
-      {...attributes}
-      {...listeners}
-      className={cn(
-        "flex h-full cursor-grab touch-none items-center gap-1 border-r px-3 text-sm hover:bg-accent active:cursor-grabbing",
-        isDragging && "opacity-50",
-        isActive
-          ? "-mb-px h-[calc(100%+1px)] bg-accent shadow-[inset_0_-2px_0_0_var(--primary)]"
-          : "bg-transparent",
-      )}
-    >
-      <button
-        type="button"
-        role="tab"
-        aria-selected={isActive}
-        onClick={onActivate}
-        className={cn(
-          "flex items-center gap-1.5 truncate",
-          isActive ? "text-foreground" : "text-muted-foreground",
-        )}
-      >
-        <span
-          aria-hidden="true"
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          ref={setNodeRef}
+          style={{ transform: CSS.Translate.toString(transform), transition }}
+          {...attributes}
+          {...listeners}
           className={cn(
-            "shrink-0 font-mono text-[11px]",
-            METHOD_COLOR[request.method],
+            "flex h-full cursor-grab touch-none items-center gap-1 border-r px-3 text-sm hover:bg-accent active:cursor-grabbing",
+            isDragging && "opacity-50",
+            isActive
+              ? "-mb-px h-[calc(100%+1px)] bg-accent shadow-[inset_0_-2px_0_0_var(--primary)]"
+              : "bg-transparent",
           )}
         >
-          {request.method}
-        </span>
-        {isDirty && (
-          <span
-            aria-label="Unsaved changes"
-            className="size-2 shrink-0 rounded-full bg-foreground"
-          />
-        )}
-        {request.name}
-      </button>
-      <button
-        type="button"
-        aria-label={`Close ${request.name}`}
-        onClick={onClose}
-        className="rounded-sm p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-      >
-        <X className="size-3" />
-      </button>
-    </div>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={onActivate}
+            className={cn(
+              "flex items-center gap-1.5 truncate",
+              isActive ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
+            <span
+              aria-hidden="true"
+              className={cn(
+                "shrink-0 font-mono text-[11px]",
+                METHOD_COLOR[request.method],
+              )}
+            >
+              {request.method}
+            </span>
+            {isDirty && (
+              <span
+                aria-label="Unsaved changes"
+                className="size-2 shrink-0 rounded-full bg-foreground"
+              />
+            )}
+            {request.name}
+          </button>
+          <button
+            type="button"
+            aria-label={`Close ${request.name}`}
+            onClick={onClose}
+            className="rounded-sm p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <X className="size-3" />
+          </button>
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
+        <ContextMenuItem onSelect={onClose}>Close</ContextMenuItem>
+        <ContextMenuItem disabled={!canCloseOthers} onSelect={onCloseOthers}>
+          Close other tabs
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={onCloseAll}>Close all</ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -131,6 +154,8 @@ export function ContentHeader() {
     setActiveRequest,
     reorderRequests,
     requestCloseRequest,
+    requestCloseOthers,
+    requestCloseAll,
     editorDirty,
     isSettingsOpen,
     isSettingsActive,
@@ -163,11 +188,11 @@ export function ContentHeader() {
   };
 
   return (
-    <div className="flex h-9 shrink-0 items-stretch overflow-x-auto border-b bg-muted/30">
+    <div className="flex h-9 shrink-0 items-stretch border-b bg-muted/30">
       <div
         role="tablist"
         aria-label="Open requests"
-        className="flex h-full items-stretch"
+        className="flex h-full min-w-0 items-stretch overflow-x-auto overflow-y-hidden"
       >
         <DndContext
           sensors={sensors}
@@ -194,8 +219,11 @@ export function ContentHeader() {
                     !isEditorActive
                   }
                   isDirty={dirtyRequestIds.has(id)}
+                  canCloseOthers={openRequestIds.length > 1}
                   onActivate={() => setActiveRequest(id)}
                   onClose={() => requestCloseRequest(id)}
+                  onCloseOthers={() => requestCloseOthers(id)}
+                  onCloseAll={() => requestCloseAll()}
                 />
               );
             })}

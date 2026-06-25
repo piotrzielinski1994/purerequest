@@ -146,7 +146,9 @@ function buildLevel(
       continue;
     }
     const segment = rest.slice(0, slashIndex);
-    if (!(prefix === "" && segment === ENV_DIR)) {
+    // The environments/ dir at ANY level is folded into the owning folder's
+    // config.environments, never walked as a request subfolder.
+    if (segment !== ENV_DIR) {
       subdirs.add(segment);
     }
   }
@@ -158,11 +160,15 @@ function buildLevel(
   const folders: TreeNode[] = [...subdirs].map((segment) => {
     const dir = `${prefix}${segment}`;
     const parsed = folderConfigFor(files, dir);
+    const environments = collectEnvironments(files, `${dir}/`);
     const folder: FolderNode = {
       kind: "folder",
       id: nextId(),
       name: parsed?.name ?? segment,
-      config: parsed ? configFrom(parsed) : {},
+      config: {
+        ...(parsed ? configFrom(parsed) : {}),
+        ...(Object.keys(environments).length > 0 ? { environments } : {}),
+      },
       children: buildLevel(files, `${dir}/`, nextId),
     };
     return folder;
@@ -171,18 +177,29 @@ function buildLevel(
   return [...folders, ...requests];
 }
 
+// Environment files directly under `<prefix>environments/` -> { envName: vars }.
+// Only the immediate level (no deeper nesting) so each collection root owns its
+// own environments.
 function collectEnvironments(
   files: BrunoFileMap,
+  prefix: string,
 ): Record<string, Record<string, string>> {
-  const prefix = `${ENV_DIR}/`;
+  const envPrefix = `${prefix}${ENV_DIR}/`;
   return Object.keys(files)
-    .filter(
-      (path) =>
-        path.startsWith(prefix) &&
-        (path.endsWith(".bru") ||
-          path.endsWith(".yml") ||
-          path.endsWith(".yaml")),
-    )
+    .filter((path) => {
+      if (!path.startsWith(envPrefix)) {
+        return false;
+      }
+      const rest = path.slice(envPrefix.length);
+      if (rest.includes("/")) {
+        return false;
+      }
+      return (
+        rest.endsWith(".bru") ||
+        rest.endsWith(".yml") ||
+        rest.endsWith(".yaml")
+      );
+    })
     .reduce<Record<string, Record<string, string>>>((acc, path) => {
       const envName = fileBaseName(path);
       return { ...acc, [envName]: parseFile(files[path], path).variables };
@@ -206,7 +223,7 @@ export function brunoToTree(
   const rootParsed =
     rootConfigText !== undefined ? parseFile(rootConfigText, rootPath) : undefined;
 
-  const environments = collectEnvironments(files);
+  const environments = collectEnvironments(files, "");
   const baseConfig = rootParsed ? configFrom(rootParsed) : {};
   const config: ConfigScope = {
     ...baseConfig,

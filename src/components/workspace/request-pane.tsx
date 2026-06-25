@@ -35,7 +35,7 @@ function RequestTabs({ request }: { request: RequestNode }) {
       onValueChange={(value) => setRequestTab(value as typeof activeRequestTab)}
       className="flex h-full flex-col gap-0"
     >
-      <div className="flex h-10.25 items-stretch border-b bg-muted/30">
+      <div className="flex h-10.25 items-stretch overflow-x-auto border-b bg-muted/30">
         <TabsList aria-label="Request sections" className={PANE_TABS_LIST}>
           <TabsTrigger value="vars" className={PANE_TABS_TRIGGER}>
             Vars

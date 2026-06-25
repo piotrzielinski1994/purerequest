@@ -76,7 +76,7 @@ function ResponseTabs({ response }: { response: RequestResponse }) {
       }
       className="flex h-full flex-col gap-0"
     >
-      <div className="flex h-10.25 items-stretch justify-between gap-2 border-b bg-muted/30">
+      <div className="flex h-10.25 items-stretch justify-between gap-2 overflow-x-auto border-b bg-muted/30">
         <TabsList aria-label="Response sections" className={PANE_TABS_LIST}>
           <TabsTrigger value="response" className={PANE_TABS_TRIGGER}>
             Response

@@ -7,6 +7,7 @@ export type ShortcutActionId =
   | "next-request"
   | "prev-request"
   | "close-request"
+  | "close-other-requests"
   | "close-all-requests"
   | "new-request"
   | "new-folder"
@@ -78,6 +79,12 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     name: "Close request tab",
     description: "Close the active request tab.",
     defaultHotkey: "Mod+W",
+  },
+  {
+    id: "close-other-requests",
+    name: "Close other request tabs",
+    description: "Close every open request tab except the active one.",
+    defaultHotkey: "Mod+Alt+W",
   },
   {
     id: "close-all-requests",

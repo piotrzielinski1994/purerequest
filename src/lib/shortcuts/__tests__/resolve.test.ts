@@ -20,6 +20,7 @@ const ACTION_IDS: ShortcutActionId[] = [
   "next-request",
   "prev-request",
   "close-request",
+  "close-other-requests",
   "close-all-requests",
   "new-request",
   "new-folder",

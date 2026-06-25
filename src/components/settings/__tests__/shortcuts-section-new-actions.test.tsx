@@ -56,4 +56,15 @@ describe("ShortcutsSection new actions", () => {
     expect(screen.getByText(formatForDisplay("Mod+T"))).toBeInTheDocument();
     expect(screen.getByText(formatForDisplay("Mod+O"))).toBeInTheDocument();
   });
+
+  // AC-010, TC-007 — behavior: the "Close other request tabs" shortcut action is
+  // registered (so it appears in settings + the command palette).
+  it("should register a close-other-requests action with a name", async () => {
+    renderSection();
+
+    const action = findAction("close-other-requests");
+    expect(action).toBeDefined();
+    expect(action!.name).toBeTruthy();
+    expect(await screen.findByText(action!.name)).toBeInTheDocument();
+  });
 });

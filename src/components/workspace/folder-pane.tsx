@@ -34,7 +34,7 @@ export function FolderPane() {
       onValueChange={(value) => setTab(value as FolderTab)}
       className="flex h-full flex-col gap-0"
     >
-      <div className="flex h-10.25 items-stretch border-b bg-muted/30">
+      <div className="flex h-10.25 items-stretch overflow-x-auto border-b bg-muted/30">
         <TabsList aria-label="Folder sections" className={PANE_TABS_LIST}>
           <TabsTrigger value="vars" className={PANE_TABS_TRIGGER}>
             Vars

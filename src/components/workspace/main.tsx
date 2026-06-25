@@ -50,6 +50,7 @@ export function Main({
     editTarget,
     setActiveRequest,
     requestCloseRequest,
+    requestCloseOthers,
     requestCloseAll,
     requestCloseEditor,
     openSettings,
@@ -151,6 +152,11 @@ export function Main({
       }
       if (activeRequestId !== null) {
         requestCloseRequest(activeRequestId);
+      }
+    },
+    "close-other-requests": () => {
+      if (activeRequestId !== null) {
+        requestCloseOthers(activeRequestId);
       }
     },
     "close-all-requests": () => requestCloseAll(),

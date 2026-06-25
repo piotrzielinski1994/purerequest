@@ -108,8 +108,8 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 >
 > Every wired action has a configurable keyboard shortcut (TanStack Hotkeys). Defaults:
 > open settings `Mod+Shift+S`, close settings `Esc`, toggle console `Mod+J`, toggle sidebar
-> `Mod+B`, toggle theme `Mod+Shift+L`, next/prev request `Ctrl+Tab`/`Ctrl+Shift+Tab`, close request `Mod+W`, close all
-> request tabs `Mod+Shift+W`, new request `Mod+T`, open workspace `Mod+O`, send request
+> `Mod+B`, toggle theme `Mod+Shift+L`, next/prev request `Ctrl+Tab`/`Ctrl+Shift+Tab`, close request `Mod+W`, close other
+> request tabs `Mod+Alt+W`, close all request tabs `Mod+Shift+W`, new request `Mod+T`, open workspace `Mod+O`, send request
 > `Mod+Enter`, copy as cURL `Mod+Shift+C`, import cURL `Mod+Shift+I`, import Bruno collection
 > `Mod+Shift+B`, command palette `Mod+K`
 > (`Mod` = Cmd on macOS, Ctrl

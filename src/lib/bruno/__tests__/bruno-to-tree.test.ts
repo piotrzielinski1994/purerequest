@@ -210,6 +210,40 @@ describe("brunoToTree - OpenCollection YAML dispatch (AC-012)", () => {
     expect(root.children.some((node) => node.name === "local")).toBe(false);
   });
 
+  // A nested collection's environments/ dir (e.g. when the user picks a PARENT
+  // folder holding several collections) must fold into THAT folder's
+  // config.environments, not become request nodes named after the env files.
+  it("should fold a nested collection's environments into that folder's config, not requests", () => {
+    const files: BrunoFileMap = {
+      "opencollection.yml": "info:\n  name: parent",
+      "mbu/opencollection.yml": "info:\n  name: mbu",
+      "mbu/payments.yml":
+        "info:\n  name: payments\nhttp:\n  method: POST\n  url: https://x.test/pay",
+      "mbu/environments/staging.yml":
+        "name: staging\nvariables:\n  - name: BASE_URL\n    value: https://staging.test",
+      "mbu/environments/prod.yml":
+        "name: prod\nvariables:\n  - name: BASE_URL\n    value: https://prod.test",
+    };
+
+    const root = asFolder(brunoToTree(files, "fallback")[0]);
+    const mbu = asFolder(findByName(root.children, "mbu"));
+
+    expect(mbu.config.environments?.staging).toEqual({
+      BASE_URL: "https://staging.test",
+    });
+    expect(mbu.config.environments?.prod).toEqual({
+      BASE_URL: "https://prod.test",
+    });
+    expect(mbu.children.some((node) => node.name === "environments")).toBe(
+      false,
+    );
+    expect(
+      mbu.children.some(
+        (node) => node.name === "staging" || node.name === "prod",
+      ),
+    ).toBe(false);
+  });
+
   // AC-012 - behavior: a nested opencollection.yml (Postman-converted sub-collections)
   // is a folder config carrier, not a request node.
   it("should treat a nested opencollection.yml as a folder config carrier, not a request", () => {

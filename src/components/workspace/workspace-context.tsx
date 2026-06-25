@@ -62,7 +62,10 @@ import {
 } from "@/lib/bruno/bruno-to-tree";
 
 type RequestOverride = Partial<
-  Pick<RequestNode, "name" | "url" | "method" | "body" | "bodyMode" | "bodyForm">
+  Pick<
+    RequestNode,
+    "name" | "url" | "method" | "body" | "bodyMode" | "bodyForm"
+  >
 >;
 
 export type EditTarget =
@@ -88,6 +91,7 @@ export type ActiveEditor = {
 
 export type PendingClose =
   | { kind: "one"; id: string }
+  | { kind: "others"; id: string }
   | { kind: "all" }
   | { kind: "editor" }
   | null;
@@ -139,6 +143,7 @@ type WorkspaceContextValue = {
   pendingClose: PendingClose;
   popupCanSave: boolean;
   requestCloseRequest: (id: string) => void;
+  requestCloseOthers: (id: string) => void;
   requestCloseAll: () => void;
   requestCloseEditor: () => void;
   confirmPendingClose: () => void;
@@ -479,6 +484,21 @@ export function WorkspaceProvider({
       setIsSettingsActive(false);
     };
 
+    const closeOthers = (id: string) => {
+      setOpenRequestIds((current) => (current.includes(id) ? [id] : current));
+      setActiveRequestId(id);
+      setIsSettingsActive(false);
+      setIsEditorActive(false);
+      setRequestOverrides((current) => {
+        const kept = current.get(id);
+        return kept === undefined ? new Map() : new Map([[id, kept]]);
+      });
+      setResponseStates((current) => {
+        const kept = current.get(id);
+        return kept === undefined ? new Map() : new Map([[id, kept]]);
+      });
+    };
+
     const mergeOverride = (id: string, patch: RequestOverride) => {
       setRequestOverrides((current) => {
         const next = new Map(current);
@@ -657,10 +677,7 @@ export function WorkspaceProvider({
       }
       // Bump the generation so the in-flight send's resolve is ignored, drop the
       // pane back to idle now, and ask the native side to abort the connection.
-      sendGeneration.current.set(
-        id,
-        (sendGeneration.current.get(id) ?? 0) + 1,
-      );
+      sendGeneration.current.set(id, (sendGeneration.current.get(id) ?? 0) + 1);
       const requestId = inFlightRequestId.current.get(id);
       inFlightRequestId.current.delete(id);
       setResponseStates((current) =>
@@ -1007,6 +1024,20 @@ export function WorkspaceProvider({
       closeAllRequests();
     };
 
+    const requestCloseOthers = (id: string) => {
+      if (!openRequestIds.includes(id) || openRequestIds.length <= 1) {
+        return;
+      }
+      const hasDirtyOther = openRequestIds.some(
+        (openId) => openId !== id && dirtyRequestIds.has(openId),
+      );
+      if (hasDirtyOther) {
+        setPendingClose({ kind: "others", id });
+        return;
+      }
+      closeOthers(id);
+    };
+
     const requestCloseEditor = () => {
       if (editorDirty) {
         setPendingClose({ kind: "editor" });
@@ -1022,6 +1053,8 @@ export function WorkspaceProvider({
       }
       if (pendingClose.kind === "all") {
         closeAllRequests();
+      } else if (pendingClose.kind === "others") {
+        closeOthers(pendingClose.id);
       } else if (pendingClose.kind === "editor") {
         setEditTarget(null);
         setIsEditorActive(false);
@@ -1047,7 +1080,9 @@ export function WorkspaceProvider({
           ? [pendingClose.id]
           : pendingClose.kind === "all"
             ? openRequestIds
-            : [];
+            : pendingClose.kind === "others"
+              ? openRequestIds.filter((id) => id !== pendingClose.id)
+              : [];
 
       let nextTree = tree;
       const foldedOverrideIds: string[] = [];
@@ -1082,6 +1117,8 @@ export function WorkspaceProvider({
 
       if (pendingClose.kind === "all") {
         closeAllRequests();
+      } else if (pendingClose.kind === "others") {
+        closeOthers(pendingClose.id);
       } else if (pendingClose.kind === "editor") {
         setEditTarget(null);
         setIsEditorActive(false);
@@ -1200,6 +1237,7 @@ export function WorkspaceProvider({
       pendingClose,
       popupCanSave,
       requestCloseRequest,
+      requestCloseOthers,
       requestCloseAll,
       requestCloseEditor,
       confirmPendingClose,

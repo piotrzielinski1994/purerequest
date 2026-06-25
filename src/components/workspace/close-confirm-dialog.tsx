@@ -33,6 +33,13 @@ export function CloseConfirmDialog() {
     if (pendingClose.kind === "editor") {
       return "This editor has unsaved changes.";
     }
+    if (pendingClose.kind === "others") {
+      const count = openRequestIds.filter(
+        (id) => id !== pendingClose.id && dirtyRequestIds.has(id),
+      ).length;
+      const noun = count === 1 ? "request has" : "requests have";
+      return `${count} other open ${noun} unsaved changes.`;
+    }
     return `${openRequestIds.filter((id) => dirtyRequestIds.has(id)).length} open requests have unsaved changes.`;
   };
 
