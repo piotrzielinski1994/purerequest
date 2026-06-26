@@ -14,5 +14,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}", "tests/**/*.spec.{ts,tsx}"],
+    // codemirror-json-schema ships ESM with extensionless relative imports that
+    // Vitest's node resolver rejects; inlining routes it through Vite's transform.
+    server: { deps: { inline: ["codemirror-json-schema"] } },
   },
 });

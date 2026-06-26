@@ -8,6 +8,7 @@ import type {
 } from "@/lib/settings/settings";
 import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
 import { applyDefaults, diffOverrides } from "@/lib/theme/overrides";
+import { themeColorsJsonSchema } from "@/lib/config-schema/json-schemas";
 
 const MODES: { id: ThemeMode; label: string }[] = [
   { id: "light", label: "Light" },
@@ -55,6 +56,7 @@ function ColorEditor() {
           saveThemeColors(diffOverrides(parsed, DEFAULT_THEME_COLORS))
         }
         commit={(_parsed, tree) => tree}
+        schema={themeColorsJsonSchema}
       />
     </div>
   );

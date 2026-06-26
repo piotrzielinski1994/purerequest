@@ -1,6 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
+import type { JSONSchema7 } from "json-schema";
 import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
+import { makeSchemaExtensions } from "@/components/workspace/schema-intellisense";
+import {
+  configScopeJsonSchema,
+  requestSettingsJsonSchema,
+} from "@/lib/config-schema/json-schemas";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import type {
   BodyMode,
@@ -42,15 +48,26 @@ export function RawJsonEditor<T>({
   parse,
   onSave,
   commit,
+  schema,
 }: {
   id: string;
   saved: string;
   parse: (text: string) => T | null;
   onSave: (parsed: T) => void;
   commit: (parsed: T, tree: TreeNode[]) => TreeNode[];
+  schema?: JSONSchema7;
 }) {
   const { registerActiveEditor } = useWorkspace();
-  const { configExtensions } = useEditorExtensions();
+  const { configExtensions, editorColors, isDark } = useEditorExtensions();
+  // Schema editors layer JSON-Schema lint/complete/hover (keyed on the stable
+  // color values + mode) over the plain config extensions; no schema -> plain.
+  const extensions = useMemo(
+    () =>
+      schema
+        ? makeSchemaExtensions(schema, editorColors, isDark)
+        : configExtensions,
+    [schema, editorColors, isDark, configExtensions],
+  );
   const [text, setText] = useState(saved);
 
   // Re-seed when the saved snapshot changes (node switch, or a sibling panel's
@@ -99,7 +116,7 @@ export function RawJsonEditor<T>({
         value={text}
         onChange={setText}
         theme="none"
-        extensions={configExtensions}
+        extensions={extensions}
         height="100%"
         className="h-full text-xs"
       />
@@ -125,6 +142,7 @@ export function ConfigEditorForm({
       commit={(parsed, tree) =>
         updateNodeConfig(tree, id, parsed as ConfigScope)
       }
+      schema={configScopeJsonSchema}
     />
   );
 }
@@ -233,6 +251,7 @@ export function RequestSettingsForm({ request }: { request: RequestNode }) {
       parse={parseRequest}
       onSave={(patch) => saveRequestNode(request.id, patch)}
       commit={(patch, tree) => updateRequest(tree, request.id, patch)}
+      schema={requestSettingsJsonSchema}
     />
   );
 }
