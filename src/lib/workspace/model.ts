@@ -50,6 +50,7 @@ export type FolderNode = {
   id: string;
   name: string;
   config: ConfigScope;
+  dotenv?: string;
   children: TreeNode[];
 };
 

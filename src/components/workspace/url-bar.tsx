@@ -6,37 +6,14 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
 import { useWorkspace } from "@/components/workspace/workspace-context";
-import { TokenHighlight } from "@/components/workspace/var-token";
+import { HighlightedInput } from "@/components/workspace/highlighted-input";
+import { cn } from "@/lib/utils";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import type { HttpMethod } from "@/lib/workspace/model";
 
 const METHODS: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
-
-function UrlHighlight({
-  url,
-  effective,
-  processEnv,
-  environment,
-}: {
-  url: string;
-  effective: EffectiveConfig | null;
-  processEnv: Record<string, string>;
-  environment: string | null;
-}) {
-  return (
-    <div className="pointer-events-none absolute inset-0 flex items-center truncate px-3 font-mono text-xs whitespace-pre">
-      <TokenHighlight
-        text={url}
-        effective={effective}
-        processEnv={processEnv}
-        environment={environment}
-      />
-    </div>
-  );
-}
 
 function UrlField({
   url,
@@ -57,25 +34,19 @@ function UrlField({
 }) {
   return (
     <div className="relative flex-1">
-      <input
-        ref={inputRef}
-        aria-label="URL"
+      <HighlightedInput
+        ariaLabel="URL"
         value={url}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={onChange}
+        inputRef={inputRef}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
             onSend();
           }
         }}
-        spellCheck={false}
-        autoComplete="off"
-        className="absolute inset-0 h-full w-full bg-transparent px-3 font-mono text-xs whitespace-pre text-transparent caret-foreground outline-none"
-      />
-      <UrlHighlight
-        url={url}
-        effective={effective}
-        processEnv={processEnv}
-        environment={environment}
+        highlight={{ effective, processEnv, environment }}
+        paddingClass="px-3"
+        className="size-full bg-transparent font-mono text-xs whitespace-pre outline-none"
       />
     </div>
   );

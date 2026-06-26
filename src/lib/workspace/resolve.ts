@@ -1,4 +1,5 @@
 import type { Auth, ScriptConfig, TreeNode } from "@/lib/workspace/model";
+import { parseDotenv, type ProcessEnv } from "@/lib/workspace/environment";
 
 export type Provenance = { scopeId: string; scopeName: string };
 
@@ -26,7 +27,12 @@ const DEFAULT_PROVENANCE: Provenance = {
   scopeName: "default",
 };
 
-export type Scope = { id: string; name: string; config: TreeNode["config"] };
+export type Scope = {
+  id: string;
+  name: string;
+  config: TreeNode["config"];
+  dotenv?: string;
+};
 
 export function findScopePath(
   nodes: TreeNode[],
@@ -34,11 +40,20 @@ export function findScopePath(
   ancestors: Scope[],
 ): Scope[] | null {
   for (const node of nodes) {
-    const scope: Scope = { id: node.id, name: node.name, config: node.config };
+    const scope: Scope = {
+      id: node.id,
+      name: node.name,
+      config: node.config,
+      ...(node.kind === "folder" && node.dotenv !== undefined
+        ? { dotenv: node.dotenv }
+        : {}),
+    };
+    // Match a request OR a folder by id: a folder pane resolves its own chain
+    // (root -> that folder) so its {{token}} previews resolve like a request's.
+    if (node.id === requestId) {
+      return [...ancestors, scope];
+    }
     if (node.kind === "request") {
-      if (node.id === requestId) {
-        return [...ancestors, scope];
-      }
       continue;
     }
     const found = findScopePath(node.children, requestId, [
@@ -170,6 +185,54 @@ function resolveTimeout(path: Scope[]): ResolvedValue<number> {
     return { value: DEFAULT_TIMEOUT_MS, from: DEFAULT_PROVENANCE };
   }
   return { value: nearest.config.timeoutMs, from: provenanceOf(nearest) };
+}
+
+export type ProcessEnvProvenance = Record<
+  string,
+  { value: string; scopeId: string | null }
+>;
+
+// Fold a request's folder-chain `.env` over the root base. `findScopePath`
+// returns scopes root->leaf, so iterating in order lets a nearer folder's key
+// overwrite a farther one; the root base seeds the accumulator first.
+function foldProcessEnv(
+  tree: TreeNode[],
+  requestId: string,
+  rootEnv: ProcessEnv,
+): ProcessEnvProvenance {
+  const path = findScopePath(tree, requestId, []) ?? [];
+  const seeded = Object.entries(rootEnv).reduce<ProcessEnvProvenance>(
+    (acc, [key, value]) => ({ ...acc, [key]: { value, scopeId: null } }),
+    {},
+  );
+  return path.reduce<ProcessEnvProvenance>((acc, scope) => {
+    if (scope.dotenv === undefined) {
+      return acc;
+    }
+    return Object.entries(parseDotenv(scope.dotenv)).reduce(
+      (inner, [key, value]) => ({ ...inner, [key]: { value, scopeId: scope.id } }),
+      acc,
+    );
+  }, seeded);
+}
+
+export function resolveProcessEnv(
+  tree: TreeNode[],
+  requestId: string,
+  rootEnv: ProcessEnv,
+): ProcessEnv {
+  const prov = foldProcessEnv(tree, requestId, rootEnv);
+  return Object.fromEntries(
+    Object.entries(prov).map(([key, { value }]) => [key, value]),
+  );
+}
+
+export function resolveProcessEnvProvenance(
+  tree: TreeNode[],
+  requestId: string,
+  rootEnv: ProcessEnv,
+): ProcessEnvProvenance {
+  return foldProcessEnv(tree, requestId, rootEnv);
 }
 
 export function resolveConfig(

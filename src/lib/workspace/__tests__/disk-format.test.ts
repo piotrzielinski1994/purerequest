@@ -214,6 +214,102 @@ describe("disk-format serialize", () => {
   });
 });
 
+describe("disk-format folder dotenv (AC-001, TC-003)", () => {
+  // AC-001, TC-003 - behavior: a folder with non-empty dotenv emits <dir>/.env
+  // with KEY=value lines.
+  it("should emit a <dir>/.env file if a folder has a non-empty dotenv", () => {
+    const tree: TreeNode[] = [
+      folder("Api", {}, [request("Get")]),
+    ];
+    (tree[0] as FolderNode).dotenv = "A=1\nB=2";
+
+    const map = serialize(tree);
+
+    const envEntry = Object.entries(map).find(([path]) =>
+      path.endsWith("/.env"),
+    );
+    expect(envEntry).toBeDefined();
+    expect(envEntry![1]).toBe("A=1\nB=2");
+  });
+
+  // AC-001, TC-003 - behavior: the folder .env round-trips back into dotenv.
+  it("should deserialize a folder .env back into the folder node dotenv", () => {
+    const tree: TreeNode[] = [folder("Api", {}, [request("Get")])];
+    (tree[0] as FolderNode).dotenv = "A=1\nB=2";
+
+    const result = expectOk(deserialize(serialize(tree)));
+
+    const apiFolder = result.tree.find(
+      (node): node is FolderNode =>
+        node.kind === "folder" && node.name === "Api",
+    );
+    expect(apiFolder?.dotenv).toBe("A=1\nB=2");
+  });
+
+  // AC-001, TC-003 - behavior: re-serializing a round-tripped tree is byte-identical.
+  it("should re-serialize a folder .env byte-identically through a reload", () => {
+    const tree: TreeNode[] = [folder("Api", {}, [request("Get")])];
+    (tree[0] as FolderNode).dotenv = "A=1\nB=2";
+
+    const firstMap = serialize(tree);
+    const reloaded = expectOk(deserialize(firstMap));
+    const secondMap = serialize(reloaded.tree);
+
+    const envKey = Object.keys(firstMap).find((path) => path.endsWith("/.env"));
+    expect(envKey).toBeDefined();
+    expect(secondMap[envKey!]).toBe(firstMap[envKey!]);
+  });
+
+  // AC-001, TC-003 - behavior: an absent/empty dotenv writes no .env file.
+  it("should write no .env file if a folder dotenv is empty", () => {
+    const empty: TreeNode[] = [folder("Api", {}, [request("Get")])];
+    (empty[0] as FolderNode).dotenv = "";
+    const absent: TreeNode[] = [folder("Web", {}, [request("Get2")])];
+
+    const emptyMap = serialize(empty);
+    const absentMap = serialize(absent);
+
+    expect(
+      Object.keys(emptyMap).some((path) => path.endsWith("/.env")),
+    ).toBe(false);
+    expect(
+      Object.keys(absentMap).some((path) => path.endsWith("/.env")),
+    ).toBe(false);
+  });
+
+  // AC-002 - behavior: a folder .env at any depth deserializes into its node.
+  it("should collect a nested folder .env into the deep folder node", () => {
+    const files: FileMap = {
+      "requi.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
+      "api/folder.json": JSON.stringify({ name: "Api", config: {}, order: 0 }),
+      "api/v2/folder.json": JSON.stringify({
+        name: "V2",
+        config: {},
+        order: 0,
+      }),
+      "api/v2/.env": "DEEP=yes",
+      "api/v2/get.req.json": JSON.stringify({
+        name: "Get",
+        method: "GET",
+        url: "u",
+        body: "",
+        config: {},
+        order: 0,
+      }),
+    };
+
+    const result = expectOk(deserialize(files));
+
+    const api = result.tree.find(
+      (n): n is FolderNode => n.kind === "folder" && n.name === "Api",
+    );
+    const v2 = api?.children.find(
+      (n): n is FolderNode => n.kind === "folder" && n.name === "V2",
+    );
+    expect(v2?.dotenv).toBe("DEEP=yes");
+  });
+});
+
 describe("disk-format deserialize", () => {
   // AC-008, TC-005 - behavior
   it("should build a tree from a hand-built workspace file map", () => {

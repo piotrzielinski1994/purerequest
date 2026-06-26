@@ -17,8 +17,10 @@ const MANAGED_FILE =
   /(?:^|\/)folder\.json$|\.req\.json$|^requi\.workspace\.json$/;
 
 // Read-only inputs captured into the FileMap but NOT matched by MANAGED_FILE,
-// so reconcile never writes or removes them (e.g. the workspace-root `.env`).
-const READONLY_FILE = /^\.env$/;
+// so reconcile never removes them: the workspace-root `.env` and any per-folder
+// `.env` at any depth. Folder `.env` files ARE written (serialize emits them),
+// but reconcile's MANAGED_FILE filter never targets `.env` for removal.
+const READONLY_FILE = /(?:^|\/)\.env$/;
 
 async function collect(
   absDir: string,

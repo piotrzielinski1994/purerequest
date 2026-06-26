@@ -1,5 +1,5 @@
-import CodeMirror from "@uiw/react-codemirror";
 import type { Extension } from "@codemirror/state";
+import { CodeEditor } from "@/components/workspace/code-editor";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
@@ -72,12 +72,12 @@ function ConsoleLine({
         {object.prefix !== "" ? (
           <span className="text-muted-foreground">{object.prefix}</span>
         ) : null}
-        <CodeMirror
+        <CodeEditor
           value={object.json}
-          theme="none"
           editable={false}
+          withFold
           extensions={viewerExtensions}
-          basicSetup={{ lineNumbers: false, foldGutter: true }}
+          height={null}
           className="text-xs"
         />
       </span>

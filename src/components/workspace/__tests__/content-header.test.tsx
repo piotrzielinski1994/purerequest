@@ -11,15 +11,6 @@ import { ContentHeader } from "@/components/workspace/content-header";
 import { ToastProvider } from "@/components/ui/toast";
 import { fixtureTree } from "./fixtures";
 
-function OpenEnvButton() {
-  const { openEnvEditor } = useWorkspace();
-  return (
-    <button type="button" onClick={openEnvEditor}>
-      open env
-    </button>
-  );
-}
-
 function EditUrlButton({ id }: { id: string }) {
   const { setRequestUrl } = useWorkspace();
   return (
@@ -349,32 +340,6 @@ describe("ContentHeader", () => {
     ).not.toBeInTheDocument();
     expect(
       within(tablist).getByRole("tab", { name: "profile" }),
-    ).toHaveAttribute("aria-selected", "true");
-  });
-
-  // behavior: opening the .env editor adds a distinct .env tab.
-  it("should show a .env tab when the env editor is opened", async () => {
-    const user = userEvent.setup();
-    render(
-      <WorkspaceProvider
-        tree={fixtureTree}
-        initialExpandedIds={[]}
-        initialActiveRequestId="req-profile"
-        envText="TOKEN=seed"
-      >
-        <ContentHeader />
-        <button type="button" onClick={() => {}}>
-          noop
-        </button>
-        <OpenEnvButton />
-      </WorkspaceProvider>,
-    );
-
-    await user.click(screen.getByRole("button", { name: /open env/i }));
-
-    const tablist = screen.getByRole("tablist", { name: /open requests/i });
-    expect(
-      within(tablist).getByRole("tab", { name: /\.env/i }),
     ).toHaveAttribute("aria-selected", "true");
   });
 

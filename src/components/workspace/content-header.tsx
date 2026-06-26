@@ -44,9 +44,6 @@ function editorTabLabel(
   editTarget: NonNullable<ReturnType<typeof useWorkspace>["editTarget"]>,
   tree: TreeNode[],
 ): string {
-  if (editTarget.kind === "env") {
-    return ".env";
-  }
   const node = findNode(tree, editTarget.id);
   return node ? `${node.name} · config` : "config";
 }
@@ -164,7 +161,6 @@ export function ContentHeader() {
     tree,
     closeEditor,
     openConfigEditor,
-    openEnvEditor,
     openSettings,
     closeSettings,
     newRequest,
@@ -242,11 +238,7 @@ export function ContentHeader() {
               type="button"
               role="tab"
               aria-selected={isEditorActive}
-              onClick={() =>
-                editTarget.kind === "env"
-                  ? openEnvEditor()
-                  : openConfigEditor(editTarget.id)
-              }
+              onClick={() => openConfigEditor(editTarget.id)}
               className={cn(
                 "flex items-center gap-1.5 truncate",
                 isEditorActive ? "text-foreground" : "text-muted-foreground",
@@ -263,11 +255,7 @@ export function ContentHeader() {
             </button>
             <button
               type="button"
-              aria-label={
-                editTarget.kind === "env"
-                  ? "Close .env editor"
-                  : "Close config editor"
-              }
+              aria-label="Close config editor"
               onClick={closeEditor}
               className="rounded-sm p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
             >

@@ -9,9 +9,9 @@ import { UrlBar } from "@/components/workspace/url-bar";
 import { RequestPane } from "@/components/workspace/request-pane";
 import { ResponsePane } from "@/components/workspace/response-pane";
 import { FolderPane } from "@/components/workspace/folder-pane";
-import { EnvEditor } from "@/components/workspace/env-editor";
 import { ShortcutsSection } from "@/components/settings/shortcuts-section";
 import { ThemeSection } from "@/components/settings/theme-section";
+import { EnvSection } from "@/components/settings/env-section";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import { useSettings } from "@/lib/settings/settings-context";
 
@@ -55,6 +55,7 @@ export function Content() {
         <ScrollArea className="flex-1">
           <div className="flex flex-col gap-8 p-6">
             <ThemeSection />
+            <EnvSection />
             <ShortcutsSection />
           </div>
         </ScrollArea>
@@ -64,9 +65,6 @@ export function Content() {
     // stay open (its tab present) in the background while a request is active.
     if (isEditorActive && editTarget?.kind === "config") {
       return <FolderPane />;
-    }
-    if (isEditorActive && editTarget?.kind === "env") {
-      return <EnvEditor />;
     }
     return <RequestView />;
   }

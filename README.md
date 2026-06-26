@@ -196,9 +196,11 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > `{name, method, url, body, config}` so everything about it lives in one place (saving a new
 > body/url/method there re-syncs the Body tab + URL bar). The raw-JSON editors have no Save
 > button - save with `Mod+S` or via the close-confirm popup (its **Save** is disabled while the
-> JSON is invalid); malformed JSON shows a red lint underline. You can also hand-edit the files. The `.env` file has its own raw-text editor
-> (the **.env** button in the sidebar header; saving - `Mod+S` or the close popup - writes
-> `<workspace>/.env` and re-parses it live so token previews update without reload).
+> JSON is invalid); malformed JSON shows a red lint underline. You can also hand-edit the files.
+> A folder's own `.env` and its `config.environments` are edited from the folder pane's **Env**
+> tab (an **Envs** / **.env** sub-bar of key->value tables). The **workspace-root** `.env` has a
+> raw-text editor in the **Settings** view's **Env** section (saving - `Mod+S` or the close
+> popup - writes `<workspace>/.env` and re-parses it live so token previews update without reload).
 >
 > **Variables & environments** (Bruno-style): any `{{name}}` token in a URL, header/param
 > value, auth field, or body is interpolated on send. Values come from `config.variables`
@@ -209,17 +211,22 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > every environment name found in the tree plus "No Environment", and the active choice
 > persists per-installation (`activeEnvironment` in `settings.json`, falling back to No
 > Environment if it no longer exists). Interpolation is recursive (a variable value may
-> reference another `{{var}}`), cycle-guarded, and leaves unknown tokens verbatim. A `.env`
-> file at the workspace root (standard `KEY=value`, gitignore it) is the one dedicated config
-> file; reference its values as `{{process.env.KEY}}` (a separate namespace - a bare
-> `{{KEY}}` does not read `.env`). On-disk format (schemaVersion 3):
+> reference another `{{var}}`), cycle-guarded, and leaves unknown tokens verbatim.
+>
+> `.env` files (standard `KEY=value`, gitignore them) are a separate namespace referenced as
+> `{{process.env.KEY}}` (a bare `{{KEY}}` does not read `.env`). A `.env` may live at the
+> workspace root **and in any folder**; a request resolves a key by folding its folder chain
+> over the root - the **nearest folder** defining the key wins, the root `.env` is the base
+> fallback (a request outside any folder resolves only the root `.env`). On-disk format
+> (schemaVersion 3):
 >
 > ```
 > <workspace>/
 >   requi.workspace.json        manifest { schemaVersion, name }
 >   <folder>/folder.json        { name, config, order }
+>   <folder>/.env               KEY=value (per-folder, gitignored; nearest wins)
 >   <folder>/<request>.req.json { name, method, url, body, config, order }
->   .env                        KEY=value (read-only, gitignored; {{process.env.KEY}})
+>   .env                        root base KEY=value (gitignored; {{process.env.KEY}})
 > ```
 >
 > `body` is a tagged value: `{ "type": "json", "payload": <parsed JSON> }` (a JSON body is

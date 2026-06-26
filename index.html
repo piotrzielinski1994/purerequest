@@ -5,6 +5,15 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ReqUI</title>
+    <!-- Paint black immediately so the first frame (before the CSS bundle +
+         React mount) is dark, not a white flash. -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background-color: #000;
+      }
+    </style>
   </head>
 
   <body>

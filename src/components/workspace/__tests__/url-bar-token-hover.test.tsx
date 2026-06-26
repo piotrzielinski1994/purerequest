@@ -59,6 +59,21 @@ describe("UrlBar token hover preview", () => {
     expect(input).toHaveValue("https://api.example.com");
   });
 
+  // behavior: EVERY popup has the SAME single shape - just the editable input +
+  // copy button. There is no separate read-only `= resolved` line in any popup,
+  // so the layout never differs between a literal value and a {{token}} chain.
+  it("should not show a separate resolved-value line", async () => {
+    const user = userEvent.setup();
+    renderBar({ activeEnvironment: "prod" });
+
+    await user.hover(screen.getByText("{{baseUrl}}"));
+
+    await screen.findByRole("textbox", { name: /value/i });
+    expect(screen.queryByText("=")).not.toBeInTheDocument();
+    // the value appears exactly once - in the input, not duplicated in a line.
+    expect(screen.queryByText("https://api.example.com")).not.toBeInTheDocument();
+  });
+
   // behavior: switching the active env changes the previewed value on hover
   it("should preview the local value if the active environment is local", async () => {
     const user = userEvent.setup();
@@ -98,9 +113,13 @@ describe("UrlBar token hover preview", () => {
   });
 
   // behavior: a var whose raw value is itself a token shows the FULLY-RESOLVED
-  // value (not just the raw token) so a hover answers "what does this become?".
-  it("should show the resolved value when the raw value is itself a token", async () => {
+  // value in the editable input (not the raw {{token}}), so a hover always
+  // answers "what does this become?" - same single-input shape as every popup.
+  it("should show the resolved value in the input even when the raw value is a token", async () => {
     const user = userEvent.setup();
+    const writeText = vi
+      .spyOn(navigator.clipboard, "writeText")
+      .mockResolvedValue();
     const indirectTree: TreeNode[] = [
       {
         kind: "folder",
@@ -133,11 +152,13 @@ describe("UrlBar token hover preview", () => {
 
     await user.hover(screen.getByText("{{CULTURE}}"));
 
-    // the raw editable value stays the token (edits the var at its scope)...
+    // the input shows the fully-resolved value, not the raw {{process.env.X}}.
     const input = await screen.findByRole("textbox", { name: /value/i });
-    expect(input).toHaveValue("{{process.env.CULTURE}}");
-    // ...and the resolved value en-CA is shown too.
-    expect(await screen.findByText("en-CA")).toBeInTheDocument();
+    expect(input).toHaveValue("en-CA");
+    // ...and copying yields the same resolved value.
+    await user.click(await screen.findByRole("button", { name: /copy/i }));
+    expect(writeText).toHaveBeenCalledWith("en-CA");
+    writeText.mockRestore();
   });
 
   // behavior: an unresolved token shows an explicit "unresolved" hint, no input

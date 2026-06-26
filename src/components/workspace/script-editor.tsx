@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { autocompletion, closeBrackets } from "@codemirror/autocomplete";
 import { linter, lintGutter } from "@codemirror/lint";
@@ -8,6 +7,7 @@ import { useEditorExtensions } from "@/components/workspace/use-editor-extension
 import { scriptApiCompletion } from "@/components/workspace/script-api-complete";
 import { jsSyntaxLinter } from "@/components/workspace/script-lint";
 import { jsUndefLinter } from "@/components/workspace/script-eslint";
+import { CodeEditor } from "@/components/workspace/code-editor";
 import type { ScriptStage } from "@/lib/scripts/model";
 
 type ScriptEditorProps = {
@@ -44,15 +44,11 @@ export function ScriptEditor({
     [stage, ariaLabel, scriptChrome, scriptHighlight],
   );
   return (
-    <CodeMirror
+    <CodeEditor
       value={value}
       onChange={onChange}
       onBlur={onBlur}
-      theme="none"
       extensions={extensions}
-      basicSetup={{ lineNumbers: false }}
-      height="100%"
-      className="h-full text-xs"
     />
   );
 }

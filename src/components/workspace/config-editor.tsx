@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import CodeMirror from "@uiw/react-codemirror";
 import type { JSONSchema7 } from "json-schema";
+import { CodeEditor } from "@/components/workspace/code-editor";
 import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
 import { makeSchemaExtensions } from "@/components/workspace/schema-intellisense";
 import {
@@ -112,14 +112,7 @@ export function RawJsonEditor<T>({
 
   return (
     <div className="h-full min-h-0">
-      <CodeMirror
-        value={text}
-        onChange={setText}
-        theme="none"
-        extensions={extensions}
-        height="100%"
-        className="h-full text-xs"
-      />
+      <CodeEditor value={text} onChange={setText} extensions={extensions} />
     </div>
   );
 }

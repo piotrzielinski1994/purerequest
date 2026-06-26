@@ -122,6 +122,9 @@ function serializeInto(
         null,
         2,
       );
+      if (node.dotenv) {
+        files[`${dir}/.env`] = node.dotenv;
+      }
       serializeInto(files, node.children, `${dir}/`);
       return;
     }
@@ -223,11 +226,13 @@ function buildLevel(
       skipped.push(folderJsonPath);
       return [];
     }
+    const dotenv = files[`${dir}/.env`];
     const folder: FolderNode = {
       kind: "folder",
       id: dir,
       name: parsed?.name ?? segment,
       config: parsed?.config ?? {},
+      ...(dotenv ? { dotenv } : {}),
       children: buildLevel(files, `${dir}/`, skipped),
     };
     return [{ order: parsed?.order, node: folder }];

@@ -19,6 +19,7 @@ import { TreeDndProvider } from "@/components/workspace/tree-dnd";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { ToastProvider } from "@/components/ui/toast";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
 import { createFakeHttpClient } from "./fake-http-client";
 
@@ -89,21 +90,65 @@ describe("Sidebar row edit-config control", () => {
   });
 });
 
-describe("Sidebar .env control", () => {
-  // AC-014 - behavior: clicking the sidebar .env control swaps content to the env editor.
-  it("should show the env editor in the content area if the .env control is clicked", async () => {
-    const user = userEvent.setup();
+describe("root .env relocated out of the sidebar", () => {
+  // AC-009 - behavior: the sidebar no longer hosts a .env edit control.
+  it("should not render a .env edit control in the sidebar", async () => {
     renderShell();
 
     await screen.findByRole("tree", { name: /collection/i });
 
-    await user.click(screen.getByRole("button", { name: /\.env|env/i }));
+    expect(
+      screen.queryByRole("button", { name: /edit \.env/i }),
+    ).not.toBeInTheDocument();
+  });
 
+  // AC-009 - behavior: the root .env editor lives in the Settings view instead.
+  it("should show the root .env editor in the Settings view", async () => {
+    const user = userEvent.setup();
+    render(
+      <ToastProvider>
+        <SettingsProvider
+          store={createInMemorySettingsStore({
+            ...DEFAULT_SETTINGS,
+            shortcuts: {},
+          })}
+        >
+          <WorkspaceProvider
+            tree={tree}
+            envText="TOKEN=seed"
+            httpClient={createFakeHttpClient()}
+          >
+            <OpenSettingsButton />
+            <Content />
+          </WorkspaceProvider>
+        </SettingsProvider>
+      </ToastProvider>,
+    );
+
+    await user.click(
+      await screen.findByRole("button", { name: /open settings/i }),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: /^env$/i }),
+    ).toBeInTheDocument();
     await waitFor(() => {
-      expect(document.querySelector(".cm-editor")).not.toBeNull();
+      const docs = [
+        ...document.querySelectorAll<HTMLElement>(".cm-editor"),
+      ].map((el) => el.textContent ?? "");
+      expect(docs.some((doc) => doc.includes("TOKEN=seed"))).toBe(true);
     });
   });
 });
+
+function OpenSettingsButton() {
+  const { openSettings } = useWorkspace();
+  return (
+    <button type="button" onClick={openSettings}>
+      open settings
+    </button>
+  );
+}
 
 // Smaller-piece fallbacks: prove the tree-row control wiring + content-render
 // contract directly, so a regression localizes even if the full-shell click path

@@ -110,6 +110,27 @@ describe("planReconcile remove set", () => {
     expect(result.remove).toContain("gone.req.json");
   });
 
+  // AC-011 / behavior - a folder .env is read-only input, never reconciled away
+  it("should never remove a folder .env even when it is absent from next", () => {
+    const current: FileMap = {
+      "requi.workspace.json": '{"schemaVersion":3}',
+      "api/folder.json": '{"name":"Api","order":0}',
+      "api/.env": "TOKEN=api",
+      "api/get.req.json": '{"name":"Get","order":0}',
+    };
+    // An unrelated write (e.g. renaming a different folder) that doesn't re-emit
+    // the folder .env must not flag it for removal.
+    const next: FileMap = {
+      "requi.workspace.json": '{"schemaVersion":3}',
+      "api/folder.json": '{"name":"Api","order":0}',
+      "api/get.req.json": '{"name":"Get","order":0}',
+    };
+
+    const result = planReconcile(current, next);
+
+    expect(result.remove).not.toContain("api/.env");
+  });
+
   // AC-006 / behavior - moved folder old paths are removed
   it("should include the old managed paths in remove if a folder moved", () => {
     const current: FileMap = {

@@ -71,7 +71,11 @@ function RequestTabs({ request }: { request: RequestNode }) {
         />
       </TabsContent>
       <TabsContent value="auth">
-        <AuthPanel config={request.config} onChange={onConfigChange} />
+        <AuthPanel
+          config={request.config}
+          onChange={onConfigChange}
+          highlight={highlight}
+        />
       </TabsContent>
       <TabsContent value="headers">
         <HeadersPanel

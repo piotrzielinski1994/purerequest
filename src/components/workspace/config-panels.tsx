@@ -1,12 +1,22 @@
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HighlightedInput } from "@/components/workspace/highlighted-input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   PANE_TABS_LIST,
@@ -19,6 +29,7 @@ import {
 import { ScriptEditor } from "@/components/workspace/script-editor";
 import type { ScriptStage } from "@/lib/scripts/model";
 import type { Auth, ConfigScope } from "@/lib/workspace/model";
+import { parseDotenv } from "@/lib/workspace/environment";
 
 const AUTH_TYPE_LABELS: Record<Auth["type"], string> = {
   inherit: "Inherit",
@@ -30,55 +41,38 @@ const AUTH_TYPE_LABELS: Record<Auth["type"], string> = {
 // Shared grid cell + input styling so the auth fields read like the Params grid.
 const AUTH_CELL = "border-r border-b border-border bg-background";
 const AUTH_INPUT =
-  "h-9 w-full bg-background px-2 font-mono text-xs outline-none placeholder:text-muted-foreground";
+  "h-9 w-full bg-background font-mono text-xs outline-none placeholder:text-muted-foreground";
 
-// One label-cell + value-cell row inside the auth grid. Commits on blur. A
-// `secret` field renders password-masked with a show/hide toggle in its cell.
+// One label-cell + value-cell row inside the auth grid. The value is a
+// token-aware HighlightedInput (so `{{var}}` colors + hovers like everywhere
+// else); a `secret` field masks + adds the show/hide toggle.
 function AuthRow({
-  id,
   label,
   value,
   secret = false,
-  mono = false,
+  highlight,
   onCommit,
 }: {
-  id: string;
   label: string;
   value: string;
   secret?: boolean;
-  mono?: boolean;
+  highlight?: TokenHighlightContext;
   onCommit: (value: string) => void;
 }) {
-  const [isVisible, setIsVisible] = useState(false);
-  const Icon = isVisible ? EyeOff : Eye;
   return (
     <div className="contents">
       <div className={cn(AUTH_CELL, "flex items-center px-2")}>
-        <label htmlFor={id} className="text-xs text-muted-foreground">
-          {label}
-        </label>
+        <span className="text-xs text-muted-foreground">{label}</span>
       </div>
       <div className={cn(AUTH_CELL, "relative")}>
-        <input
-          id={id}
-          type={secret && !isVisible ? "password" : "text"}
+        <HighlightedInput
+          ariaLabel={label}
           value={value}
-          autoComplete="off"
-          spellCheck={false}
-          onChange={(event) => onCommit(event.target.value)}
-          className={cn(AUTH_INPUT, secret && "pr-9", mono && "font-mono")}
+          secret={secret}
+          highlight={highlight}
+          onChange={onCommit}
+          className={AUTH_INPUT}
         />
-        {secret && (
-          <button
-            type="button"
-            aria-label={isVisible ? "Hide password" : "Show password"}
-            aria-pressed={isVisible}
-            onClick={() => setIsVisible((visible) => !visible)}
-            className="absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground hover:text-foreground"
-          >
-            <Icon className="size-3.5" />
-          </button>
-        )}
       </div>
     </div>
   );
@@ -86,9 +80,11 @@ function AuthRow({
 
 function AuthFields({
   auth,
+  highlight,
   onChange,
 }: {
   auth: Auth;
+  highlight?: TokenHighlightContext;
   onChange: (auth: Auth) => void;
 }) {
   if (auth.type === "inherit") {
@@ -114,25 +110,24 @@ function AuthFields({
     >
       {auth.type === "bearer" ? (
         <AuthRow
-          id="auth-token"
           label="Token"
           value={auth.token}
-          mono
+          highlight={highlight}
           onCommit={(token) => onChange({ type: "bearer", token })}
         />
       ) : (
         <>
           <AuthRow
-            id="auth-username"
             label="Username"
             value={auth.username}
+            highlight={highlight}
             onCommit={(username) => onChange({ ...auth, username })}
           />
           <AuthRow
-            id="auth-password"
             label="Password"
             value={auth.password}
             secret
+            highlight={highlight}
             onCommit={(password) => onChange({ ...auth, password })}
           />
         </>
@@ -155,9 +150,11 @@ export function authForType(type: Auth["type"]): Auth {
 export function AuthPanel({
   config,
   onChange,
+  highlight,
 }: {
   config: ConfigScope;
   onChange: (config: ConfigScope) => void;
+  highlight?: TokenHighlightContext;
 }) {
   const auth = config.auth ?? { type: "inherit" };
 
@@ -184,8 +181,268 @@ export function AuthPanel({
           </SelectContent>
         </Select>
       </div>
-      <AuthFields auth={auth} onChange={change} />
+      <AuthFields auth={auth} highlight={highlight} onChange={change} />
     </div>
+  );
+}
+
+// The folder-only Env tab: a sub-bar switching between "Envs" (a picked
+// environment's vars, edited into config.environments[env]) and ".env" (the
+// folder's own dotenv, edited as KEY=value rows). Both buffer into the folder
+// draft via onConfigChange/onDotenvChange; the folder pane persists them in one
+// save.
+export function EnvPanel({
+  config,
+  dotenv,
+  envNames,
+  highlight,
+  reveal,
+  onConfigChange,
+  onDotenvChange,
+}: {
+  config: ConfigScope;
+  dotenv: string;
+  envNames: string[];
+  highlight?: TokenHighlightContext;
+  reveal: { nonce: number; view: "envs" | "dotenv"; env?: string } | null;
+  onConfigChange: (config: ConfigScope) => void;
+  onDotenvChange: (dotenv: string) => void;
+}) {
+  const available = [
+    ...new Set([...envNames, ...Object.keys(config.environments ?? {})]),
+  ].sort();
+  const [picked, setPicked] = useState<string | null>(available[0] ?? null);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newEnv, setNewEnv] = useState("");
+  const [pendingDeleteEnv, setPendingDeleteEnv] = useState<string | null>(null);
+  const [view, setView] = useState<"envs" | "dotenv">("envs");
+
+  // A "go to source" jump selects the sub-view (Envs/.env) and, for an env var,
+  // the env it lives in. Applied during render (the codebase's reseed idiom)
+  // keyed by nonce, so the same jump re-fires but a later manual switch isn't
+  // fought - and no setState-in-effect cascade.
+  const [seenReveal, setSeenReveal] = useState<number | null>(null);
+  if (reveal && seenReveal !== reveal.nonce) {
+    setSeenReveal(reveal.nonce);
+    setView(reveal.view);
+    if (reveal.env !== undefined) {
+      setPicked(reveal.env);
+    }
+  }
+
+  const pickedExists = picked !== null && available.includes(picked);
+  const activePicked = pickedExists ? picked : (available[0] ?? null);
+
+  const addEnv = () => {
+    const name = newEnv.trim();
+    if (name === "" || available.includes(name)) {
+      return;
+    }
+    onConfigChange({
+      ...config,
+      environments: { ...config.environments, [name]: {} },
+    });
+    setPicked(name);
+    setNewEnv("");
+    setIsAddOpen(false);
+  };
+
+  // Delete an env from THIS folder's config; the union may still list it if a
+  // sibling/ancestor folder defines it (so it can vanish from the picker only
+  // when no scope defines it anymore). Goes through a confirm dialog first.
+  const deleteEnv = (name: string) => {
+    const rest = { ...config.environments };
+    delete rest[name];
+    onConfigChange({ ...config, environments: rest });
+    setPicked(null);
+    setPendingDeleteEnv(null);
+  };
+
+  const isPickedOwned =
+    activePicked !== null &&
+    config.environments?.[activePicked] !== undefined;
+
+  const envRows = Object.entries(
+    (activePicked && config.environments?.[activePicked]) || {},
+  ).map(([key, value]) => ({ key, value }));
+
+  const dotenvRows = Object.entries(parseDotenv(dotenv)).map(
+    ([key, value]) => ({ key, value }),
+  );
+
+  return (
+    <>
+    <Tabs
+      value={view}
+      onValueChange={(next) => setView(next as "envs" | "dotenv")}
+      className="flex h-full min-h-0 flex-col gap-0"
+    >
+      <div className="flex h-10.25 items-stretch overflow-x-auto border-b bg-muted/30">
+        <TabsList aria-label="Env views" className={PANE_TABS_LIST}>
+          <TabsTrigger value="envs" className={PANE_TABS_TRIGGER}>
+            Envs
+          </TabsTrigger>
+          <TabsTrigger value="dotenv" className={PANE_TABS_TRIGGER}>
+            .env
+          </TabsTrigger>
+        </TabsList>
+      </div>
+      <TabsContent value="envs" className="min-h-0 flex-1">
+        <div className="flex h-10.25 items-stretch overflow-x-auto border-b bg-muted/30">
+          <Select
+            value={activePicked ?? ""}
+            onValueChange={setPicked}
+            disabled={available.length === 0}
+          >
+            <SelectTrigger
+              aria-label="Environment"
+              className="h-full! w-44 rounded-none border-0 border-r border-r-border bg-transparent text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
+            >
+              {activePicked ?? "No environment"}
+            </SelectTrigger>
+            <SelectContent position="popper">
+              {available.map((name) => (
+                <SelectItem key={name} value={name}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <button
+            type="button"
+            aria-label="Add environment"
+            onClick={() => setIsAddOpen(true)}
+            className="flex h-full items-center border-0 border-r border-r-border px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <Plus className="size-4" />
+          </button>
+          {isPickedOwned && (
+            <button
+              type="button"
+              aria-label={`Delete environment ${activePicked}`}
+              onClick={() => setPendingDeleteEnv(activePicked)}
+              className="flex h-full items-center border-0 border-r border-r-border px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Trash2 className="size-4" />
+            </button>
+          )}
+        </div>
+        {activePicked === null ? (
+          <p className="p-3 text-sm text-muted-foreground">
+            No environments yet. Add one to edit its variables.
+          </p>
+        ) : (
+          <EditableKeyValueTable
+            rows={envRows}
+            keyPlaceholder="name"
+            highlight={highlight}
+            onChange={(next) =>
+              onConfigChange({
+                ...config,
+                environments: {
+                  ...config.environments,
+                  [activePicked]: Object.fromEntries(
+                    next.map((r) => [r.key, r.value]),
+                  ),
+                },
+              })
+            }
+          />
+        )}
+      </TabsContent>
+      <TabsContent value="dotenv" className="min-h-0 flex-1">
+        <EditableKeyValueTable
+          rows={dotenvRows}
+          highlight={highlight}
+          onChange={(next) =>
+            onDotenvChange(next.map((r) => `${r.key}=${r.value}`).join("\n"))
+          }
+        />
+      </TabsContent>
+    </Tabs>
+    <Dialog
+      open={isAddOpen}
+      onOpenChange={(next) => {
+        setIsAddOpen(next);
+        if (!next) {
+          setNewEnv("");
+        }
+      }}
+    >
+      <DialogContent showCloseButton={false}>
+        <DialogHeader>
+          <DialogTitle>New environment</DialogTitle>
+        </DialogHeader>
+        <input
+          aria-label="Environment name"
+          value={newEnv}
+          placeholder="name"
+          autoComplete="off"
+          spellCheck={false}
+          autoFocus
+          onChange={(event) => setNewEnv(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              addEnv();
+            }
+          }}
+          className="w-full bg-transparent p-2 font-mono text-xs shadow-none outline-none ring-1 ring-border focus-visible:ring-ring"
+        />
+        <DialogFooter>
+          <Button
+            type="button"
+            disabled={
+              newEnv.trim() === "" || available.includes(newEnv.trim())
+            }
+            onClick={addEnv}
+          >
+            Add
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsAddOpen(false)}
+          >
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <Dialog
+      open={pendingDeleteEnv !== null}
+      onOpenChange={(next) => {
+        if (!next) {
+          setPendingDeleteEnv(null);
+        }
+      }}
+    >
+      <DialogContent showCloseButton={false}>
+        <DialogHeader>
+          <DialogTitle>Delete environment "{pendingDeleteEnv ?? ""}"?</DialogTitle>
+          <DialogDescription>
+            Removes this environment&apos;s variables from this folder. This
+            cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setPendingDeleteEnv(null)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => deleteEnv(pendingDeleteEnv!)}
+          >
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

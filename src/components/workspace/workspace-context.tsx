@@ -9,7 +9,12 @@ import {
   type ReactNode,
 } from "react";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
-import { resolveConfig, type EffectiveConfig } from "@/lib/workspace/resolve";
+import {
+  resolveConfig,
+  resolveProcessEnv,
+  resolveProcessEnvProvenance,
+  type EffectiveConfig,
+} from "@/lib/workspace/resolve";
 import { moveNode as applyMove, type MoveTarget } from "@/lib/workspace/move";
 import {
   collectRequestIds,
@@ -46,6 +51,7 @@ import {
   setDotenvValue,
 } from "@/lib/workspace/environment";
 import { updateNodeConfig } from "@/lib/workspace/update-config";
+import { updateFolderDotenv } from "@/lib/workspace/update-folder-dotenv";
 import {
   updateRequest,
   type RequestPatch,
@@ -85,11 +91,21 @@ function isOverrideFieldDirty(
   return overrideValue !== baseValue;
 }
 
-export type EditTarget =
-  | { kind: "config"; id: string }
-  | { kind: "env" }
-  | null;
+export type EditTarget = { kind: "config"; id: string } | null;
 
+// A "go to source" jump from a token popup: which folder scope + which view to
+// open so the value behind the token is editable. `nonce` makes consecutive
+// jumps to the SAME target re-fire (the consumer keys its effect on identity).
+export type RevealTarget = {
+  nonce: number;
+  folderId: string;
+  view: "vars" | "envs" | "dotenv";
+  env?: string;
+} | null;
+
+// The root `.env` Settings editor still registers on the active-editor seam under
+// a distinct scope so Cmd+S / close-confirm route to it; it is no longer an
+// `editTarget` (it lives in Settings, not as an editor tab).
 export type EditorScope = { kind: "config"; id: string } | { kind: "env" };
 
 export type ActiveEditor = {
@@ -142,13 +158,16 @@ type WorkspaceContextValue = {
   activeEnvironment: string | null;
   setActiveEnvironment: (name: string | null) => void;
   processEnv: Record<string, string>;
+  // The workspace-root `.env` base (NOT folded to any request). A folder pane
+  // folds this over its own chain to preview its `{{process.env.X}}` tokens.
+  rootProcessEnv: Record<string, string>;
   envText: string;
   editTarget: EditTarget;
   isEditorActive: boolean;
   openConfigEditor: (id: string) => void;
-  openEnvEditor: () => void;
   closeEditor: () => void;
   saveNodeConfig: (id: string, config: ConfigScope) => void;
+  saveFolder: (id: string, config: ConfigScope, dotenv: string) => void;
   saveRequestNode: (id: string, patch: RequestPatch) => void;
   saveActiveRequest: () => boolean;
   // The Cmd+S entry point: saves the active editor or request, and ALWAYS shows a
@@ -159,6 +178,9 @@ type WorkspaceContextValue = {
   dirtyRequestIds: Set<string>;
   saveEnv: (text: string) => void;
   setTokenValue: (target: TokenTarget, value: string) => void;
+  // Jump from a token popup to where its value is editable (nearest-wins scope).
+  revealTokenSource: (target: TokenTarget) => void;
+  revealTarget: RevealTarget;
   registerActiveEditor: (editor: ActiveEditor | null) => void;
   saveActiveEditor: () => boolean;
   editorDirty: boolean;
@@ -289,6 +311,8 @@ export function WorkspaceProvider({
   const [pendingClose, setPendingClose] = useState<PendingClose>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
   const [isCurlImportOpen, setIsCurlImportOpen] = useState(false);
+  const [revealTarget, setRevealTarget] = useState<RevealTarget>(null);
+  const revealNonce = useRef(0);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
   const [consoleLines, setConsoleLines] =
     useState<string[]>(initialConsoleLines);
@@ -559,6 +583,7 @@ export function WorkspaceProvider({
       const effective = resolveConfig(tree, id, {
         environment: activeEnvironment ?? undefined,
       });
+      const foldedEnv = resolveProcessEnv(tree, id, processEnv);
       const generation = (sendGeneration.current.get(id) ?? 0) + 1;
       sendGeneration.current.set(id, generation);
       setResponseStates((current) =>
@@ -614,7 +639,7 @@ export function WorkspaceProvider({
         const api = buildScriptApi({
           stage: "pre",
           effective,
-          processEnv,
+          processEnv: foldedEnv,
           envName: activeEnvironment ?? null,
           runtimeVars,
           varWrites: preVarWrites,
@@ -646,7 +671,7 @@ export function WorkspaceProvider({
       const wire = buildHttpRequest(
         node2,
         applyPreToEffective(effective, runtimeVars, reqDraft.headerOverrides),
-        processEnv,
+        foldedEnv,
       );
       inFlightRequestId.current.set(id, wire.requestId);
 
@@ -673,7 +698,7 @@ export function WorkspaceProvider({
         const api = buildScriptApi({
           stage: "post",
           effective,
-          processEnv,
+          processEnv: foldedEnv,
           envName: activeEnvironment ?? null,
           runtimeVars: new Map(runtimeVars),
           varWrites: postVarWrites,
@@ -801,7 +826,8 @@ export function WorkspaceProvider({
       const effective = resolveConfig(tree, activeRequestId, {
         environment: activeEnvironment ?? undefined,
       });
-      const wire = buildHttpRequest(node, effective, processEnv);
+      const foldedEnv = resolveProcessEnv(tree, activeRequestId, processEnv);
+      const wire = buildHttpRequest(node, effective, foldedEnv);
       navigator.clipboard?.writeText(toCurl(wire));
       showToastRef.current("Copied as cURL");
     };
@@ -878,6 +904,14 @@ export function WorkspaceProvider({
 
     const saveNodeConfig = (id: string, config: ConfigScope) =>
       persistTree(updateNodeConfig(tree, id, config), "config");
+
+    // Folder pane save: persist the folder's config AND its own `.env` in ONE
+    // tree write so the Env tab's two sub-views can't clobber each other.
+    const saveFolder = (id: string, config: ConfigScope, dotenv: string) =>
+      persistTree(
+        updateFolderDotenv(updateNodeConfig(tree, id, config), id, dotenv),
+        "config",
+      );
 
     const saveActiveRequest = (): boolean => {
       if (activeRequestId === null) {
@@ -1172,7 +1206,26 @@ export function WorkspaceProvider({
 
     const setTokenValue = (target: TokenTarget, value: string) => {
       if (target.kind === "dotenv") {
-        saveEnv(setDotenvValue(envText, target.key, value));
+        // Write to the `.env` that PROVIDED this key for the active request: the
+        // nearest folder defining it, else the workspace-root `.env`. Editing the
+        // root when a nearer folder shadows it would be silently overridden.
+        const owner =
+          activeRequestId !== null
+            ? resolveProcessEnvProvenance(tree, activeRequestId, processEnv)[
+                target.key
+              ]?.scopeId ?? null
+            : null;
+        if (owner === null) {
+          saveEnv(setDotenvValue(envText, target.key, value));
+          return;
+        }
+        const folder = findNode(tree, owner);
+        const nextDotenv = setDotenvValue(
+          folder?.kind === "folder" ? folder.dotenv ?? "" : "",
+          target.key,
+          value,
+        );
+        persistTree(updateFolderDotenv(tree, owner, nextDotenv), "env");
         return;
       }
       const node = findNode(tree, target.scopeId);
@@ -1199,6 +1252,62 @@ export function WorkspaceProvider({
       saveNodeConfig(target.scopeId, nextConfig);
     };
 
+    // Jump from a token popup to the exact place the value is editable: the
+    // highest-priority scope that actually PROVIDES it (nearest folder wins).
+    // dotenv -> that folder's Env > .env (root .env lives in Settings); an env
+    // var -> Env > Envs with its env picked; a plain var -> Vars. A value owned
+    // by the request itself opens the request's own tab instead of a folder.
+    const revealTokenSource = (target: TokenTarget) => {
+      if (target.kind === "dotenv") {
+        const owner =
+          activeRequestId !== null
+            ? resolveProcessEnvProvenance(tree, activeRequestId, processEnv)[
+                target.key
+              ]?.scopeId ?? null
+            : null;
+        if (owner === null) {
+          setIsSettingsOpen(true);
+          setIsSettingsActive(true);
+          setIsEditorActive(false);
+          return;
+        }
+        revealNonce.current += 1;
+        setRevealTarget({
+          nonce: revealNonce.current,
+          folderId: owner,
+          view: "dotenv",
+        });
+        setIsSettingsActive(false);
+        setEditTarget({ kind: "config", id: owner });
+        setIsEditorActive(true);
+        return;
+      }
+      const node = findNode(tree, target.scopeId);
+      if (!node) {
+        return;
+      }
+      if (node.kind === "request") {
+        setIsSettingsActive(false);
+        setIsEditorActive(false);
+        setOpenRequestIds((current) =>
+          current.includes(node.id) ? current : [...current, node.id],
+        );
+        setActiveRequestId(node.id);
+        setActiveRequestTab("vars");
+        return;
+      }
+      revealNonce.current += 1;
+      setRevealTarget({
+        nonce: revealNonce.current,
+        folderId: node.id,
+        view: target.kind === "environment" ? "envs" : "vars",
+        env: target.kind === "environment" ? target.env : undefined,
+      });
+      setIsSettingsActive(false);
+      setEditTarget({ kind: "config", id: node.id });
+      setIsEditorActive(true);
+    };
+
     return {
       tree,
       consoleLines,
@@ -1223,7 +1332,15 @@ export function WorkspaceProvider({
         responseStates.get(id) ?? { status: "idle" },
       environmentNames: listEnvironmentNames(tree),
       activeEnvironment,
-      processEnv,
+      // Exposed value = the ACTIVE request's folded `.env` (nearest folder wins,
+      // root base), so token highlighting/preview match what a send resolves. The
+      // raw root-base `processEnv` state is read directly where folding happens
+      // (sendRequest/copyAsCurl/setTokenValue), not from this exposed field.
+      processEnv:
+        activeRequestId !== null
+          ? resolveProcessEnv(tree, activeRequestId, processEnv)
+          : processEnv,
+      rootProcessEnv: processEnv,
       envText,
       editTarget,
       isEditorActive,
@@ -1242,18 +1359,16 @@ export function WorkspaceProvider({
         setEditTarget({ kind: "config", id });
         setIsEditorActive(true);
       },
-      openEnvEditor: () => {
-        setIsSettingsActive(false);
-        setEditTarget({ kind: "env" });
-        setIsEditorActive(true);
-      },
       closeEditor: requestCloseEditor,
       saveNodeConfig,
+      saveFolder,
       saveRequestNode,
       saveActiveRequest,
       dirtyRequestIds,
       saveEnv,
       setTokenValue,
+      revealTokenSource,
+      revealTarget,
       registerActiveEditor,
       saveActiveEditor: () => {
         if (!activeEditor) {
@@ -1390,6 +1505,7 @@ export function WorkspaceProvider({
     pendingClose,
     pendingDelete,
     isCurlImportOpen,
+    revealTarget,
     renamingNodeId,
     focusUrlNonce,
     activeEditor,

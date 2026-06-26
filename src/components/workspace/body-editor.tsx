@@ -1,4 +1,4 @@
-import CodeMirror from "@uiw/react-codemirror";
+import { CodeEditor } from "@/components/workspace/code-editor";
 import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
 
 type BodyEditorProps = {
@@ -9,14 +9,11 @@ type BodyEditorProps = {
 export function BodyEditor({ value, onChange }: BodyEditorProps) {
   const { bodyExtensions } = useEditorExtensions();
   return (
-    <CodeMirror
+    <CodeEditor
       value={value}
       onChange={onChange}
-      theme="none"
+      withFold
       extensions={bodyExtensions}
-      basicSetup={{ lineNumbers: false }}
-      height="100%"
-      className="h-full text-xs"
     />
   );
 }

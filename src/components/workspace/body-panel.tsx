@@ -17,8 +17,20 @@ const BODY_MODE_LABELS: Record<BodyMode, string> = {
 };
 
 export function BodyPanel({ request }: { request: RequestNode }) {
-  const { setRequestBody, setRequestBodyMode, setRequestForm } = useWorkspace();
+  const {
+    setRequestBody,
+    setRequestBodyMode,
+    setRequestForm,
+    effectiveConfig,
+    processEnv,
+    activeEnvironment,
+  } = useWorkspace();
   const mode = request.bodyMode ?? "json";
+  const highlight = {
+    effective: effectiveConfig,
+    processEnv,
+    environment: activeEnvironment,
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -60,6 +72,7 @@ export function BodyPanel({ request }: { request: RequestNode }) {
           <EditableKeyValueTable
             rows={request.bodyForm ?? []}
             withToggle
+            highlight={highlight}
             onChange={(rows) => setRequestForm(request.id, rows)}
           />
         )}

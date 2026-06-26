@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TokenHighlight } from "@/components/workspace/var-token";
+import { HighlightedInput } from "@/components/workspace/highlighted-input";
 import type { KeyValue } from "@/lib/workspace/model";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
@@ -135,30 +135,14 @@ export function EditableKeyValueTable({
               />
             </div>
             <div className={cn(cell, "relative")}>
-              <input
-                aria-label={`${valuePlaceholder} ${index + 1}`}
+              <HighlightedInput
+                ariaLabel={`${valuePlaceholder} ${index + 1}`}
                 value={row.value}
                 placeholder={isBlankRow ? valuePlaceholder : undefined}
-                autoComplete="off"
-                spellCheck={false}
-                onChange={(event) =>
-                  editCell(index, { value: event.target.value })
-                }
-                className={cn(
-                  input,
-                  highlight && "text-transparent caret-foreground",
-                )}
+                highlight={highlight}
+                onChange={(value) => editCell(index, { value })}
+                className={input}
               />
-              {highlight && row.value !== "" && (
-                <div className="pointer-events-none absolute inset-0 flex items-center truncate px-2 font-mono text-xs whitespace-pre">
-                  <TokenHighlight
-                    text={row.value}
-                    effective={highlight.effective}
-                    processEnv={highlight.processEnv}
-                    environment={highlight.environment}
-                  />
-                </div>
-              )}
             </div>
             <div className={cn(cell, "flex items-center justify-center")}>
               {!isBlankRow && (
