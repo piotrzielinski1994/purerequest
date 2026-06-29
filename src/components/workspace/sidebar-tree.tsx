@@ -63,6 +63,7 @@ function projectPosition(
 export function SidebarTree() {
   const {
     tree,
+    isWorkspaceWritable,
     moveNode,
     expandedFolderIds,
     toggleFolder,
@@ -164,7 +165,16 @@ export function SidebarTree() {
                 </DragOverlay>
               </TreeDndProvider>
             </DndContext>
-            {tree.length === 0 && (
+            {tree.length === 0 && isWorkspaceWritable && (
+              <div className="flex flex-col gap-1 px-3 py-4 text-center">
+                <p className="text-sm font-medium">No requests yet</p>
+                <p className="text-xs text-muted-foreground">
+                  Right-click here (or use the New request / New folder
+                  shortcuts) to create your first request.
+                </p>
+              </div>
+            )}
+            {tree.length === 0 && !isWorkspaceWritable && (
               <div className="flex flex-col gap-1 px-3 py-4 text-center">
                 <p className="text-sm font-medium">No workspace</p>
                 <p className="text-xs text-muted-foreground">

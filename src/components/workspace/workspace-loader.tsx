@@ -27,6 +27,8 @@ type LoadState =
       envText: string;
     };
 
+const DEFAULT_WORKSPACE_NAME = "Workspace";
+
 function readWorkspaceName(manifestRaw: string | undefined): string {
   if (manifestRaw === undefined) {
     return "Workspace";
@@ -68,17 +70,29 @@ export function WorkspaceLoader({
       return;
     }
     let isMounted = true;
+    // A configured workspacePath that is fresh/unreadable/not-yet-a-workspace
+    // still mounts a WRITABLE empty workspace (an empty tree + onTreeChange wired
+    // to this path), so the first folder/request the user creates bootstraps the
+    // dir on disk. Read-only empty is reserved for when NO path is set at all.
+    const freshWorkspace = (): LoadState => ({
+      status: "loaded",
+      tree: [],
+      consoleLines: [],
+      workspaceName: DEFAULT_WORKSPACE_NAME,
+      processEnv: {},
+      envText: "",
+    });
     fs.readWorkspace(workspacePath).then((read) => {
       if (!isMounted) {
         return;
       }
       if (!read.ok) {
-        setState({ status: "empty" });
+        setState(freshWorkspace());
         return;
       }
       const parsed = deserialize(read.files);
       if (!parsed.ok) {
-        setState({ status: "empty" });
+        setState(freshWorkspace());
         return;
       }
       const consoleLines = parsed.skipped.map(

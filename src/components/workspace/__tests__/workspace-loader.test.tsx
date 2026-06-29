@@ -7,7 +7,7 @@ import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import { createInMemoryWorkspaceFs } from "@/lib/workspace/in-memory-fs";
-import { serialize } from "@/lib/workspace/disk-format";
+import { serialize, type FileMap } from "@/lib/workspace/disk-format";
 import type { TreeNode } from "@/lib/workspace/model";
 
 const sampleTree: TreeNode[] = [
@@ -92,11 +92,13 @@ describe("WorkspaceLoader", () => {
     ).toBeInTheDocument();
   });
 
-  // AC-004 - behavior
-  it("should mount the shell with a No workspace hint if the workspacePath cannot be read", async () => {
+  // behavior: a configured path that cannot be read mounts a WRITABLE empty
+  // workspace (it bootstraps on the first create), NOT the read-only hint.
+  it("should mount a writable empty workspace if the workspacePath cannot be read", async () => {
     renderLoader("/ws/missing", {});
 
-    expect(await screen.findByText(/no workspace/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no requests yet/i)).toBeInTheDocument();
+    expect(screen.queryByText(/set "workspacePath"/i)).not.toBeInTheDocument();
     expect(
       screen.getByRole("tree", { name: /collection/i }),
     ).toBeInTheDocument();
@@ -105,11 +107,13 @@ describe("WorkspaceLoader", () => {
     ).toBeInTheDocument();
   });
 
-  // AC-004, E-6 - behavior
-  it("should mount the shell with a No workspace hint if the folder is not a workspace", async () => {
+  // behavior: a configured path whose folder is not a workspace mounts a WRITABLE
+  // empty workspace (the first create bootstraps the manifest; reconcile only adds
+  // managed files, leaving stray files untouched).
+  it("should mount a writable empty workspace if the folder is not a workspace", async () => {
     renderLoader("/ws/bad", { "/ws/bad": { "stray.txt": "hello" } });
 
-    expect(await screen.findByText(/no workspace/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no requests yet/i)).toBeInTheDocument();
     expect(screen.queryByText("Billing")).not.toBeInTheDocument();
     expect(
       screen.getByRole("tree", { name: /collection/i }),
@@ -117,6 +121,36 @@ describe("WorkspaceLoader", () => {
     expect(
       screen.getByRole("region", { name: /console/i }),
     ).toBeInTheDocument();
+  });
+
+  // behavior: a workspacePath pointing at a fresh (unreadable/empty) dir mounts a
+  // WRITABLE empty workspace - a created folder persists to that path, so the next
+  // load reads it back. (Regression: an unset/fresh path used to be read-only.)
+  it("should persist a created folder to a fresh workspacePath dir", async () => {
+    const user = userEvent.setup();
+    const workspaces: Record<string, FileMap> = {};
+    const settingsStore = createInMemorySettingsStore({
+      ...DEFAULT_SETTINGS,
+      workspacePath: "/ws/fresh",
+    });
+    const fs = createInMemoryWorkspaceFs(workspaces);
+    render(
+      <SettingsProvider store={settingsStore}>
+        <WorkspaceLoader fs={fs} />
+      </SettingsProvider>,
+    );
+
+    const tree = await screen.findByRole("tree", { name: /collection/i });
+    await user.pointer({ keys: "[MouseRight>]", target: tree });
+    await user.click(
+      await screen.findByRole("menuitem", { name: /new folder/i }),
+    );
+
+    await waitFor(() =>
+      expect(workspaces["/ws/fresh"]?.["requi.workspace.json"]).toBeDefined(),
+    );
+    const written = Object.keys(workspaces["/ws/fresh"] ?? {});
+    expect(written.some((path) => path.endsWith("folder.json"))).toBe(true);
   });
 
   // AC-004, TC-004 - behavior: settings opens as content in the empty shell, then closes.

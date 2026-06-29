@@ -166,9 +166,12 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > Additive like cURL import - it never replaces the open workspace; an empty collection adds nothing.
 > In `npm run dev` (no native host) the action is a no-op.
 >
-> A **workspace** is a folder on disk holding the collection tree + config. Point the app
-> at one by hand-editing `workspacePath` in that same `settings.json`; it loads on launch
-> (empty state if unset/invalid). Folders/requests carry an inheritable config (variables,
+> A **workspace** is a folder on disk holding the collection tree + config. By default it lives
+> in a `collection` subfolder of the app data dir (next to `settings.json`), created on first
+> write - so a fresh install is writable out of the box. Point the app elsewhere by hand-editing
+> `workspacePath` in that same `settings.json`; it loads on launch (and a configured-but-empty or
+> not-yet-created folder mounts a writable empty workspace, bootstrapped by the first request you
+> create). Folders/requests carry an inheritable config (variables,
 > environments, headers, params, auth, scripts, timeout); a request resolves it by inheriting
 > from its folder chain (child overrides parent), and that resolved config is what Send uses.
 > The request/folder pane's **Vars / Auth / Headers / Params / Script** tabs are structured

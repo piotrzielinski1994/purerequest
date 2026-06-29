@@ -145,6 +145,10 @@ export type ResponseTab = "response" | "headers";
 
 type WorkspaceContextValue = {
   tree: TreeNode[];
+  // Whether edits persist to disk (a workspacePath is configured). False only
+  // when no workspace is set at all - the sidebar then shows a read-only hint
+  // instead of a create-your-first-thing prompt.
+  isWorkspaceWritable: boolean;
   consoleLines: string[];
   expandedFolderIds: Set<string>;
   selectedNodeId: string | null;
@@ -517,6 +521,8 @@ export function WorkspaceProvider({
     );
   }, [openRequestIds, activeRequestId]);
 
+  const isWorkspaceWritable = onTreeChange !== undefined;
+
   const value = useMemo<WorkspaceContextValue>(() => {
     const selectNode = (id: string) => {
       setSelectedNodeId(id);
@@ -749,6 +755,7 @@ export function WorkspaceProvider({
           varWrites: postVarWrites,
           log: (line) => pendingLines.push(line),
           clear: clearConsole,
+          reqDraft,
           response,
         });
         const outcome = await scriptRunnerRef.current.run(postCode, api);
@@ -1368,6 +1375,7 @@ export function WorkspaceProvider({
 
     return {
       tree,
+      isWorkspaceWritable,
       consoleLines,
       expandedFolderIds,
       selectedNodeId,
@@ -1548,6 +1556,7 @@ export function WorkspaceProvider({
     };
   }, [
     tree,
+    isWorkspaceWritable,
     consoleLines,
     expandedFolderIds,
     selectedNodeId,

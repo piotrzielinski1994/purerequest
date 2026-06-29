@@ -15,6 +15,31 @@ import { ToastProvider } from "@/components/ui/toast";
 import { fixtureTree } from "./fixtures";
 
 describe("SidebarTree", () => {
+  // behavior: a writable but empty workspace (onTreeChange wired) shows a
+  // create-something prompt, NOT the read-only "set workspacePath" hint.
+  it("should show a create hint, not the settings hint, for an empty writable workspace", async () => {
+    render(
+      <WorkspaceProvider tree={[]} onTreeChange={() => Promise.resolve({ ok: true })}>
+        <SidebarTree />
+      </WorkspaceProvider>,
+    );
+
+    expect(screen.queryByText(/set "workspacePath"/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/no requests yet/i)).toBeInTheDocument();
+  });
+
+  // behavior: an empty workspace with NO onTreeChange (no path configured) still
+  // shows the read-only "set workspacePath" hint.
+  it("should show the settings hint for an empty read-only workspace", () => {
+    render(
+      <WorkspaceProvider tree={[]}>
+        <SidebarTree />
+      </WorkspaceProvider>,
+    );
+
+    expect(screen.getByText(/set "workspacePath"/i)).toBeInTheDocument();
+  });
+
   // AC-004, TC-002 — behavior
   it("should reveal a folder's children when a collapsed folder is clicked", async () => {
     const user = userEvent.setup();

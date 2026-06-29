@@ -62,6 +62,10 @@ export function createTauriWorkspaceFs(): WorkspaceFs {
       const plan = planReconcile(current, files);
       const written = await toResult(
         (async (): Promise<void> => {
+          // Ensure the workspace root itself exists: a root-level file (the
+          // manifest, a top-level *.req.json) has no parent dir to mkdir, so a
+          // fresh/never-created rootPath would otherwise ENOENT on first write.
+          await mkdir(rootPath, { recursive: true });
           for (const [relPath, content] of Object.entries(plan.write)) {
             const dir = parentDir(relPath);
             if (dir !== null) {

@@ -1,4 +1,5 @@
 import { LazyStore } from "@tauri-apps/plugin-store";
+import { appDataDir, join } from "@tauri-apps/api/path";
 import {
   DEFAULT_SETTINGS,
   mergeSettings,
@@ -13,6 +14,17 @@ const THEME_FILE = "theme.json";
 const SETTINGS_KEY = "settings";
 const SHORTCUTS_KEY = "shortcuts";
 const THEME_COLORS_KEY = "colors";
+const DEFAULT_COLLECTION_DIR = "collection";
+
+// The default home for a fresh install: a `collection` subfolder of the app data
+// dir (sibling to settings.json), so the workspace is writable out of the box
+// without the user hand-editing settings.json. Falls back to undefined (read-only
+// empty) only if the path API itself fails.
+async function defaultWorkspacePath(): Promise<string | undefined> {
+  return appDataDir()
+    .then((dir) => join(dir, DEFAULT_COLLECTION_DIR))
+    .catch(() => undefined);
+}
 
 export function createTauriSettingsStore(): SettingsStore {
   const settingsStore = new LazyStore(SETTINGS_FILE);
@@ -35,10 +47,13 @@ export function createTauriSettingsStore(): SettingsStore {
       ...base,
       shortcuts: persistedShortcuts,
     });
-    return mergeSettings(withShortcuts, {
+    const withTheme = mergeSettings(withShortcuts, {
       ...withShortcuts,
       theme: { mode: withShortcuts.theme.mode, colors: persistedColors },
     });
+    return withTheme.workspacePath !== undefined
+      ? withTheme
+      : { ...withTheme, workspacePath: await defaultWorkspacePath() };
   };
 
   const save = async (settings: Settings): Promise<void> => {
