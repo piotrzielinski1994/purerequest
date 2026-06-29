@@ -14,11 +14,15 @@ import {
   VarsPanel,
 } from "@/components/workspace/config-panels";
 import { useWorkspace } from "@/components/workspace/workspace-context";
-import { resolveConfig, resolveProcessEnv } from "@/lib/workspace/resolve";
+import {
+  environmentNamesForScope,
+  environmentOrigins,
+  resolveConfig,
+  resolveProcessEnv,
+} from "@/lib/workspace/resolve";
 import { findNode } from "@/lib/workspace/tree-locate";
 import { updateNodeConfig } from "@/lib/workspace/update-config";
 import { updateFolderDotenv } from "@/lib/workspace/update-folder-dotenv";
-import { listEnvironmentNames } from "@/lib/workspace/environment";
 import type { ConfigScope } from "@/lib/workspace/model";
 
 type FolderTab =
@@ -41,17 +45,20 @@ function FolderStructuredEditor({
   id,
   saved,
   savedDotenv,
+  envColors,
   envNames,
   reveal,
 }: {
   id: string;
   saved: ConfigScope;
   savedDotenv: string;
+  envColors: Record<string, string>;
   envNames: string[];
   reveal: { nonce: number; view: "envs" | "dotenv"; env?: string } | null;
 }) {
   const {
     saveFolder,
+    setFolderEnvColor,
     registerActiveEditor,
     tree,
     activeEnvironment,
@@ -115,7 +122,12 @@ function FolderStructuredEditor({
     }),
     processEnv: resolveProcessEnv(tree, id, rootProcessEnv),
     environment: activeEnvironment,
+    ownScopeId: id,
   };
+
+  // env name -> nearest defining folder name, so the panel can flag an env it
+  // inherits from a parent (it's edited in the parent's scope, not this folder's).
+  const envOrigins = environmentOrigins(tree, id);
 
   return (
     <>
@@ -139,6 +151,9 @@ function FolderStructuredEditor({
           config={draft}
           dotenv={dotenvDraft}
           envNames={envNames}
+          envColors={envColors}
+          envOrigins={envOrigins}
+          onEnvColorChange={(env, color) => setFolderEnvColor(id, env, color)}
           highlight={highlight}
           reveal={reveal}
           onConfigChange={setDraft}
@@ -152,11 +167,14 @@ function FolderStructuredEditor({
 export function FolderPane() {
   const { editTarget, tree, revealTarget } = useWorkspace();
   const [tab, setTab] = useState<FolderTab>("vars");
-  const envNames = listEnvironmentNames(tree);
 
   const node =
     editTarget?.kind === "config" ? findNode(tree, editTarget.id) : null;
   const folder = node && node.kind === "folder" ? node : null;
+  // Scope the env picker to THIS folder's chain (env names declared along root ->
+  // folder + any env this folder has colored), so it matches the sidebar combobox.
+  // A sibling-only env must not leak in.
+  const envNames = environmentNamesForScope(tree, folder?.id ?? null);
 
   // A "go to source" jump targeting THIS folder switches to the right tab.
   // Applied during render (the codebase's reseed idiom) keyed by nonce, so
@@ -225,6 +243,7 @@ export function FolderPane() {
           id={folder.id}
           saved={folder.config}
           savedDotenv={folder.dotenv ?? ""}
+          envColors={folder.environmentColors ?? {}}
           envNames={envNames}
           reveal={envReveal}
         />

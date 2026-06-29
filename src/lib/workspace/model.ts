@@ -51,6 +51,11 @@ export type FolderNode = {
   name: string;
   config: ConfigScope;
   dotenv?: string;
+  // Per-environment border colors: env name -> lowercase `#rrggbb`/`#rrggbbaa` hex
+  // (the optional alpha pair is the chosen border opacity). A folder-only
+  // presentation cue; requests inherit the nearest ancestor folder's color for the
+  // active env. Absent/empty = no colors.
+  environmentColors?: Record<string, string>;
   children: TreeNode[];
 };
 

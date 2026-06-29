@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { CornerLeftUp, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HighlightedInput } from "@/components/workspace/highlighted-input";
 import {
@@ -27,6 +27,8 @@ import {
   type TokenHighlightContext,
 } from "@/components/workspace/editable-key-value-table";
 import { ScriptEditor } from "@/components/workspace/script-editor";
+import { AccentField } from "@/components/workspace/accent-field";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { ScriptStage } from "@/lib/scripts/model";
 import type { Auth, ConfigScope } from "@/lib/workspace/model";
 import { parseDotenv } from "@/lib/workspace/environment";
@@ -195,6 +197,9 @@ export function EnvPanel({
   config,
   dotenv,
   envNames,
+  envColors,
+  envOrigins,
+  onEnvColorChange,
   highlight,
   reveal,
   onConfigChange,
@@ -203,6 +208,10 @@ export function EnvPanel({
   config: ConfigScope;
   dotenv: string;
   envNames: string[];
+  envColors?: Record<string, string>;
+  // env name -> nearest defining ancestor folder name (for the inherited marker).
+  envOrigins?: Record<string, string>;
+  onEnvColorChange?: (env: string, color: string | null) => void;
   highlight?: TokenHighlightContext;
   reveal: { nonce: number; view: "envs" | "dotenv"; env?: string } | null;
   onConfigChange: (config: ConfigScope) => void;
@@ -247,13 +256,18 @@ export function EnvPanel({
     setIsAddOpen(false);
   };
 
-  // Delete an env from THIS folder's config; the union may still list it if a
-  // sibling/ancestor folder defines it (so it can vanish from the picker only
-  // when no scope defines it anymore). Goes through a confirm dialog first.
+  // Delete an env from THIS folder: drop its vars from config (draft) AND clear its
+  // color (live). The union may still list it if an ancestor defines it, so it only
+  // vanishes from the picker when no scope defines or colors it. Confirm first.
   const deleteEnv = (name: string) => {
-    const rest = { ...config.environments };
-    delete rest[name];
-    onConfigChange({ ...config, environments: rest });
+    if (config.environments?.[name] !== undefined) {
+      const rest = { ...config.environments };
+      delete rest[name];
+      onConfigChange({ ...config, environments: rest });
+    }
+    if (envColors?.[name] !== undefined) {
+      onEnvColorChange?.(name, null);
+    }
     setPicked(null);
     setPendingDeleteEnv(null);
   };
@@ -261,6 +275,22 @@ export function EnvPanel({
   const isPickedOwned =
     activePicked !== null &&
     config.environments?.[activePicked] !== undefined;
+  // A trash shows when the env is THIS folder's to remove: declared in its config OR
+  // only colored here (then delete just clears the color). An env merely inherited
+  // from a parent isn't this folder's to delete.
+  const isPickedColoredHere =
+    activePicked !== null && envColors?.[activePicked] !== undefined;
+  const isPickedDeletable = isPickedOwned || isPickedColoredHere;
+  // The folder name an env is INHERITED from: defined in an ANCESTOR and NOT declared
+  // in THIS folder's config. Coloring it here doesn't make it owned - an inherited
+  // env always shows the marker. `envOrigins` only maps a name to an ancestor when a
+  // parent (not this folder) defines it, so a same-named env owned here returns null.
+  const inheritedOrigin = (name: string): string | null =>
+    config.environments?.[name] === undefined
+      ? (envOrigins?.[name] ?? null)
+      : null;
+  const inheritedFrom =
+    activePicked !== null ? inheritedOrigin(activePicked) : null;
 
   const envRows = Object.entries(
     (activePicked && config.environments?.[activePicked]) || {},
@@ -294,18 +324,57 @@ export function EnvPanel({
             onValueChange={setPicked}
             disabled={available.length === 0}
           >
-            <SelectTrigger
-              aria-label="Environment"
-              className="h-full! w-44 rounded-none border-0 border-r border-r-border bg-transparent text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
-            >
-              {activePicked ?? "No environment"}
-            </SelectTrigger>
+            {inheritedFrom !== null ? (
+              <Tooltip content={`Inherited from ${inheritedFrom}`}>
+                <SelectTrigger
+                  aria-label="Environment"
+                  className="h-full! w-fit min-w-32 rounded-none border-0 border-r border-r-border bg-transparent text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
+                >
+                  <span className="flex w-full items-center gap-1.5">
+                    {activePicked}
+                    <CornerLeftUp
+                      aria-label={`Inherited from ${inheritedFrom}`}
+                      className="size-3.5 text-muted-foreground"
+                    />
+                  </span>
+                </SelectTrigger>
+              </Tooltip>
+            ) : (
+              <SelectTrigger
+                aria-label="Environment"
+                className="h-full! w-fit min-w-32 rounded-none border-0 border-r border-r-border bg-transparent text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
+              >
+                {activePicked ?? "No environment"}
+              </SelectTrigger>
+            )}
             <SelectContent position="popper">
-              {available.map((name) => (
-                <SelectItem key={name} value={name}>
-                  {name}
-                </SelectItem>
-              ))}
+              {available.map((name) => {
+                const from = inheritedOrigin(name);
+                if (from === null) {
+                  return (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  );
+                }
+                return (
+                  <Tooltip
+                    key={name}
+                    side="right"
+                    content={`Inherited from ${from}`}
+                  >
+                    <SelectItem value={name}>
+                      <span className="flex w-full items-center gap-1.5">
+                        {name}
+                        <CornerLeftUp
+                          aria-label={`Inherited from ${from}`}
+                          className="size-3.5 text-muted-foreground"
+                        />
+                      </span>
+                    </SelectItem>
+                  </Tooltip>
+                );
+              })}
             </SelectContent>
           </Select>
           <button
@@ -316,7 +385,7 @@ export function EnvPanel({
           >
             <Plus className="size-4" />
           </button>
-          {isPickedOwned && (
+          {isPickedDeletable && (
             <button
               type="button"
               aria-label={`Delete environment ${activePicked}`}
@@ -325,6 +394,20 @@ export function EnvPanel({
             >
               <Trash2 className="size-4" />
             </button>
+          )}
+          {onEnvColorChange && (
+            <AccentField
+              value={
+                activePicked !== null
+                  ? (envColors?.[activePicked] ?? null)
+                  : null
+              }
+              disabled={activePicked === null}
+              onChange={(color) =>
+                activePicked !== null &&
+                onEnvColorChange(activePicked, color)
+              }
+            />
           )}
         </div>
         {activePicked === null ? (

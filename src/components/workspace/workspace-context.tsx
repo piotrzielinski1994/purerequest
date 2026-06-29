@@ -10,6 +10,8 @@ import {
 } from "react";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 import {
+  accentColorFor,
+  environmentNamesForScope,
   resolveConfig,
   resolveProcessEnv,
   resolveProcessEnvProvenance,
@@ -45,13 +47,13 @@ import type {
   KeyValue,
 } from "@/lib/workspace/model";
 import {
-  listEnvironmentNames,
   mergeDotenv,
   parseDotenv,
   setDotenvValue,
 } from "@/lib/workspace/environment";
 import { updateNodeConfig } from "@/lib/workspace/update-config";
 import { updateFolderDotenv } from "@/lib/workspace/update-folder-dotenv";
+import { updateFolderEnvColor } from "@/lib/workspace/update-folder-env-color";
 import {
   updateRequest,
   type RequestPatch,
@@ -168,6 +170,16 @@ type WorkspaceContextValue = {
   closeEditor: () => void;
   saveNodeConfig: (id: string, config: ConfigScope) => void;
   saveFolder: (id: string, config: ConfigScope, dotenv: string) => void;
+  // Live (non-draft) write of one env's border color onto a folder; null clears it.
+  setFolderEnvColor: (
+    folderId: string,
+    env: string,
+    color: string | null,
+  ) => void;
+  // The color that recolors the shell --border for the active env + active tab:
+  // the active folder editor's folder, else the active request, resolved against
+  // the active environment. Null when no active env or no color in scope.
+  activeAccentColor: string | null;
   saveRequestNode: (id: string, patch: RequestPatch) => void;
   saveActiveRequest: () => boolean;
   // The Cmd+S entry point: saves the active editor or request, and ALWAYS shows a
@@ -435,6 +447,23 @@ export function WorkspaceProvider({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSettingsActive, setIsSettingsActive] = useState(false);
 
+  // The node whose env scope drives the border + the sidebar env list: the open
+  // folder config editor's folder while it's the active editor, else the active
+  // request, else null (Settings/no focus).
+  const activeScopeId = useMemo<string | null>(() => {
+    if (
+      isEditorActive &&
+      editTarget?.kind === "config" &&
+      findNode(tree, editTarget.id)?.kind === "folder"
+    ) {
+      return editTarget.id;
+    }
+    if (!isEditorActive && !isSettingsActive && activeRequestId !== null) {
+      return activeRequestId;
+    }
+    return null;
+  }, [tree, editTarget, isEditorActive, isSettingsActive, activeRequestId]);
+
   const onTabsChangeRef = useRef(onTabsChange);
   useEffect(() => {
     onTabsChangeRef.current = onTabsChange;
@@ -451,6 +480,22 @@ export function WorkspaceProvider({
   useEffect(() => {
     onEnvChangeRef.current = onEnvChange;
   }, [onEnvChange]);
+
+  // Env names in scope for the focused node (combobox options).
+  const scopedEnvNames = useMemo(
+    () => environmentNamesForScope(tree, activeScopeId),
+    [tree, activeScopeId],
+  );
+  // Clamp the active env to the focused node's scope: if its chain doesn't define
+  // the selected env (switched to a folder with different/no envs), it reads as No
+  // Environment so the border clears and the combobox shows no stale selection.
+  // Derived in render (not an effect) - the raw selection is kept, so returning to
+  // a tab that defines it surfaces it again (sticky), with no setState cascade.
+  const effectiveEnvironment =
+    activeEnvironment !== null && scopedEnvNames.includes(activeEnvironment)
+      ? activeEnvironment
+      : null;
+
   const isFirstTabsRender = useRef(true);
   useEffect(() => {
     if (isFirstTabsRender.current) {
@@ -581,7 +626,7 @@ export function WorkspaceProvider({
         return;
       }
       const effective = resolveConfig(tree, id, {
-        environment: activeEnvironment ?? undefined,
+        environment: effectiveEnvironment ?? undefined,
       });
       const foldedEnv = resolveProcessEnv(tree, id, processEnv);
       const generation = (sendGeneration.current.get(id) ?? 0) + 1;
@@ -640,7 +685,7 @@ export function WorkspaceProvider({
           stage: "pre",
           effective,
           processEnv: foldedEnv,
-          envName: activeEnvironment ?? null,
+          envName: effectiveEnvironment ?? null,
           runtimeVars,
           varWrites: preVarWrites,
           log: (line) => pendingLines.push(line),
@@ -699,7 +744,7 @@ export function WorkspaceProvider({
           stage: "post",
           effective,
           processEnv: foldedEnv,
-          envName: activeEnvironment ?? null,
+          envName: effectiveEnvironment ?? null,
           runtimeVars: new Map(runtimeVars),
           varWrites: postVarWrites,
           log: (line) => pendingLines.push(line),
@@ -824,7 +869,7 @@ export function WorkspaceProvider({
         return;
       }
       const effective = resolveConfig(tree, activeRequestId, {
-        environment: activeEnvironment ?? undefined,
+        environment: effectiveEnvironment ?? undefined,
       });
       const foldedEnv = resolveProcessEnv(tree, activeRequestId, processEnv);
       const wire = buildHttpRequest(node, effective, foldedEnv);
@@ -911,6 +956,19 @@ export function WorkspaceProvider({
       persistTree(
         updateFolderDotenv(updateNodeConfig(tree, id, config), id, dotenv),
         "config",
+      );
+
+    // Live color write: persists immediately (outside the folder pane Cmd+S draft)
+    // so the border updates on pick and a color change never clobbers unsaved var
+    // edits buffered in the draft.
+    const setFolderEnvColor = (
+      folderId: string,
+      env: string,
+      color: string | null,
+    ) =>
+      persistTree(
+        updateFolderEnvColor(tree, folderId, env, color),
+        "accent",
       );
 
     const saveActiveRequest = (): boolean => {
@@ -1325,13 +1383,18 @@ export function WorkspaceProvider({
       effectiveConfig:
         activeRequestId !== null
           ? resolveConfig(tree, activeRequestId, {
-              environment: activeEnvironment ?? undefined,
+              environment: effectiveEnvironment ?? undefined,
             })
           : null,
       responseState: (id: string) =>
         responseStates.get(id) ?? { status: "idle" },
-      environmentNames: listEnvironmentNames(tree),
-      activeEnvironment,
+      // The shell border tracks the active env resolved against the focused node:
+      // the open folder editor's folder while editing, else the active request.
+      activeAccentColor: accentColorFor(tree, activeScopeId, effectiveEnvironment),
+      // Env combobox options are scoped to the focused node's chain (a folder with
+      // no/other envs changes what the sidebar offers); no focus -> all tree envs.
+      environmentNames: scopedEnvNames,
+      activeEnvironment: effectiveEnvironment,
       // Exposed value = the ACTIVE request's folded `.env` (nearest folder wins,
       // root base), so token highlighting/preview match what a send resolves. The
       // raw root-base `processEnv` state is read directly where folding happens
@@ -1362,6 +1425,7 @@ export function WorkspaceProvider({
       closeEditor: requestCloseEditor,
       saveNodeConfig,
       saveFolder,
+      setFolderEnvColor,
       saveRequestNode,
       saveActiveRequest,
       dirtyRequestIds,
@@ -1495,7 +1559,9 @@ export function WorkspaceProvider({
     isSettingsActive,
     requestsById,
     responseStates,
-    activeEnvironment,
+    effectiveEnvironment,
+    scopedEnvNames,
+    activeScopeId,
     processEnv,
     envText,
     editTarget,

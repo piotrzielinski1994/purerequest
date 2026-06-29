@@ -20,6 +20,10 @@ export type DeserializeResult =
 
 const MANIFEST = "requi.workspace.json";
 
+// A folder accent is a `#rrggbb` or `#rrggbbaa` hex; the optional alpha pair is
+// the user's border opacity. Anything else on disk is dropped.
+const HEX_COLOR = /^#([0-9a-f]{6}|[0-9a-f]{8})$/i;
+
 type ParsedRequest = {
   name?: string;
   method?: HttpMethod;
@@ -50,7 +54,33 @@ function bodyModeFields(node: {
   };
 }
 
-type ParsedFolder = { name?: string; config?: ConfigScope; order?: number };
+type ParsedFolder = {
+  name?: string;
+  config?: ConfigScope;
+  order?: number;
+  environmentColors?: Record<string, unknown>;
+};
+
+// Keep only entries whose value is a #rrggbb/#rrggbbaa hex (lowercased); drop the
+// field entirely if it isn't an object or no valid entry survives.
+function sanitizeEnvironmentColors(
+  value: unknown,
+): { environmentColors: Record<string, string> } | undefined {
+  if (typeof value !== "object" || value === null) {
+    return undefined;
+  }
+  const clean = Object.entries(value as Record<string, unknown>).reduce<
+    Record<string, string>
+  >((acc, [env, color]) => {
+    if (typeof color === "string" && HEX_COLOR.test(color)) {
+      return { ...acc, [env]: color.toLowerCase() };
+    }
+    return acc;
+  }, {});
+  return Object.keys(clean).length > 0
+    ? { environmentColors: clean }
+    : undefined;
+}
 
 function tryParse<T>(raw: string): T | undefined {
   try {
@@ -118,7 +148,15 @@ function serializeInto(
     if (node.kind === "folder") {
       const dir = `${prefix}${slug}`;
       files[`${dir}/folder.json`] = JSON.stringify(
-        { name: node.name, config: node.config, order },
+        {
+          name: node.name,
+          config: node.config,
+          order,
+          ...(node.environmentColors &&
+          Object.keys(node.environmentColors).length > 0
+            ? { environmentColors: node.environmentColors }
+            : {}),
+        },
         null,
         2,
       );
@@ -233,6 +271,7 @@ function buildLevel(
       name: parsed?.name ?? segment,
       config: parsed?.config ?? {},
       ...(dotenv ? { dotenv } : {}),
+      ...sanitizeEnvironmentColors(parsed?.environmentColors),
       children: buildLevel(files, `${dir}/`, skipped),
     };
     return [{ order: parsed?.order, node: folder }];

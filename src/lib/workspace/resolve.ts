@@ -1,5 +1,9 @@
 import type { Auth, ScriptConfig, TreeNode } from "@/lib/workspace/model";
-import { parseDotenv, type ProcessEnv } from "@/lib/workspace/environment";
+import {
+  listEnvironmentNames,
+  parseDotenv,
+  type ProcessEnv,
+} from "@/lib/workspace/environment";
 
 export type Provenance = { scopeId: string; scopeName: string };
 
@@ -32,6 +36,7 @@ export type Scope = {
   name: string;
   config: TreeNode["config"];
   dotenv?: string;
+  environmentColors?: Record<string, string>;
 };
 
 export function findScopePath(
@@ -46,6 +51,9 @@ export function findScopePath(
       config: node.config,
       ...(node.kind === "folder" && node.dotenv !== undefined
         ? { dotenv: node.dotenv }
+        : {}),
+      ...(node.kind === "folder" && node.environmentColors !== undefined
+        ? { environmentColors: node.environmentColors }
         : {}),
     };
     // Match a request OR a folder by id: a folder pane resolves its own chain
@@ -65,6 +73,68 @@ export function findScopePath(
     }
   }
   return null;
+}
+
+// The color that recolors the shell for a node under the active env: walk the
+// scope path (root -> node) and take the nearest ancestor folder that has a color
+// for `env`. Null when env is unset. Works for a folder id (its own path ends at
+// it) and a request id (inherits the nearest ancestor folder). Env-keyed: a folder
+// colored only for "prod" yields null for "local".
+export function accentColorFor(
+  tree: TreeNode[],
+  id: string | null,
+  env: string | null | undefined,
+): string | null {
+  if (id === null || env === null || env === undefined) {
+    return null;
+  }
+  const path = findScopePath(tree, id, []) ?? [];
+  const nearest = [...path]
+    .reverse()
+    .find((scope) => scope.environmentColors?.[env] !== undefined);
+  return nearest?.environmentColors?.[env] ?? null;
+}
+
+// The env names in scope for a node: the sorted union of every ancestor folder's
+// `config.environments` keys along the chain root -> node. A null id falls back to
+// every env name in the tree.
+export function environmentNamesForScope(
+  tree: TreeNode[],
+  id: string | null,
+): string[] {
+  if (id === null) {
+    return listEnvironmentNames(tree);
+  }
+  const path = findScopePath(tree, id, []) ?? [];
+  const names = path.reduce<Set<string>>((acc, scope) => {
+    Object.keys(scope.config.environments ?? {}).forEach((name) =>
+      acc.add(name),
+    );
+    // An env a folder has COLORED but not declared in config.environments is still
+    // in scope - coloring it is a per-folder signal the folder cares about it.
+    Object.keys(scope.environmentColors ?? {}).forEach((name) =>
+      acc.add(name),
+    );
+    return acc;
+  }, new Set());
+  return [...names].sort();
+}
+
+// For each env name declared along the chain root -> node, the NAME of the nearest
+// folder that defines it (in config.environments). Lets a sub-folder's env picker
+// mark which envs it inherits from a parent vs owns. Iterating the path root->leaf
+// and overwriting means the nearest (deepest) defining folder wins.
+export function environmentOrigins(
+  tree: TreeNode[],
+  id: string,
+): Record<string, string> {
+  const path = findScopePath(tree, id, []) ?? [];
+  return path.reduce<Record<string, string>>((acc, scope) => {
+    return Object.keys(scope.config.environments ?? {}).reduce(
+      (inner, name) => ({ ...inner, [name]: scope.name }),
+      acc,
+    );
+  }, {});
 }
 
 function provenanceOf(scope: Scope): Provenance {

@@ -13,6 +13,9 @@ export type TokenHighlightContext = {
   effective: EffectiveConfig | null;
   processEnv: Record<string, string>;
   environment: string | null;
+  // The scope being edited; token-autocomplete blanks the source label for a
+  // variable defined in this scope (its name would otherwise repeat a long path).
+  ownScopeId?: string;
 };
 
 const dropBlankKeys = (rows: KeyValue[]) =>

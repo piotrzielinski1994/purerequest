@@ -14,6 +14,7 @@ UI design rules for this app. Entries are about *visual language and interaction
 - Give a thin divider a larger **invisible** hit area instead of a visible thick bar: an `::after` overlay (`after:absolute after:inset-y-0 after:left-1/2 after:w-2 after:-translate-x-1/2` for a vertical handle) catches the pointer while the visible line stays 1px.
 - Cursor signals affordance (`cursor-col-resize` / `cursor-row-resize`), not thickness.
 - Borders use the `border`/`border-border` token, 1px. Don't introduce heavier borders for emphasis - use background/spacing instead.
+- **Per-folder, per-environment accent (the one deliberate exception to "never hard-coded hex"):** a folder may carry user-chosen border colors keyed by environment (`environmentColors: Record<env, hex>`). The shell `--border` token (only) is overridden on the shell root (`workspace-layout.tsx`) with the color of the **active environment** (sidebar combobox) resolved against the active tab's folder chain (nearest ancestor folder wins). It adds no new border and changes no width - the 1px rule still holds; the hex's optional alpha pair is the tint. A request inherits its nearest ancestor folder's color for the active env. Picker lives on the folder Env tab's Envs toolbar (edits the selected env's color, persists live).
 
 ## Scrollbars
 

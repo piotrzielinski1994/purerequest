@@ -20,6 +20,7 @@ function UrlField({
   effective,
   processEnv,
   environment,
+  ownScopeId,
   inputRef,
   onChange,
   onSend,
@@ -28,6 +29,7 @@ function UrlField({
   effective: EffectiveConfig | null;
   processEnv: Record<string, string>;
   environment: string | null;
+  ownScopeId: string;
   inputRef: React.RefObject<HTMLInputElement | null>;
   onChange: (url: string) => void;
   onSend: () => void;
@@ -44,7 +46,7 @@ function UrlField({
             onSend();
           }
         }}
-        highlight={{ effective, processEnv, environment }}
+        highlight={{ effective, processEnv, environment, ownScopeId }}
         paddingClass="px-3"
         className="size-full bg-transparent font-mono text-xs whitespace-pre outline-none"
       />
@@ -133,6 +135,7 @@ export function UrlBar() {
         effective={effectiveConfig}
         processEnv={processEnv}
         environment={activeEnvironment}
+        ownScopeId={activeRequest.id}
         inputRef={inputRef}
         onChange={(url) => setRequestUrl(activeRequest.id, url)}
         onSend={() =>

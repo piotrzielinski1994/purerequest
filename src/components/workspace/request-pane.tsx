@@ -28,6 +28,7 @@ function RequestTabs({ request }: { request: RequestNode }) {
     effective: effectiveConfig,
     processEnv,
     environment: activeEnvironment,
+    ownScopeId: request.id,
   };
   const onConfigChange = (config: RequestNode["config"]) =>
     setRequestConfig(request.id, config);
