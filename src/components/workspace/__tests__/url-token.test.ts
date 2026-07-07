@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import { resolveTokenPreview } from "@/components/workspace/url-token";
 import { resolveConfig } from "@/lib/workspace/resolve";
 import type { TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const tree: TreeNode[] = [
   {
@@ -10,17 +11,23 @@ const tree: TreeNode[] = [
     id: "root",
     name: "Echo",
     config: {
-      variables: { suffix: "/v1" },
-      environments: {
-        local: {
-          baseUrl: "http://localhost:3000",
-          api: "{{baseUrl}}{{suffix}}",
+      variables: [{ key: "suffix", value: "/v1" }],
+      environments: [
+        {
+          name: "local",
+          variables: [
+            { key: "baseUrl", value: "http://localhost:3000" },
+            { key: "api", value: "{{baseUrl}}{{suffix}}" },
+          ],
         },
-        prod: {
-          baseUrl: "https://api.example.com",
-          api: "{{baseUrl}}{{suffix}}",
+        {
+          name: "prod",
+          variables: [
+            { key: "baseUrl", value: "https://api.example.com" },
+            { key: "api", value: "{{baseUrl}}{{suffix}}" },
+          ],
         },
-      },
+      ],
     },
     children: [
       {
@@ -29,7 +36,8 @@ const tree: TreeNode[] = [
         name: "Req",
         method: "GET",
         url: "{{baseUrl}}/get",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],

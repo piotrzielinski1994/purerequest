@@ -12,6 +12,7 @@ import { HighlightedInput } from "@/components/workspace/highlighted-input";
 import { cn } from "@/lib/utils";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import type { HttpMethod } from "@/lib/workspace/model";
+import { keyValuesToRecord } from "@/lib/workspace/model";
 
 const METHODS: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 
@@ -21,6 +22,7 @@ function UrlField({
   processEnv,
   environment,
   ownScopeId,
+  pathValues,
   inputRef,
   onChange,
   onSend,
@@ -30,6 +32,7 @@ function UrlField({
   processEnv: Record<string, string>;
   environment: string | null;
   ownScopeId: string;
+  pathValues: Record<string, string>;
   inputRef: React.RefObject<HTMLInputElement | null>;
   onChange: (url: string) => void;
   onSend: () => void;
@@ -46,7 +49,14 @@ function UrlField({
             onSend();
           }
         }}
-        highlight={{ effective, processEnv, environment, ownScopeId }}
+        highlight={{
+          effective,
+          processEnv,
+          environment,
+          ownScopeId,
+          requestId: ownScopeId,
+          pathValues,
+        }}
         paddingClass="px-3"
         className="size-full bg-transparent font-mono text-xs whitespace-pre outline-none"
       />
@@ -136,6 +146,7 @@ export function UrlBar() {
         processEnv={processEnv}
         environment={activeEnvironment}
         ownScopeId={activeRequest.id}
+        pathValues={keyValuesToRecord(activeRequest.params.path)}
         inputRef={inputRef}
         onChange={(url) => setRequestUrl(activeRequest.id, url)}
         onSend={() =>

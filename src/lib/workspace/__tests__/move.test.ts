@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { moveNode } from "@/lib/workspace/move";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (id: string, name = id): RequestNode => ({
@@ -9,7 +10,8 @@ const request = (id: string, name = id): RequestNode => ({
   name,
   method: "GET",
   url: `https://example.test/${name}`,
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config: {},
 });
 

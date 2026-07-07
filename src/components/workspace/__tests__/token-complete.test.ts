@@ -7,6 +7,7 @@ import {
   type TokenCandidate,
 } from "@/components/workspace/token-complete";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
+import { authOf } from "@/lib/workspace/model";
 
 const effective: EffectiveConfig = {
   variables: {
@@ -22,8 +23,10 @@ const effective: EffectiveConfig = {
     },
   },
   headers: {},
-  params: {},
-  auth: { value: { type: "inherit" }, from: { scopeId: "d", scopeName: "d" } },
+  auth: {
+    value: authOf({ active: "inherit" }),
+    from: { scopeId: "d", scopeName: "d" },
+  },
   scripts: {
     pre: { value: "", from: { scopeId: "d", scopeName: "d" } },
     post: { value: "", from: { scopeId: "d", scopeName: "d" } },

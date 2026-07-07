@@ -10,17 +10,17 @@ import { RequestPane } from "@/components/workspace/request-pane";
 import { ContentHeader } from "@/components/workspace/content-header";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
 import { ToastProvider } from "@/components/ui/toast";
-import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
+import type { ConfigScope, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { authOf, emptyBody } from "@/lib/workspace/model";
 
 type OnTreeChange = (
   tree: TreeNode[],
 ) => Promise<{ ok: true } | { ok: false; error: string }>;
 
 const baseConfig: ConfigScope = {
-  variables: { token: "tok-123" },
+  variables: [{ key: "token", value: "tok-123" }],
   headers: [{ key: "Accept", value: "application/json" }],
-  params: [{ key: "page", value: "1" }],
-  auth: { type: "bearer", token: "secret" },
+  auth: authOf({ active: "bearer", token: "secret" }),
   scripts: { pre: "// pre", post: "" },
 };
 
@@ -31,7 +31,8 @@ const tree: TreeNode[] = [
     name: "Req",
     method: "GET",
     url: "https://api/get",
-    body: "",
+    body: emptyBody(),
+    params: { path: [], query: [{ key: "page", value: "1" }] },
     config: baseConfig,
   },
 ];
@@ -87,15 +88,18 @@ const dirtyDot = () => {
   return within(tablist).queryByLabelText(/unsaved changes/i);
 };
 
-const savedConfig = (onTreeChange: ReturnType<typeof vi.fn>): ConfigScope => {
+const savedRequest = (onTreeChange: ReturnType<typeof vi.fn>): RequestNode => {
   const calls = onTreeChange.mock.calls;
   const lastTree = calls[calls.length - 1][0] as TreeNode[];
   const node = lastTree.find((n) => n.id === "req-1");
   if (!node || node.kind !== "request") {
     throw new Error("req-1 not found in persisted tree");
   }
-  return node.config;
+  return node;
 };
+
+const savedConfig = (onTreeChange: ReturnType<typeof vi.fn>): ConfigScope =>
+  savedRequest(onTreeChange).config;
 
 describe("request structured panels - no autosave on blur (AC-001)", () => {
   // behavior: editing a Header value and blurring it leaves it in a draft and
@@ -170,8 +174,8 @@ describe("request structured panels - Cmd+S persists + toast (AC-002)", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalledTimes(1));
-    expect(savedConfig(onTreeChange).auth).toEqual({
-      type: "bearer",
+    expect(savedConfig(onTreeChange).auth?.active).toBe("bearer");
+    expect(savedConfig(onTreeChange).auth?.types.bearer).toEqual({
       token: "new-token",
     });
     expect(await screen.findByText(/saved/i)).toBeInTheDocument();
@@ -195,8 +199,8 @@ describe("request structured panels - Cmd+S persists + toast (AC-002)", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalledTimes(1));
-    expect(savedConfig(onTreeChange).auth).toEqual({
-      type: "bearer",
+    expect(savedConfig(onTreeChange).auth?.active).toBe("bearer");
+    expect(savedConfig(onTreeChange).auth?.types.bearer).toEqual({
       token: "focused-token",
     });
   });
@@ -215,9 +219,9 @@ describe("request structured panels - Cmd+S persists + toast (AC-002)", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalledTimes(1));
-    expect(savedConfig(onTreeChange).variables).toEqual({
-      token: "focused-value",
-    });
+    expect(savedConfig(onTreeChange).variables).toEqual([
+      { key: "token", value: "focused-value" },
+    ]);
   });
 });
 
@@ -434,7 +438,7 @@ describe("request structured panels - close-while-dirty confirms (AC-006)", () =
     await user.click(screen.getByRole("button", { name: /^save$/i }));
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedConfig(onTreeChange).params).toEqual([
+    expect(savedRequest(onTreeChange).params.query).toEqual([
       { key: "page", value: "2" },
     ]);
     await waitFor(() =>

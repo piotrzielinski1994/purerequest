@@ -9,6 +9,7 @@ import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 
 type OnTreeChange = (
   tree: TreeNode[],
@@ -21,10 +22,11 @@ const postWithBody: RequestNode = {
   name: "create-widget",
   method: "POST",
   url: "https://api.example.com/widgets",
-  body: '{"name":"foo"}',
+  body: { active: "json", types: { json: '{"name":"foo"}', form: [], multipart: [] } },
+  params: emptyParams(),
   config: {
     headers: [{ key: "X-Trace", value: "abc" }],
-    auth: { type: "none" },
+    auth: authOf({ active: "none" }),
   },
 };
 
@@ -34,8 +36,9 @@ const sessionRequest: RequestNode = {
   name: "session",
   method: "DELETE",
   url: "https://api.example.com/session",
-  body: "",
-  config: { auth: { type: "none" } },
+  body: emptyBody(),
+  params: emptyParams(),
+  config: { auth: authOf({ active: "none" }) },
 };
 
 const exportTree: TreeNode[] = [postWithBody, sessionRequest];

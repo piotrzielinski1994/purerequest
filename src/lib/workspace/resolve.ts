@@ -1,4 +1,5 @@
 import type { Auth, ScriptConfig, TreeNode } from "@/lib/workspace/model";
+import { emptyAuth } from "@/lib/workspace/model";
 import {
   listEnvironmentNames,
   parseDotenv,
@@ -18,7 +19,6 @@ export type ResolvedValue<T> = {
 export type EffectiveConfig = {
   variables: Record<string, ResolvedValue<string>>;
   headers: Record<string, ResolvedValue<string>>;
-  params: Record<string, ResolvedValue<string>>;
   auth: ResolvedValue<Auth>;
   scripts: { pre: ResolvedValue<string>; post: ResolvedValue<string> };
   timeoutMs: ResolvedValue<number>;
@@ -107,9 +107,7 @@ export function environmentNamesForScope(
   }
   const path = findScopePath(tree, id, []) ?? [];
   const names = path.reduce<Set<string>>((acc, scope) => {
-    Object.keys(scope.config.environments ?? {}).forEach((name) =>
-      acc.add(name),
-    );
+    (scope.config.environments ?? []).forEach((env) => acc.add(env.name));
     // An env a folder has COLORED but not declared in config.environments is still
     // in scope - coloring it is a per-folder signal the folder cares about it.
     Object.keys(scope.environmentColors ?? {}).forEach((name) =>
@@ -130,8 +128,8 @@ export function environmentOrigins(
 ): Record<string, string> {
   const path = findScopePath(tree, id, []) ?? [];
   return path.reduce<Record<string, string>>((acc, scope) => {
-    return Object.keys(scope.config.environments ?? {}).reduce(
-      (inner, name) => ({ ...inner, [name]: scope.name }),
+    return (scope.config.environments ?? []).reduce(
+      (inner, env) => ({ ...inner, [env.name]: scope.name }),
       acc,
     );
   }, {});
@@ -141,51 +139,41 @@ function provenanceOf(scope: Scope): Provenance {
   return { scopeId: scope.id, scopeName: scope.name };
 }
 
-function resolveKeyed(
-  path: Scope[],
-  pick: (config: TreeNode["config"]) => Record<string, string> | undefined,
-): Record<string, ResolvedValue<string>> {
-  return path.reduce<Record<string, ResolvedValue<string>>>((acc, scope) => {
-    const entries = pick(scope.config);
-    if (!entries) {
-      return acc;
-    }
-    const from = provenanceOf(scope);
-    return Object.entries(entries).reduce(
-      (inner, [key, value]) => ({ ...inner, [key]: { value, from } }),
-      acc,
-    );
-  }, {});
-}
-
 function resolveVariables(
   path: Scope[],
   environment: string | undefined,
 ): Record<string, ResolvedValue<string>> {
   return path.reduce<Record<string, ResolvedValue<string>>>((acc, scope) => {
-    const envBlock =
+    const envRows =
       environment !== undefined
-        ? scope.config.environments?.[environment]
+        ? scope.config.environments?.find((e) => e.name === environment)
+            ?.variables
         : undefined;
     const envFrom: Provenance = {
       scopeId: `${scope.id}:${environment}`,
       scopeName: `${scope.name} (${environment})`,
     };
-    const withEnv = Object.entries(envBlock ?? {}).reduce(
-      (inner, [key, value]) => ({
-        ...inner,
-        [key]: { value, from: envFrom, origin: "environment" as const },
-      }),
-      acc,
-    );
+    // Env block first, plain vars second (folded onto withEnv), so a scope's plain
+    // variable WINS over that same scope's active-environment value for the same key.
+    const withEnv = (envRows ?? [])
+      .filter((row) => row.enabled !== false)
+      .reduce(
+        (inner, { key, value }) => ({
+          ...inner,
+          [key]: { value, from: envFrom, origin: "environment" as const },
+        }),
+        acc,
+      );
     const from = provenanceOf(scope);
-    return Object.entries(scope.config.variables ?? {}).reduce(
-      (inner, [key, value]) => ({
-        ...inner,
-        [key]: { value, from, origin: "variable" as const },
-      }),
-      withEnv,
-    );
+    return (scope.config.variables ?? [])
+      .filter((row) => row.enabled !== false)
+      .reduce(
+        (inner, { key, value }) => ({
+          ...inner,
+          [key]: { value, from, origin: "variable" as const },
+        }),
+        withEnv,
+      );
   }, {});
 }
 
@@ -219,10 +207,11 @@ function resolveAuth(path: Scope[]): ResolvedValue<Auth> {
     .reverse()
     .find(
       (scope) =>
-        scope.config.auth !== undefined && scope.config.auth.type !== "inherit",
+        scope.config.auth !== undefined &&
+        scope.config.auth.active !== "inherit",
     );
   if (!nearest || nearest.config.auth === undefined) {
-    return { value: { type: "none" }, from: DEFAULT_PROVENANCE };
+    return { value: { ...emptyAuth(), active: "none" }, from: DEFAULT_PROVENANCE };
   }
   return { value: nearest.config.auth, from: provenanceOf(nearest) };
 }
@@ -314,16 +303,6 @@ export function resolveConfig(
   return {
     variables: resolveVariables(path, options?.environment),
     headers: resolveHeaders(path),
-    params: resolveKeyed(
-      path,
-      (config) =>
-        config.params &&
-        Object.fromEntries(
-          config.params
-            .filter((param) => param.enabled !== false)
-            .map(({ key, value }) => [key, value]),
-        ),
-    ),
     auth: resolveAuth(path),
     scripts: {
       pre: resolveScript(path, (scripts) => scripts.pre),

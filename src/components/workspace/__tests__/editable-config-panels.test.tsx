@@ -15,19 +15,18 @@ import {
   useWorkspace,
 } from "@/components/workspace/workspace-context";
 import { RequestPane } from "@/components/workspace/request-pane";
-import { authForType } from "@/components/workspace/config-panels";
 import { ToastProvider } from "@/components/ui/toast";
-import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
+import type { ConfigScope, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 
 type OnTreeChange = (
   tree: TreeNode[],
 ) => Promise<{ ok: true } | { ok: false; error: string }>;
 
 const baseConfig: ConfigScope = {
-  variables: { token: "tok-123" },
+  variables: [{ key: "token", value: "tok-123" }],
   headers: [{ key: "Accept", value: "application/json" }],
-  params: [{ key: "page", value: "1" }],
-  auth: { type: "bearer", token: "secret" },
+  auth: authOf({ active: "bearer", token: "secret" }),
   scripts: { pre: "// pre", post: "" },
 };
 
@@ -38,7 +37,8 @@ const tree: TreeNode[] = [
     name: "Req",
     method: "GET",
     url: "https://api/get",
-    body: "",
+    body: emptyBody(),
+    params: { path: [], query: [{ key: "page", value: "1" }] },
     config: baseConfig,
   },
 ];
@@ -89,15 +89,18 @@ const openTab = async (
 const fireSave = (user: ReturnType<typeof userEvent.setup>) =>
   user.click(screen.getByRole("button", { name: /fire save/i }));
 
-const savedConfig = (onTreeChange: ReturnType<typeof vi.fn>): ConfigScope => {
+const savedRequest = (onTreeChange: ReturnType<typeof vi.fn>): RequestNode => {
   const calls = onTreeChange.mock.calls;
   const tree = calls[calls.length - 1][0] as TreeNode[];
   const node = tree.find((n) => n.id === "req-1");
   if (!node || node.kind !== "request") {
     throw new Error("req-1 not found");
   }
-  return node.config;
+  return node;
 };
+
+const savedConfig = (onTreeChange: ReturnType<typeof vi.fn>): ConfigScope =>
+  savedRequest(onTreeChange).config;
 
 describe("editable Headers/Params panel", () => {
   // config-grid - behavior: editing a header value updates the draft but does NOT
@@ -182,7 +185,7 @@ describe("editable Headers/Params panel", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedConfig(onTreeChange).params).toEqual([]);
+    expect(savedRequest(onTreeChange).params.query).toEqual([]);
   });
 
   // config-grid - behavior: unchecking the row toggle records enabled:false in the
@@ -211,9 +214,10 @@ describe("config grid {{var}} highlighting", () => {
       name: "Req",
       method: "GET",
       url: "https://api/get",
-      body: "",
+      body: emptyBody(),
+      params: emptyParams(),
       config: {
-        variables: { token: "tok-123" },
+        variables: [{ key: "token", value: "tok-123" }],
         headers: [{ key: "Authorization", value: "Bearer {{token}}" }],
       },
     },
@@ -279,7 +283,9 @@ describe("editable Vars panel", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedConfig(onTreeChange).variables).toEqual({ token: "tok-999" });
+    expect(savedConfig(onTreeChange).variables).toEqual([
+      { key: "token", value: "tok-999" },
+    ]);
   });
 });
 
@@ -292,8 +298,11 @@ describe("editable Auth panel", () => {
         name: "Req",
         method: "GET",
         url: "https://api/get",
-        body: "",
-        config: { auth: { type: "basic", username: "ada", password: "pw" } },
+        body: emptyBody(),
+        params: emptyParams(),
+        config: {
+          auth: authOf({ active: "basic", username: "ada", password: "pw" }),
+        },
       },
     ];
     return render(
@@ -329,10 +338,9 @@ describe("editable Auth panel", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedConfig(onTreeChange).auth).toEqual({
-      type: "bearer",
-      token: "new-token",
-    });
+    const savedAuth = savedConfig(onTreeChange).auth;
+    expect(savedAuth?.active).toBe("bearer");
+    expect(savedAuth?.types.bearer.token).toBe("new-token");
   });
 
   // config-grid - behavior: the auth fields render inside a grid (like Params),
@@ -367,8 +375,9 @@ describe("editable Auth panel", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedConfig(onTreeChange).auth).toEqual({
-      type: "basic",
+    const savedAuth = savedConfig(onTreeChange).auth;
+    expect(savedAuth?.active).toBe("basic");
+    expect(savedAuth?.types.basic).toEqual({
       username: "grace",
       password: "pw",
     });
@@ -389,18 +398,8 @@ describe("editable Auth panel", () => {
 
   // The auth TYPE switch is a radix Select; jsdom can't open its portal-rendered
   // options (see docs/learnings.md), so the dropdown selection path is covered by
-  // manual testing. The seeding logic behind it is unit-tested via authForType
-  // below; the per-type field edits (bearer token above) are exercised as inputs.
-  it("should seed empty fields for the chosen auth type", () => {
-    expect(authForType("none")).toEqual({ type: "none" });
-    expect(authForType("inherit")).toEqual({ type: "inherit" });
-    expect(authForType("bearer")).toEqual({ type: "bearer", token: "" });
-    expect(authForType("basic")).toEqual({
-      type: "basic",
-      username: "",
-      password: "",
-    });
-  });
+  // manual testing. The switch now just flips `active` while keeping every
+  // `types` slot, so no field is lost - covered by the model-level test below.
 });
 
 // The script editor is a CodeMirror instance (not a textarea), so jsdom can't

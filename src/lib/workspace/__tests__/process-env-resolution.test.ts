@@ -8,6 +8,7 @@ import {
   resolveProcessEnv,
   resolveProcessEnvProvenance,
 } from "@/lib/workspace/resolve";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (id: string, name = id): RequestNode => ({
@@ -16,7 +17,8 @@ const request = (id: string, name = id): RequestNode => ({
   name,
   method: "GET",
   url: "",
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config: {},
 });
 

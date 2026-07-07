@@ -16,12 +16,14 @@ export function findVarWriteTarget(
   const path = findScopePath(tree, requestId, []) ?? [];
   const nearest = [...path]
     .reverse()
-    .find((scope: Scope) => scope.config.variables?.[name] !== undefined);
+    .find((scope: Scope) =>
+      scope.config.variables?.some((row) => row.key === name),
+    );
   return nearest?.id ?? requestId;
 }
 
-// Immutable: returns a new tree with `config.variables[name] = value` on the
-// target node.
+// Immutable: returns a new tree with `name` set to `value` in the target node's
+// `config.variables` rows - updating the row in place if it exists, else appending.
 export function setNodeVar(
   tree: TreeNode[],
   nodeId: string,
@@ -32,8 +34,9 @@ export function setNodeVar(
   if (!node) {
     return tree;
   }
-  return updateNodeConfig(tree, nodeId, {
-    ...node.config,
-    variables: { ...node.config.variables, [name]: value },
-  });
+  const rows = node.config.variables ?? [];
+  const variables = rows.some((row) => row.key === name)
+    ? rows.map((row) => (row.key === name ? { ...row, value } : row))
+    : [...rows, { key: name, value }];
+  return updateNodeConfig(tree, nodeId, { ...node.config, variables });
 }

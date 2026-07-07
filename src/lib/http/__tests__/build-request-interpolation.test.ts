@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import { buildHttpRequest } from "@/lib/http/build-request";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { Auth, RequestNode } from "@/lib/workspace/model";
 
 const request = (
@@ -11,7 +12,8 @@ const request = (
   name: overrides.name ?? overrides.id,
   method: "GET",
   url: "https://example.test/path",
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config: {},
   ...overrides,
 });
@@ -21,7 +23,6 @@ const request = (
 const effectiveOf = (over: {
   variables?: Record<string, string>;
   headers?: Record<string, string>;
-  params?: Record<string, string>;
   auth?: Auth;
   timeoutMs?: number;
 }): EffectiveConfig => {
@@ -33,12 +34,16 @@ const effectiveOf = (over: {
   return {
     variables: wrapKeyed(over.variables),
     headers: wrapKeyed(over.headers),
-    params: wrapKeyed(over.params),
-    auth: { value: over.auth ?? { type: "none" }, from },
+    auth: { value: over.auth ?? authOf({ active: "none" }), from },
     scripts: { pre: { value: "", from }, post: { value: "", from } },
     timeoutMs: { value: over.timeoutMs ?? 30000, from },
   };
 };
+
+const jsonBody = (json: string): RequestNode["body"] => ({
+  active: "json",
+  types: { json, form: [], multipart: [] },
+});
 
 const authHeaderOf = (headers: { key: string; value: string }[]) =>
   headers.find((h) => h.key.toLowerCase() === "authorization");
@@ -49,7 +54,7 @@ describe("buildHttpRequest - body interpolation", () => {
     const node = request({
       id: "r",
       method: "POST",
-      body: '{"user":"{{name}}"}',
+      body: jsonBody('{"user":"{{name}}"}'),
     });
 
     const wire = buildHttpRequest(
@@ -65,7 +70,7 @@ describe("buildHttpRequest - body interpolation", () => {
     const node = request({
       id: "r",
       method: "PUT",
-      body: '{"token":"{{process.env.JWT}}"}',
+      body: jsonBody('{"token":"{{process.env.JWT}}"}'),
     });
 
     const wire = buildHttpRequest(node, effectiveOf({}), { JWT: "ey.signed" });
@@ -78,7 +83,7 @@ describe("buildHttpRequest - body interpolation", () => {
     const node = request({
       id: "r",
       method: "PATCH",
-      body: "amount={{amount}}",
+      body: jsonBody("amount={{amount}}"),
     });
 
     const wire = buildHttpRequest(
@@ -97,7 +102,7 @@ describe("buildHttpRequest - auth interpolation", () => {
 
     const wire = buildHttpRequest(
       node,
-      effectiveOf({ auth: { type: "bearer", token: "{{process.env.TOKEN}}" } }),
+      effectiveOf({ auth: authOf({ active: "bearer", token: "{{process.env.TOKEN}}" }) }),
       { TOKEN: "abc123" },
     );
 
@@ -112,7 +117,7 @@ describe("buildHttpRequest - auth interpolation", () => {
       node,
       effectiveOf({
         variables: { jwt: "ey.var" },
-        auth: { type: "bearer", token: "{{jwt}}" },
+        auth: authOf({ active: "bearer", token: "{{jwt}}" }),
       }),
     );
 
@@ -127,11 +132,11 @@ describe("buildHttpRequest - auth interpolation", () => {
       node,
       effectiveOf({
         variables: { user: "alice", pass: "s3cret" },
-        auth: {
-          type: "basic",
+        auth: authOf({
+          active: "basic",
           username: "{{user}}",
           password: "{{pass}}",
-        },
+        }),
       }),
     );
 
@@ -146,11 +151,11 @@ describe("buildHttpRequest - auth interpolation", () => {
     const wire = buildHttpRequest(
       node,
       effectiveOf({
-        auth: {
-          type: "basic",
+        auth: authOf({
+          active: "basic",
           username: "{{process.env.USER}}",
           password: "{{process.env.PASS}}",
-        },
+        }),
       }),
       { USER: "bob", PASS: "hunter2" },
     );

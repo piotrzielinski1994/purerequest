@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { parseCurl } from "@/lib/curl/parse-curl";
+import { authOf } from "@/lib/workspace/model";
 
 function expectOk(text: string) {
   const result = parseCurl(text);
@@ -156,22 +157,18 @@ describe("parseCurl - auth / cookie / unknown flags (AC-008)", () => {
   it("should map -u user:pass to basic auth", () => {
     const req = expectOk("curl 'https://x.test' -u user:pw");
 
-    expect(req.auth).toEqual({
-      type: "basic",
-      username: "user",
-      password: "pw",
-    });
+    expect(req.auth).toEqual(
+      authOf({ active: "basic", username: "user", password: "pw" }),
+    );
   });
 
   // AC-008 - behavior: --user long form maps to basic auth too.
   it("should map --user long form to basic auth", () => {
     const req = expectOk("curl 'https://x.test' --user 'admin:s3cret'");
 
-    expect(req.auth).toEqual({
-      type: "basic",
-      username: "admin",
-      password: "s3cret",
-    });
+    expect(req.auth).toEqual(
+      authOf({ active: "basic", username: "admin", password: "s3cret" }),
+    );
   });
 
   // AC-008, TC-005 - behavior: -b maps to a Cookie header row.

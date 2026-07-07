@@ -4,7 +4,7 @@ import { CodeEditor } from "@/components/workspace/code-editor";
 import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
 import { makeSchemaExtensions } from "@/components/workspace/schema-intellisense";
 import {
-  configScopeJsonSchema,
+  folderConfigJsonSchema,
   requestSettingsJsonSchema,
 } from "@/lib/config-schema/json-schemas";
 import { useWorkspace } from "@/components/workspace/workspace-context";
@@ -13,13 +13,25 @@ import type {
   ConfigScope,
   HttpMethod,
   KeyValue,
+  RequestBody,
   RequestNode,
+  RequestParams,
   TreeNode,
 } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { RequestPatch } from "@/lib/workspace/update-request";
 import { updateNodeConfig } from "@/lib/workspace/update-config";
+import { setFolderEnvironmentColors } from "@/lib/workspace/update-folder-env-color";
 import { updateRequest } from "@/lib/workspace/update-request";
-import { bodyToStored, storedToBody } from "@/lib/workspace/body-codec";
+import { diskToBody } from "@/lib/workspace/body-codec";
+import {
+  bodyField,
+  configField,
+  folderConfigDoc,
+  paramsField,
+  readConfig,
+  readFolderConfigDoc,
+} from "@/lib/workspace/disk-format";
 
 function parseObject(text: string): Record<string, unknown> | null {
   try {
@@ -58,15 +70,13 @@ export function RawJsonEditor<T>({
   schema?: JSONSchema7;
 }) {
   const { registerActiveEditor } = useWorkspace();
-  const { configExtensions, editorColors, isDark } = useEditorExtensions();
-  // Schema editors layer JSON-Schema lint/complete/hover (keyed on the stable
-  // color values + mode) over the plain config extensions; no schema -> plain.
+  const { configExtensions } = useEditorExtensions();
+  // Schema editors layer JSON-Schema lint/complete/hover over the SHARED config
+  // extensions (same base the plain config editor uses, so chrome can't drift);
+  // no schema -> the base itself.
   const extensions = useMemo(
-    () =>
-      schema
-        ? makeSchemaExtensions(schema, editorColors, isDark)
-        : configExtensions,
-    [schema, editorColors, isDark, configExtensions],
+    () => makeSchemaExtensions(configExtensions, schema),
+    [schema, configExtensions],
   );
   const [text, setText] = useState(saved);
 
@@ -117,25 +127,41 @@ export function RawJsonEditor<T>({
   );
 }
 
-// Config-only editor for a folder node (folder has no url/body/method).
+// Config-only editor for a folder node (folder has no url/body/method). The doc
+// is the ON-DISK folder shape: flat config fields with env border colors folded
+// into each `environments` entry as `color` (so what you see here === what's on
+// disk === what the Env tab's accent picker sets). Saving splits the doc back into
+// the folder's config + its env-color map.
 export function ConfigEditorForm({
   id,
   config,
+  environmentColors = {},
 }: {
   id: string;
   config: ConfigScope;
+  environmentColors?: Record<string, string>;
 }) {
-  const { saveNodeConfig } = useWorkspace();
+  const { saveFolderConfigDoc } = useWorkspace();
+  const parseFolderDoc = (text: string) => {
+    const obj = parseObject(text);
+    return obj === null ? null : readFolderConfigDoc(obj);
+  };
   return (
     <RawJsonEditor
       id={id}
-      saved={JSON.stringify(config, null, 2)}
-      parse={parseObject}
-      onSave={(parsed) => saveNodeConfig(id, parsed as ConfigScope)}
-      commit={(parsed, tree) =>
-        updateNodeConfig(tree, id, parsed as ConfigScope)
+      saved={JSON.stringify(folderConfigDoc(config, environmentColors), null, 2)}
+      parse={parseFolderDoc}
+      onSave={(parsed) =>
+        saveFolderConfigDoc(id, parsed.config, parsed.environmentColors)
       }
-      schema={configScopeJsonSchema}
+      commit={(parsed, tree) =>
+        setFolderEnvironmentColors(
+          updateNodeConfig(tree, id, parsed.config),
+          id,
+          parsed.environmentColors,
+        )
+      }
+      schema={folderConfigJsonSchema}
     />
   );
 }
@@ -156,18 +182,62 @@ function isKeyValueArray(value: unknown): value is KeyValue[] {
   );
 }
 
-function isStoredBody(value: unknown): boolean {
+// Validate + narrow the `body` object. Omitted -> default empty body. Each
+// `types` slot is optional; json is any JSON value (nested JSON or a raw string),
+// form/multipart are rows.
+function parseBody(value: unknown): RequestBody | null {
+  if (value === undefined) {
+    return emptyBody();
+  }
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false;
+    return null;
   }
-  const tagged = value as { type?: unknown; payload?: unknown };
-  if (tagged.type === "json") {
-    return "payload" in tagged;
+  const obj = value as { active?: unknown; types?: unknown };
+  if (
+    typeof obj.active !== "string" ||
+    !(BODY_MODES as string[]).includes(obj.active)
+  ) {
+    return null;
   }
-  if (tagged.type === "text") {
-    return typeof tagged.payload === "string";
+  const types = (obj.types ?? {}) as Record<string, unknown>;
+  if (typeof types !== "object" || types === null || Array.isArray(types)) {
+    return null;
   }
-  return false;
+  const formValid = types.form === undefined || isKeyValueArray(types.form);
+  const multipartValid =
+    types.multipart === undefined || isKeyValueArray(types.multipart);
+  if (!formValid || !multipartValid) {
+    return null;
+  }
+  return {
+    active: obj.active as BodyMode,
+    types: {
+      json: diskToBody(types.json),
+      form: (types.form as KeyValue[] | undefined) ?? [],
+      multipart: (types.multipart as KeyValue[] | undefined) ?? [],
+    },
+  };
+}
+
+// Validate + narrow the `params` object. Omitted -> default empty params. Both
+// `path` and `query` are rows arrays (consistent with headers); both optional.
+function parseParams(value: unknown): RequestParams | null {
+  if (value === undefined) {
+    return emptyParams();
+  }
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+  const obj = value as { path?: unknown; query?: unknown };
+  const pathValid = obj.path === undefined || isKeyValueArray(obj.path);
+  const queryValid = obj.query === undefined || isKeyValueArray(obj.query);
+  if (!pathValid || !queryValid) {
+    return null;
+  }
+  return {
+    path: (obj.path as KeyValue[] | undefined) ?? [],
+    query: (obj.query as KeyValue[] | undefined) ?? [],
+  };
 }
 
 function parseRequest(text: string): RequestPatch | null {
@@ -179,60 +249,44 @@ function parseRequest(text: string): RequestPatch | null {
   const validMethod =
     typeof obj.method === "string" &&
     (METHODS as string[]).includes(obj.method);
-  const validConfig =
-    typeof obj.config === "object" &&
-    obj.config !== null &&
-    !Array.isArray(obj.config);
-  const validBodyMode =
-    obj.bodyMode === undefined ||
-    (typeof obj.bodyMode === "string" &&
-      (BODY_MODES as string[]).includes(obj.bodyMode));
-  const validBodyForm =
-    obj.bodyForm === undefined || isKeyValueArray(obj.bodyForm);
+  const body = parseBody(obj.body);
+  const params = parseParams(obj.params);
   if (
     !hasString("name") ||
     !validMethod ||
     !hasString("url") ||
-    !isStoredBody(obj.body) ||
-    !validBodyMode ||
-    !validBodyForm ||
-    !validConfig
+    body === null ||
+    params === null
   ) {
     return null;
   }
+  // Config fields live FLAT at the top level; readConfig picks them off (and still
+  // honors a legacy nested `config` for a hand-pasted old doc). Deep field
+  // validity is advisory (the schema linter warns), matching the old behavior.
   return {
     name: obj.name as string,
     method: obj.method as HttpMethod,
     url: obj.url as string,
-    body: storedToBody(obj.body),
-    ...(obj.bodyMode ? { bodyMode: obj.bodyMode as BodyMode } : {}),
-    ...(obj.bodyForm ? { bodyForm: obj.bodyForm as KeyValue[] } : {}),
-    config: obj.config as ConfigScope,
+    body,
+    params,
+    config: readConfig(obj as Parameters<typeof readConfig>[0]),
   };
 }
 
 // Full-request editor for a request's Settings sub-tab: the whole node
-// (name/method/url/body/config) as one JSON doc.
+// (name/method/url/body/params + flat config fields) as one JSON doc. Body,
+// params, and config use the disk layer's minimal-diff fields so the editor
+// matches the on-disk shape exactly.
 export function RequestSettingsForm({ request }: { request: RequestNode }) {
   const { saveRequestNode } = useWorkspace();
-  const isDefaultBody =
-    (request.bodyMode ?? "json") === "json" &&
-    (request.bodyForm ?? []).length === 0;
   const saved = JSON.stringify(
     {
       name: request.name,
       method: request.method,
       url: request.url,
-      body: bodyToStored(request.body),
-      ...(isDefaultBody
-        ? {}
-        : {
-            ...(request.bodyMode ? { bodyMode: request.bodyMode } : {}),
-            ...(request.bodyForm && request.bodyForm.length > 0
-              ? { bodyForm: request.bodyForm }
-              : {}),
-          }),
-      config: request.config,
+      ...bodyField(request.body),
+      ...paramsField(request.params),
+      ...configField(request.config),
     },
     null,
     2,

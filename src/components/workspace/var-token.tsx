@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import {
+  resolvePathTokenPreview,
   resolveTokenPreview,
   type TokenPreview,
 } from "@/components/workspace/url-token";
@@ -74,6 +75,9 @@ function TokenValueEditor({ preview }: { preview: TokenPreview }) {
   );
 }
 
+// The color of a resolved token by kind; a null preview (unresolved, with a
+// resolution context present) is red. The no-context case never reaches here -
+// TokenChip renders a flat span for it before this is called.
 function colorFor(preview: TokenPreview | null): string {
   if (!preview) {
     return "text-red-500 dark:text-red-400";
@@ -81,40 +85,29 @@ function colorFor(preview: TokenPreview | null): string {
   if (preview.kind === "dotenv") {
     return "text-amber-500 dark:text-amber-400";
   }
-  if (preview.kind === "environment") {
+  if (preview.kind === "environment" || preview.kind === "path") {
     return "text-sky-600 dark:text-sky-400";
   }
   return "text-emerald-500 dark:text-emerald-400";
 }
 
-// A single {{var}} chip: resolution-aware color + a hover card previewing /
-// editing the resolved value. With no effective config (e.g. a folder pane, no
-// single resolution) it falls back to a flat emerald color and no hover.
-export function VarTokenChip({
+// The shared chip shell: a kind-colored token wrapped in a hover card that
+// previews / edits the resolved value (or an "unresolved" note). `flatColor`
+// renders a plain, non-hoverable span when no resolution context is available.
+function TokenChip({
   token,
-  name,
-  effective,
-  processEnv,
-  environment,
+  preview,
+  hasContext,
+  flatColor,
 }: {
   token: string;
-  name: string;
-  effective: EffectiveConfig | null;
-  processEnv: Record<string, string>;
-  environment: string | null;
+  preview: TokenPreview | null;
+  hasContext: boolean;
+  flatColor: string;
 }) {
-  if (!effective) {
-    return (
-      <span className="text-emerald-500 dark:text-emerald-400">{token}</span>
-    );
+  if (!hasContext) {
+    return <span className={flatColor}>{token}</span>;
   }
-  const preview = resolveTokenPreview(
-    name,
-    effective,
-    processEnv,
-    environment ?? undefined,
-  );
-
   return (
     <HoverCard openDelay={80} closeDelay={40}>
       <HoverCardTrigger asChild>
@@ -137,18 +130,97 @@ export function VarTokenChip({
   );
 }
 
+// A single {{var}} chip: resolution-aware color + a hover card previewing /
+// editing the resolved value. With no effective config (e.g. a folder pane, no
+// single resolution) it falls back to a flat emerald color and no hover.
+export function VarTokenChip({
+  token,
+  name,
+  effective,
+  processEnv,
+  environment,
+}: {
+  token: string;
+  name: string;
+  effective: EffectiveConfig | null;
+  processEnv: Record<string, string>;
+  environment: string | null;
+}) {
+  return (
+    <TokenChip
+      token={token}
+      hasContext={effective !== null}
+      flatColor="text-emerald-500 dark:text-emerald-400"
+      preview={
+        effective
+          ? resolveTokenPreview(
+              name,
+              effective,
+              processEnv,
+              environment ?? undefined,
+            )
+          : null
+      }
+    />
+  );
+}
+
+// A single `:name` path-param chip: same hover preview/edit card as a {{var}},
+// but its value comes from the request's path values (not the resolved config).
+// With no effective config OR no request context it stays a flat sky color.
+export function PathTokenChip({
+  token,
+  name,
+  effective,
+  processEnv,
+  requestId,
+  pathValues,
+}: {
+  token: string;
+  name: string;
+  effective: EffectiveConfig | null;
+  processEnv: Record<string, string>;
+  requestId: string | null;
+  pathValues: Record<string, string>;
+}) {
+  return (
+    <TokenChip
+      token={token}
+      hasContext={effective !== null && requestId !== null}
+      flatColor="text-sky-600 dark:text-sky-400"
+      preview={
+        effective
+          ? resolvePathTokenPreview(
+              name,
+              requestId,
+              pathValues,
+              effective,
+              processEnv,
+            )
+          : null
+      }
+    />
+  );
+}
+
 // Render a string with its {{var}}/:param tokens colored. Plain text passes
-// through verbatim.
+// through verbatim. `requestId`/`pathValues` (present for the URL bar) give a
+// `:name` token the same hover preview/edit card as a {{var}}; without them a
+// `:name` stays a flat sky color.
 export function TokenHighlight({
   text,
   effective,
   processEnv,
   environment,
+  requestId = null,
+  pathValues = {},
 }: {
   text: string;
   effective: EffectiveConfig | null;
   processEnv: Record<string, string>;
   environment: string | null;
+  requestId?: string | null;
+  pathValues?: Record<string, string>;
 }) {
   const parts = text.split(TOKEN_PATTERN);
   return (
@@ -168,9 +240,15 @@ export function TokenHighlight({
         }
         if (part.startsWith(":")) {
           return (
-            <span key={index} className="text-sky-600 dark:text-sky-400">
-              {part}
-            </span>
+            <PathTokenChip
+              key={index}
+              token={part}
+              name={part.slice(1)}
+              effective={effective}
+              processEnv={processEnv}
+              requestId={requestId}
+              pathValues={pathValues}
+            />
           );
         }
         return <span key={index}>{part}</span>;

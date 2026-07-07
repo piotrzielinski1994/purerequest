@@ -15,6 +15,7 @@ import {
 import { RequestPane } from "@/components/workspace/request-pane";
 import { ToastProvider } from "@/components/ui/toast";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient } from "./fake-http-client";
 // Importing the schema factory anchors this render-level suite to the feature:
 // until the feature ships, the file fails to resolve (RED), and the warning
@@ -44,7 +45,8 @@ const tree: TreeNode[] = [
     name: "Req",
     method: "GET",
     url: "https://api/get",
-    body: "",
+    body: emptyBody(),
+    params: emptyParams(),
     config: REQ_CONFIG,
   },
 ];
@@ -54,7 +56,6 @@ const fullRequestDoc = (overrides: Record<string, unknown> = {}) =>
     name: "Req",
     method: "GET",
     url: "https://api/get",
-    body: { type: "text", payload: "" },
     config: REQ_CONFIG,
     ...overrides,
   });
@@ -109,6 +110,40 @@ async function diagnostics(): Promise<Diagnostic[]> {
   });
   return out;
 }
+
+describe("Settings editor code folding", () => {
+  // behavior: the Settings JSON editor renders a fold gutter with a collapse
+  // control, and folding a block hides its inner lines from the document text.
+  it("should render a fold gutter and collapse a JSON block when its control is clicked", async () => {
+    const user = userEvent.setup();
+    renderPane();
+    await openSettings(user);
+
+    await setDoc(
+      JSON.stringify(
+        { name: "Req", method: "GET", url: "u", config: { a: 1, b: 2 } },
+        null,
+        2,
+      ),
+    );
+
+    // the fold gutter exists and offers at least one collapse control.
+    const foldMarkers = document.querySelectorAll(".cm-foldGutter .cm-gutterElement");
+    expect(foldMarkers.length).toBeGreaterThan(0);
+    const openControl = document.querySelector('.cm-foldGutter [title*="old"]');
+    expect(openControl).not.toBeNull();
+
+    const before = liveView().state.doc.lines;
+    await act(async () => {
+      (openControl as HTMLElement).click();
+    });
+    // collapsing a block folds its inner lines out of the rendered line count.
+    await waitFor(() => {
+      expect(document.querySelector(".cm-foldPlaceholder")).not.toBeNull();
+    });
+    expect(liveView().state.doc.lines).toBe(before);
+  });
+});
 
 describe("schema warnings do not block save", () => {
   // AC-004, AC-006 - side-effect-contract: an unknown config key produces a

@@ -12,15 +12,18 @@ import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
+import { folderConfigDoc } from "@/lib/workspace/disk-format";
 import { createFakeHttpClient } from "./fake-http-client";
 
 const FOLDER_CONFIG: ConfigScope = {
-  variables: { baseUrl: "https://api.example.com" },
+  variables: [{ key: "baseUrl", value: "https://api.example.com" }],
   headers: [{ key: "Accept", value: "application/json" }],
-  params: [{ key: "trace", value: "on" }],
-  auth: { type: "bearer", token: "folder-token" },
+  auth: authOf({ active: "bearer", token: "folder-token" }),
   scripts: { pre: "// folder pre-request" },
-  environments: { local: { baseUrl: "http://localhost:8080" } },
+  environments: [
+    { name: "local", variables: [{ key: "baseUrl", value: "http://localhost:8080" }] },
+  ],
 };
 
 const tree: TreeNode[] = [
@@ -36,7 +39,8 @@ const tree: TreeNode[] = [
         name: "Req",
         method: "GET",
         url: "https://api/get",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],
@@ -82,8 +86,9 @@ function liveDoc(): string {
 }
 
 describe("FolderPane", () => {
-  // behavior: opening a folder shows a pane with the same sub-tabs as a request
-  it("should render Vars/Auth/Headers/Params/Script/Settings sub-tabs", async () => {
+  // behavior: opening a folder shows a pane with the folder sub-tabs (folders carry
+  // no request-only Params tab - query/path params are request-owned now).
+  it("should render Vars/Auth/Headers/Script/Env/Settings sub-tabs", async () => {
     const user = userEvent.setup();
     renderContent();
 
@@ -98,8 +103,8 @@ describe("FolderPane", () => {
       "Vars",
       "Auth",
       "Headers",
-      "Params",
       "Script",
+      "Env",
       "Settings",
     ]) {
       expect(within(tablist).getByRole("tab", { name })).toBeInTheDocument();
@@ -171,7 +176,11 @@ describe("FolderPane", () => {
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });
-    expect(liveDoc()).toBe(JSON.stringify(FOLDER_CONFIG, null, 2));
+    // the Settings doc is the on-disk folder shape (folderConfigDoc), not the raw
+    // in-memory config: config fields in CONFIG_KEYS order + env colors folded in.
+    expect(liveDoc()).toBe(
+      JSON.stringify(folderConfigDoc(FOLDER_CONFIG, {}), null, 2),
+    );
   });
 
   // behavior: Mod+S persists the folder config (the Save bar was removed)
@@ -213,7 +222,7 @@ describe("FolderPane", () => {
     });
     const next = onTreeChange.mock.calls[0][0] as TreeNode[];
     expect(next.find((n) => n.id === "folder-1")?.config).toEqual({
-      variables: { x: "1" },
+      variables: [{ key: "x", value: "1" }],
     });
   });
 });

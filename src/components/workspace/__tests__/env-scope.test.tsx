@@ -7,6 +7,7 @@ import {
   useWorkspace,
 } from "@/components/workspace/workspace-context";
 import type { TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 // folder A (envs prod+local) > req-a ; folder B (env staging) > req-b
 const tree: TreeNode[] = [
@@ -14,7 +15,12 @@ const tree: TreeNode[] = [
     kind: "folder",
     id: "f-a",
     name: "A",
-    config: { environments: { prod: {}, local: {} } },
+    config: {
+      environments: [
+        { name: "prod", variables: [] },
+        { name: "local", variables: [] },
+      ],
+    },
     children: [
       {
         kind: "request",
@@ -22,7 +28,8 @@ const tree: TreeNode[] = [
         name: "A Req",
         method: "GET",
         url: "",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],
@@ -31,7 +38,7 @@ const tree: TreeNode[] = [
     kind: "folder",
     id: "f-b",
     name: "B",
-    config: { environments: { staging: {} } },
+    config: { environments: [{ name: "staging", variables: [] }] },
     children: [
       {
         kind: "request",
@@ -39,7 +46,8 @@ const tree: TreeNode[] = [
         name: "B Req",
         method: "GET",
         url: "",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],
@@ -118,7 +126,12 @@ describe("env scope - reset on tab change out of scope (AC-010)", () => {
         kind: "folder",
         id: "f-a",
         name: "A",
-        config: { environments: { prod: {}, local: {} } },
+        config: {
+      environments: [
+        { name: "prod", variables: [] },
+        { name: "local", variables: [] },
+      ],
+    },
         children: [
           {
             kind: "request",
@@ -126,7 +139,8 @@ describe("env scope - reset on tab change out of scope (AC-010)", () => {
             name: "A1",
             method: "GET",
             url: "",
-            body: "",
+            body: emptyBody(),
+            params: emptyParams(),
             config: {},
           },
           {
@@ -135,7 +149,8 @@ describe("env scope - reset on tab change out of scope (AC-010)", () => {
             name: "A2",
             method: "GET",
             url: "",
-            body: "",
+            body: emptyBody(),
+            params: emptyParams(),
             config: {},
           },
         ],

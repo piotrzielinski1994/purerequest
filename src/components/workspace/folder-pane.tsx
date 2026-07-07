@@ -9,7 +9,6 @@ import {
   AuthPanel,
   EnvPanel,
   HeadersPanel,
-  ParamsPanel,
   ScriptPanel,
   VarsPanel,
 } from "@/components/workspace/config-panels";
@@ -29,7 +28,6 @@ type FolderTab =
   | "vars"
   | "auth"
   | "headers"
-  | "params"
   | "script"
   | "env"
   | "settings";
@@ -140,9 +138,6 @@ function FolderStructuredEditor({
       <TabsContent value="headers">
         <HeadersPanel config={draft} onChange={setDraft} highlight={highlight} />
       </TabsContent>
-      <TabsContent value="params">
-        <ParamsPanel config={draft} onChange={setDraft} highlight={highlight} />
-      </TabsContent>
       <TabsContent value="script">
         <ScriptPanel config={draft} onChange={setDraft} />
       </TabsContent>
@@ -216,9 +211,6 @@ export function FolderPane() {
           <TabsTrigger value="headers" className={PANE_TABS_TRIGGER}>
             Headers
           </TabsTrigger>
-          <TabsTrigger value="params" className={PANE_TABS_TRIGGER}>
-            Params
-          </TabsTrigger>
           <TabsTrigger value="script" className={PANE_TABS_TRIGGER}>
             Script
           </TabsTrigger>
@@ -236,6 +228,7 @@ export function FolderPane() {
             key={folder.id}
             id={folder.id}
             config={folder.config}
+            environmentColors={folder.environmentColors ?? {}}
           />
         </TabsContent>
       ) : (

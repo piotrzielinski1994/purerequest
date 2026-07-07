@@ -9,10 +9,9 @@ import {
 import type { KeyValue, TreeNode } from "@/lib/workspace/model";
 import { bodyFixtureTree, JSON_BODY } from "./fixtures";
 
-// New body-mode surface on the context (spec §5). Cast through an augmented type
-// so the probe compiles before workspace-context.tsx is extended (RED phase): a
-// probe component reads activeRequest.bodyMode / activeRequest.bodyForm and calls
-// the new setRequestBodyMode / setRequestForm actions.
+// New body-mode surface on the context (spec §5). A probe component reads
+// activeRequest.body.active / activeRequest.body.types.form and calls the new
+// setRequestBodyMode / setRequestForm actions.
 type BodyMode = "json" | "none" | "form" | "multipart";
 
 type BodyModeSurface = ReturnType<typeof useWorkspace> & {
@@ -34,20 +33,15 @@ function BodyModeProbe() {
     dirtyRequestIds,
   } = ctx;
 
-  const node = activeRequest as
-    | (NonNullable<typeof activeRequest> & {
-        bodyMode?: BodyMode;
-        bodyForm?: KeyValue[];
-      })
-    | null;
+  const node = activeRequest;
 
   return (
     <div>
       <span data-testid="active-id">{activeRequestId ?? "none"}</span>
-      <span data-testid="active-body">{`[${node?.body ?? "none"}]`}</span>
-      <span data-testid="active-mode">{node?.bodyMode ?? "absent"}</span>
+      <span data-testid="active-body">{`[${node?.body.types.json ?? "none"}]`}</span>
+      <span data-testid="active-mode">{node?.body.active ?? "absent"}</span>
       <span data-testid="active-form">
-        {JSON.stringify(node?.bodyForm ?? [])}
+        {JSON.stringify(node?.body.types.form ?? [])}
       </span>
       <span data-testid="dirty-ids">
         {[...dirtyRequestIds].sort().join(",") || "clean"}
@@ -172,10 +166,12 @@ describe("WorkspaceProvider body mode dirty", () => {
   });
 
   // AC-010 - side-effect-contract: editing a form row marks the request dirty.
+  // Form rows only apply in form/multipart mode, so switch first, then seed.
   it("should mark the request dirty if a form row is set", async () => {
     const user = userEvent.setup();
     renderProbe();
 
+    await user.click(screen.getByRole("button", { name: /set form/i }));
     await user.click(screen.getByRole("button", { name: /seed rows/i }));
 
     expect(screen.getByTestId("active-form")).toHaveTextContent(
@@ -184,9 +180,9 @@ describe("WorkspaceProvider body mode dirty", () => {
     expect(screen.getByTestId("dirty-ids")).toHaveTextContent("req-json-body");
   });
 
-  // AC-010 - side-effect-contract: Mod+S folds the bodyMode + bodyForm override
-  // into the tree handed to onTreeChange and clears the dirty flag.
-  it("should persist bodyMode and bodyForm via the save seam if the request is saved", async () => {
+  // AC-010 - side-effect-contract: Mod+S folds the body.active + body.types.form
+  // override into the tree handed to onTreeChange and clears the dirty flag.
+  it("should persist body.active and body.types.form via the save seam if the request is saved", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderProbe("req-json-body", onTreeChange);
@@ -204,7 +200,7 @@ describe("WorkspaceProvider body mode dirty", () => {
       (node): node is Extract<TreeNode, { kind: "request" }> =>
         node.kind === "request" && node.id === "req-json-body",
     );
-    expect(saved?.bodyMode).toBe("form");
-    expect(saved?.bodyForm).toEqual(SEED_ROWS);
+    expect(saved?.body.active).toBe("form");
+    expect(saved?.body.types.form).toEqual(SEED_ROWS);
   });
 });

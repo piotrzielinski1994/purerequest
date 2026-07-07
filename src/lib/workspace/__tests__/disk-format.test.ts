@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import { serialize, deserialize } from "@/lib/workspace/disk-format";
 import type { FileMap } from "@/lib/workspace/disk-format";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (
@@ -14,9 +15,15 @@ const request = (
   name,
   method: "GET",
   url: `https://example.test/${name}`,
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config,
   ...overrides,
+});
+
+const jsonBody = (json: string): RequestNode["body"] => ({
+  active: "json",
+  types: { json, form: [], multipart: [] },
 });
 
 const folder = (
@@ -47,6 +54,7 @@ const stripIds = (nodes: TreeNode[]): unknown =>
       method: node.method,
       url: node.url,
       body: node.body,
+      params: node.params,
       config: node.config,
     };
   });
@@ -62,14 +70,15 @@ describe("disk-format round-trip", () => {
   // AC-007, AC-012, TC-004, TC-008 - behavior
   it("should deserialize a serialized tree into a structurally equivalent tree", () => {
     const tree: TreeNode[] = [
-      folder("Users API", { variables: { baseUrl: "https://prod" } }, [
+      folder("Users API", { variables: [{ key: "baseUrl", value: "https://prod" }] }, [
         folder("Admin", { headers: [{ key: "X-Admin", value: "1" }] }, [
-          request("Get User", {
-            params: [{ key: "id", value: "42" }],
-            auth: { type: "bearer", token: "secret" },
-          }),
+          request(
+            "Get User",
+            { auth: authOf({ active: "bearer", token: "secret" }) },
+            { params: { path: [], query: [{ key: "id", value: "42" }] } },
+          ),
         ]),
-        request("List Users", { variables: { page: "1" } }),
+        request("List Users", { variables: [{ key: "page", value: "1" }] }),
       ]),
       request("Health", {}),
     ];
@@ -81,21 +90,21 @@ describe("disk-format round-trip", () => {
 
   // body-codec - behavior: a JSON body round-trips through the stored {type:"json"} shape.
   it("should round-trip a JSON request body through the stored form", () => {
-    const jsonBody = '{\n  "grant_type": "client_credentials"\n}';
+    const bodyText = '{\n  "grant_type": "client_credentials"\n}';
     const tree: TreeNode[] = [
-      request("Token", {}, { method: "POST", body: jsonBody }),
+      request("Token", {}, { method: "POST", body: jsonBody(bodyText) }),
     ];
 
     const result = expectOk(deserialize(serialize(tree)));
 
-    expect((result.tree[0] as RequestNode).body).toBe(jsonBody);
+    expect((result.tree[0] as RequestNode).body.types.json).toBe(bodyText);
   });
 
-  // body-codec - behavior: a JSON body is stored as parsed {type:"json", payload}
-  // (NOT an escaped string) in the on-disk *.req.json.
-  it("should store a JSON body as a parsed json StoredBody on disk", () => {
+  // body-codec - behavior: a JSON body is stored as its natural parsed value (real
+  // nested JSON, NOT an escaped string) in the on-disk *.req.json.
+  it("should store a JSON body as real nested JSON on disk", () => {
     const tree: TreeNode[] = [
-      request("Token", {}, { method: "POST", body: '{"a":1}' }),
+      request("Token", {}, { method: "POST", body: jsonBody('{"a":1}') }),
     ];
 
     const map = serialize(tree);
@@ -103,8 +112,11 @@ describe("disk-format round-trip", () => {
       path.endsWith(".req.json"),
     );
     expect(reqFile).toBeDefined();
-    const parsed = JSON.parse(reqFile![1]) as { body: unknown };
-    expect(parsed.body).toEqual({ type: "json", payload: { a: 1 } });
+    const parsed = JSON.parse(reqFile![1]) as {
+      body: { active: string; types: { json: unknown } };
+    };
+    expect(parsed.body.active).toBe("json");
+    expect(parsed.body.types.json).toEqual({ a: 1 });
   });
 
   // body-codec - behavior: a legacy (v2) bare-string body still deserializes.
@@ -123,7 +135,9 @@ describe("disk-format round-trip", () => {
 
     const result = expectOk(deserialize(legacy));
 
-    expect((result.tree[0] as RequestNode).body).toBe('{\n  "a": 1\n}');
+    expect((result.tree[0] as RequestNode).body.types.json).toBe(
+      '{\n  "a": 1\n}',
+    );
   });
 
   // AC-007, TC-004 - behavior
@@ -185,13 +199,13 @@ describe("disk-format round-trip", () => {
 
 describe("disk-format serialize", () => {
   // AC-012 - behavior
-  it("should emit a requi.workspace.json manifest with schemaVersion 3 and the workspace name", () => {
+  it("should emit a requi.workspace.json manifest with schemaVersion 5 and the workspace name", () => {
     const map = serialize([], "My API");
 
     const manifestRaw = map["requi.workspace.json"];
     expect(manifestRaw).toBeDefined();
     expect(JSON.parse(manifestRaw)).toMatchObject({
-      schemaVersion: 3,
+      schemaVersion: 5,
       name: "My API",
     });
   });
@@ -342,7 +356,9 @@ describe("disk-format deserialize", () => {
         node.kind === "folder" && node.name === "Users",
     );
     expect(usersFolder).toBeDefined();
-    expect(usersFolder?.config.variables).toEqual({ baseUrl: "https://api" });
+    expect(usersFolder?.config.variables).toEqual([
+      { key: "baseUrl", value: "https://api" },
+    ]);
     expect(usersFolder?.config.headers).toEqual([
       { key: "Accept", value: "application/json" },
     ]);

@@ -19,26 +19,20 @@ export function PathParamsPanel({
   highlight?: TokenHighlightContext;
 }) {
   const { setRequestPathParams } = useWorkspace();
-  const values = request.pathParams ?? {};
+  const stored = request.params.path;
+  const byKey = new Map(stored.map((row) => [row.key, row.value]));
   const urlNames = extractPathParams(request.url);
-  const extraKeys = Object.keys(values).filter(
-    (key) => !urlNames.includes(key),
-  );
-  const rows = [...urlNames, ...extraKeys].map((key) => ({
-    key,
-    value: values[key] ?? "",
-  }));
+  const extraRows = stored.filter((row) => !urlNames.includes(row.key));
+  const rows = [
+    ...urlNames.map((key) => ({ key, value: byKey.get(key) ?? "" })),
+    ...extraRows,
+  ];
 
   return (
     <EditableKeyValueTable
       rows={rows}
       highlight={highlight}
-      onChange={(next) =>
-        setRequestPathParams(
-          request.id,
-          Object.fromEntries(next.map((row) => [row.key, row.value])),
-        )
-      }
+      onChange={(next) => setRequestPathParams(request.id, next)}
     />
   );
 }

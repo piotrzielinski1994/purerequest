@@ -24,7 +24,7 @@ function BodyProbe() {
   return (
     <div>
       <span data-testid="active-id">{activeRequestId ?? "none"}</span>
-      <span data-testid="active-body">{`[${activeRequest?.body ?? "none"}]`}</span>
+      <span data-testid="active-body">{`[${activeRequest?.body.types.json ?? "none"}]`}</span>
       <span data-testid="open-count">{openRequestIds.length}</span>
       <button
         type="button"

@@ -19,9 +19,9 @@ import { useWorkspace } from "@/components/workspace/workspace-context";
 import type { RequestNode } from "@/lib/workspace/model";
 
 // The Params tab nests a Path/Query sub-bar. Query edits the request's own
-// `config.params` AND bidirectionally mirrors the URL `?query` (via
-// setRequestQueryParams); Path is the request-only path params. Query is the default
-// so the tab keeps behaving as the single Params tab did.
+// `params.query` AND bidirectionally mirrors the URL `?query` (via
+// setRequestQueryParams); Path is the request-only `params.path`. Query is the
+// default so the tab keeps behaving as the single Params tab did.
 function ParamsSubTabs({
   request,
   highlight,
@@ -29,8 +29,16 @@ function ParamsSubTabs({
   request: RequestNode;
   highlight: TokenHighlightContext;
 }) {
-  const { setRequestQueryParams } = useWorkspace();
+  const { setRequestQueryParams, paramsReveal } = useWorkspace();
   const [subTab, setSubTab] = useState<"path" | "query">("query");
+  // A "go to source" jump from a `:name` token opens the Path sub-tab. Applied
+  // during render (the codebase's reseed idiom) keyed by nonce, so re-revealing
+  // the same target re-fires but a later manual switch isn't fought.
+  const [seenReveal, setSeenReveal] = useState<number | null>(null);
+  if (paramsReveal && seenReveal !== paramsReveal.nonce) {
+    setSeenReveal(paramsReveal.nonce);
+    setSubTab(paramsReveal.subTab);
+  }
   return (
     <Tabs
       value={subTab}
@@ -52,10 +60,8 @@ function ParamsSubTabs({
       </TabsContent>
       <TabsContent value="query">
         <ParamsPanel
-          config={request.config}
-          onChange={(config) =>
-            setRequestQueryParams(request.id, config.params ?? [])
-          }
+          rows={request.params.query}
+          onChange={(rows) => setRequestQueryParams(request.id, rows)}
           highlight={highlight}
         />
       </TabsContent>

@@ -6,6 +6,7 @@ import type {
   KeyValue,
   ScriptConfig,
 } from "@/lib/workspace/model";
+import { authOf } from "@/lib/workspace/model";
 import type { ParsedBru } from "@/lib/bruno/parse-bru";
 
 // OpenCollection YAML rows: headers/params/body-data/variables are all
@@ -125,10 +126,10 @@ function toRecord(value: unknown): Record<string, string> {
 function resolveAuth(value: unknown): Auth | undefined {
   if (typeof value === "string") {
     if (value === "inherit") {
-      return { type: "inherit" };
+      return authOf({ active: "inherit" });
     }
     if (value === "none") {
-      return { type: "none" };
+      return authOf({ active: "none" });
     }
     return undefined;
   }
@@ -137,20 +138,20 @@ function resolveAuth(value: unknown): Auth | undefined {
   }
   const auth = value as YamlAuth;
   if (auth.type === "bearer") {
-    return { type: "bearer", token: asString(auth.token) };
+    return authOf({ active: "bearer", token: asString(auth.token) });
   }
   if (auth.type === "basic") {
-    return {
-      type: "basic",
+    return authOf({
+      active: "basic",
       username: asString(auth.username),
       password: asString(auth.password),
-    };
+    });
   }
   if (auth.type === "none") {
-    return { type: "none" };
+    return authOf({ active: "none" });
   }
   if (auth.type === "inherit") {
-    return { type: "inherit" };
+    return authOf({ active: "inherit" });
   }
   return undefined;
 }

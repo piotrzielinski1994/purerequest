@@ -1,3 +1,4 @@
+import { authOf } from "@/lib/workspace/model";
 import { describe, it, expect } from "vitest";
 
 import { parseBru } from "@/lib/bruno/parse-bru";
@@ -91,7 +92,7 @@ describe("parseBru - method / url / headers (AC-001, AC-002)", () => {
       { key: "Accept", value: "application/json", enabled: true },
       { key: "X-Debug", value: "1", enabled: false },
     ]);
-    expect(parsed.auth).toEqual({ type: "bearer", token: "{{token}}" });
+    expect(parsed.auth).toEqual(authOf({ active: "bearer", token: "{{token}}" }));
   });
 });
 
@@ -243,7 +244,7 @@ describe("parseBru - auth (AC-004)", () => {
       ].join("\n"),
     );
 
-    expect(parsed.auth).toEqual({ type: "bearer", token: "abc123" });
+    expect(parsed.auth).toEqual(authOf({ active: "bearer", token: "abc123" }));
   });
 
   // AC-004, TC-003 - behavior: auth:basic { username, password } -> basic auth.
@@ -261,11 +262,9 @@ describe("parseBru - auth (AC-004)", () => {
       ].join("\n"),
     );
 
-    expect(parsed.auth).toEqual({
-      type: "basic",
-      username: "admin",
-      password: "s3cret",
-    });
+    expect(parsed.auth).toEqual(
+      authOf({ active: "basic", username: "admin", password: "s3cret" }),
+    );
   });
 
   // AC-004, TC-003 - behavior: a method block `auth: none` with no creds block
@@ -280,7 +279,7 @@ describe("parseBru - auth (AC-004)", () => {
       ].join("\n"),
     );
 
-    expect(parsed.auth).toEqual({ type: "none" });
+    expect(parsed.auth).toEqual(authOf({ active: "none" }));
   });
 
   // AC-004 - behavior: a method block `auth: inherit` with no creds block
@@ -295,7 +294,7 @@ describe("parseBru - auth (AC-004)", () => {
       ].join("\n"),
     );
 
-    expect(parsed.auth).toEqual({ type: "inherit" });
+    expect(parsed.auth).toEqual(authOf({ active: "inherit" }));
   });
 });
 

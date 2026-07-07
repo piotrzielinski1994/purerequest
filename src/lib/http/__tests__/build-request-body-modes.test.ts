@@ -8,32 +8,50 @@ import type {
   KeyValue,
   RequestNode,
 } from "@/lib/workspace/model";
+import { authOf } from "@/lib/workspace/model";
 
-// The node will gain optional `bodyMode` / `bodyForm` fields (spec §2). They are
-// declared here so the test compiles before model.ts is extended (RED phase);
-// the helper spreads them onto the RequestNode it builds.
+// The test authors requests in the legacy flat style (`body` string + `bodyMode`
+// + `bodyForm`); the builder folds those into the new `body` object so the many
+// cases below stay readable. `body` is the json text, `bodyForm` the rows for the
+// active form/multipart mode.
 type BodyMode = "json" | "none" | "form" | "multipart";
-type BodyModeExtras = { bodyMode?: BodyMode; bodyForm?: KeyValue[] };
+type BodyModeExtras = {
+  body?: string;
+  bodyMode?: BodyMode;
+  bodyForm?: KeyValue[];
+};
 
 const request = (
-  overrides: Partial<RequestNode> & BodyModeExtras & { id: string },
-): RequestNode =>
-  ({
+  overrides: Omit<Partial<RequestNode>, "body"> &
+    BodyModeExtras & { id: string },
+): RequestNode => {
+  const { body, bodyMode, bodyForm, ...rest } = overrides;
+  const active = bodyMode ?? "json";
+  const rows = bodyForm ?? [];
+  return {
     kind: "request",
     name: overrides.name ?? overrides.id,
     method: "POST",
     url: "https://example.test/path",
-    body: "",
+    params: { path: [], query: [] },
     config: {},
-    ...overrides,
-  }) as RequestNode;
+    ...rest,
+    body: {
+      active,
+      types: {
+        json: body ?? "",
+        form: active === "form" ? rows : [],
+        multipart: active === "multipart" ? rows : [],
+      },
+    },
+  };
+};
 
 // Mirrors build-request.test.ts: a hand-built EffectiveConfig pins the resolved
 // inputs buildHttpRequest consumes (resolveConfig is exercised elsewhere).
 const effectiveOf = (over: {
   variables?: Record<string, string>;
   headers?: Record<string, string>;
-  params?: Record<string, string>;
   auth?: Auth;
   timeoutMs?: number;
 }): EffectiveConfig => {
@@ -45,8 +63,7 @@ const effectiveOf = (over: {
   return {
     variables: wrapKeyed(over.variables),
     headers: wrapKeyed(over.headers),
-    params: wrapKeyed(over.params),
-    auth: { value: over.auth ?? { type: "none" }, from },
+    auth: { value: over.auth ?? authOf({ active: "none" }), from },
     scripts: { pre: { value: "", from }, post: { value: "", from } },
     timeoutMs: { value: over.timeoutMs ?? 30000, from },
   };

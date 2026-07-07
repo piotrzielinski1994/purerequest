@@ -6,6 +6,7 @@ import {
   parseDotenv,
   setDotenvValue,
 } from "@/lib/workspace/environment";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (
@@ -18,7 +19,8 @@ const request = (
   name,
   method: "GET",
   url: "",
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config,
 });
 
@@ -36,11 +38,23 @@ describe("listEnvironmentNames", () => {
       folder(
         "root",
         "Root",
-        { environments: { local: { a: "1" }, prod: { a: "2" } } },
+        {
+          environments: [
+            { name: "local", variables: [{ key: "a", value: "1" }] },
+            { name: "prod", variables: [{ key: "a", value: "2" }] },
+          ],
+        },
         [
-          folder("sub", "Sub", { environments: { staging: { b: "3" } } }, [
-            request("req", "Req", {}),
-          ]),
+          folder(
+            "sub",
+            "Sub",
+            {
+              environments: [
+                { name: "staging", variables: [{ key: "b", value: "3" }] },
+              ],
+            },
+            [request("req", "Req", {})],
+          ),
         ],
       ),
     ];
@@ -58,7 +72,13 @@ describe("listEnvironmentNames", () => {
       folder(
         "root",
         "Root",
-        { environments: { prod: {}, local: {}, staging: {} } },
+        {
+          environments: [
+            { name: "prod", variables: [] },
+            { name: "local", variables: [] },
+            { name: "staging", variables: [] },
+          ],
+        },
         [],
       ),
     ];
@@ -69,11 +89,23 @@ describe("listEnvironmentNames", () => {
   // AC-002 - behavior: dedupe the same name found in different scopes
   it("should dedupe a name that appears in more than one scope", () => {
     const tree: TreeNode[] = [
-      folder("root", "Root", { environments: { prod: { a: "1" } } }, [
-        folder("sub", "Sub", { environments: { prod: { a: "2" } } }, [
-          request("req", "Req", { environments: { prod: { a: "3" } } }),
-        ]),
-      ]),
+      folder(
+        "root",
+        "Root",
+        { environments: [{ name: "prod", variables: [{ key: "a", value: "1" }] }] },
+        [
+          folder(
+            "sub",
+            "Sub",
+            { environments: [{ name: "prod", variables: [{ key: "a", value: "2" }] }] },
+            [
+              request("req", "Req", {
+                environments: [{ name: "prod", variables: [{ key: "a", value: "3" }] }],
+              }),
+            ],
+          ),
+        ],
+      ),
     ];
 
     const names = listEnvironmentNames(tree);
@@ -85,7 +117,7 @@ describe("listEnvironmentNames", () => {
   // AC-002, edge case §6 - behavior: no environments anywhere -> []
   it("should return an empty array if no scope defines environments", () => {
     const tree: TreeNode[] = [
-      folder("root", "Root", { variables: { a: "1" } }, [
+      folder("root", "Root", { variables: [{ key: "a", value: "1" }] }, [
         request("req", "Req", {}),
       ]),
     ];
@@ -101,7 +133,9 @@ describe("listEnvironmentNames", () => {
   // AC-002 - behavior: names defined only on a request node are included
   it("should include names defined on a request-level environments block", () => {
     const tree: TreeNode[] = [
-      request("req", "Req", { environments: { onlyHere: { a: "1" } } }),
+      request("req", "Req", {
+        environments: [{ name: "onlyHere", variables: [{ key: "a", value: "1" }] }],
+      }),
     ];
 
     expect(listEnvironmentNames(tree)).toEqual(["onlyHere"]);

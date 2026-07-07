@@ -1,16 +1,15 @@
 import type {
   BodyMode,
   ConfigScope,
+  Environment,
   FolderNode,
   HttpMethod,
   KeyValue,
+  RequestBody,
+  RequestParams,
   TreeNode,
 } from "@/lib/workspace/model";
-import {
-  bodyToStored,
-  storedToBody,
-  type StoredBody,
-} from "@/lib/workspace/body-codec";
+import { bodyToDisk, legacyStoredToBody } from "@/lib/workspace/body-codec";
 
 export type FileMap = Record<string, string>;
 
@@ -24,82 +23,375 @@ const MANIFEST = "requi.workspace.json";
 // the user's border opacity. Anything else on disk is dropped.
 const HEX_COLOR = /^#([0-9a-f]{6}|[0-9a-f]{8})$/i;
 
-type ParsedRequest = {
+const BODY_MODES: BodyMode[] = ["json", "none", "form", "multipart"];
+
+type ParsedRequest = ConfigScope & {
   name?: string;
   method?: HttpMethod;
   url?: string;
-  body?: string | StoredBody;
+  // `body` is the new `{active,types}` object on a v4 doc, or a legacy string /
+  // tagged body on a v3 doc; narrowed at runtime by migrateBody.
+  body?: unknown;
   bodyMode?: BodyMode;
   bodyForm?: KeyValue[];
-  config?: ConfigScope;
+  // `params` is the new `{path,query}` object on a v4 doc; absent on a v3 doc
+  // (which carried query in config.params + path in pathParams).
+  params?: unknown;
+  // v5 stores config fields FLAT at the top level (the ConfigScope keys mixed in
+  // above); `config` is the legacy (<= v4) nested wrapper, read as a fallback.
+  config?: ConfigScope & { params?: unknown };
   order?: number;
   pathParams?: Record<string, unknown>;
 };
 
-// Keep only string-valued entries; drop the field if the value isn't an object or
-// no valid entry survives. Mirrors sanitizeEnvironmentColors.
-function sanitizePathParams(
-  value: unknown,
-): { pathParams: Record<string, string> } | undefined {
-  if (typeof value !== "object" || value === null) {
-    return undefined;
+// Narrow a parsed value to in-memory KeyValue[] rows, tolerant of the legacy
+// shape. A current doc stores an array (like query/headers), whose rows are kept
+// when key+value are both strings; a legacy doc stored a `name -> value` record,
+// whose string-valued entries become rows (non-strings drop). Used for both path
+// params and variables (each stored a record before the array restructure).
+// Anything else -> no rows.
+function sanitizeRows(value: unknown): KeyValue[] {
+  if (Array.isArray(value)) {
+    return value.filter(
+      (row): row is KeyValue =>
+        typeof row === "object" &&
+        row !== null &&
+        typeof (row as KeyValue).key === "string" &&
+        typeof (row as KeyValue).value === "string",
+    );
   }
-  const clean = Object.entries(value as Record<string, unknown>).reduce<
-    Record<string, string>
-  >((acc, [name, raw]) => {
-    if (typeof raw === "string") {
-      return { ...acc, [name]: raw };
-    }
-    return acc;
-  }, {});
-  return Object.keys(clean).length > 0 ? { pathParams: clean } : undefined;
+  if (typeof value !== "object" || value === null) {
+    return [];
+  }
+  return Object.entries(value as Record<string, unknown>).flatMap(
+    ([key, raw]) => (typeof raw === "string" ? [{ key, value: raw }] : []),
+  );
 }
 
-// bodyMode/bodyForm only land on disk when non-default (mode !== json or rows
-// present), so a plain JSON request keeps a minimal *.req.json diff.
-function bodyModeFields(node: {
-  bodyMode?: BodyMode;
-  bodyForm?: KeyValue[];
-}): { bodyMode?: BodyMode; bodyForm?: KeyValue[] } {
+function asKeyValueArray(value: unknown): KeyValue[] {
+  return Array.isArray(value) ? (value as KeyValue[]) : [];
+}
+
+function asBodyMode(value: unknown): BodyMode {
+  return typeof value === "string" && (BODY_MODES as string[]).includes(value)
+    ? (value as BodyMode)
+    : "json";
+}
+
+// The `body` field for disk, minimal-diff: omitted when fully default (json
+// active, no payloads). The json slot is written as its natural JSON value (real
+// nested JSON) or a raw string; empty slots drop. Exported so the request-settings
+// JSON editor emits the identical doc shape.
+export function bodyField(body: RequestBody): { body?: unknown } {
   const isDefault =
-    (node.bodyMode ?? "json") === "json" && (node.bodyForm ?? []).length === 0;
+    body.active === "json" &&
+    body.types.json === "" &&
+    body.types.form.length === 0 &&
+    body.types.multipart.length === 0;
   if (isDefault) {
     return {};
   }
   return {
-    ...(node.bodyMode ? { bodyMode: node.bodyMode } : {}),
-    ...(node.bodyForm && node.bodyForm.length > 0
-      ? { bodyForm: node.bodyForm }
-      : {}),
+    body: {
+      active: body.active,
+      types: {
+        ...(body.types.json !== ""
+          ? { json: bodyToDisk(body.types.json) }
+          : {}),
+        ...(body.types.form.length > 0 ? { form: body.types.form } : {}),
+        ...(body.types.multipart.length > 0
+          ? { multipart: body.types.multipart }
+          : {}),
+      },
+    },
   };
 }
 
-type ParsedFolder = {
-  name?: string;
-  config?: ConfigScope;
-  order?: number;
-  environmentColors?: Record<string, unknown>;
-};
-
-// Keep only entries whose value is a #rrggbb/#rrggbbaa hex (lowercased); drop the
-// field entirely if it isn't an object or no valid entry survives.
-function sanitizeEnvironmentColors(
-  value: unknown,
-): { environmentColors: Record<string, string> } | undefined {
-  if (typeof value !== "object" || value === null) {
-    return undefined;
+// The `params` field for disk, minimal-diff: omitted when both path and query
+// are empty; each present slot dropped when empty. Exported so the
+// request-settings JSON editor emits the identical doc shape.
+export function paramsField(params: RequestParams): { params?: unknown } {
+  const hasPath = params.path.length > 0;
+  const hasQuery = params.query.length > 0;
+  if (!hasPath && !hasQuery) {
+    return {};
   }
-  const clean = Object.entries(value as Record<string, unknown>).reduce<
-    Record<string, string>
-  >((acc, [env, color]) => {
-    if (typeof color === "string" && HEX_COLOR.test(color)) {
-      return { ...acc, [env]: color.toLowerCase() };
+  return {
+    params: {
+      ...(hasPath ? { path: params.path } : {}),
+      ...(hasQuery ? { query: params.query } : {}),
+    },
+  };
+}
+
+// Narrow a parsed `body` to the in-memory RequestBody. A v4 doc carries
+// `{active,types}` (json slot a natural JSON value or raw string); a v3 doc
+// carries a raw string / retired tagged body plus sibling bodyMode/bodyForm, with
+// bodyForm landing in the slot the legacy mode named (form or multipart).
+function migrateBody(parsed: ParsedRequest): RequestBody {
+  const raw = parsed.body;
+  if (
+    typeof raw === "object" &&
+    raw !== null &&
+    !Array.isArray(raw) &&
+    "active" in raw &&
+    "types" in raw
+  ) {
+    const tagged = raw as { active?: unknown; types?: Record<string, unknown> };
+    const types = tagged.types ?? {};
+    return {
+      active: asBodyMode(tagged.active),
+      types: {
+        // legacyStoredToBody, not diskToBody: an early v4 doc wrote the json slot
+        // as the retired tagged `{type,payload}` shape - decode it so those files
+        // still load; a natural value falls through to the same pretty-print.
+        json: legacyStoredToBody(types.json),
+        form: asKeyValueArray(types.form),
+        multipart: asKeyValueArray(types.multipart),
+      },
+    };
+  }
+  const json = legacyStoredToBody(raw);
+  const mode = parsed.bodyMode ?? "json";
+  const rows = parsed.bodyForm ?? [];
+  return {
+    active: mode,
+    types: {
+      json,
+      form: mode === "form" ? rows : [],
+      multipart: mode === "multipart" ? rows : [],
+    },
+  };
+}
+
+// Narrow a parsed `params` to the in-memory RequestParams. A v4 doc carries
+// `{path,query}`; a v3 doc has neither - query came from config.params, path from
+// pathParams.
+function migrateParams(parsed: ParsedRequest): RequestParams {
+  const raw = parsed.params;
+  if (
+    typeof raw === "object" &&
+    raw !== null &&
+    !Array.isArray(raw) &&
+    ("path" in raw || "query" in raw)
+  ) {
+    const obj = raw as { path?: unknown; query?: unknown };
+    return {
+      path: sanitizeRows(obj.path),
+      query: asKeyValueArray(obj.query),
+    };
+  }
+  return {
+    path: sanitizeRows(parsed.pathParams),
+    query: asKeyValueArray(parsed.config?.params),
+  };
+}
+
+// A legacy v3 config may still carry `params` (now request-owned query); strip it
+// so it never resurfaces as an unknown ConfigScope key. Returns a raw record whose
+// fields readConfig normalizes per-key (environments/variables may still be legacy
+// shapes here), so it's typed loosely.
+function configWithoutParams(
+  config: (Record<string, unknown> & { params?: unknown }) | undefined,
+): Record<string, unknown> {
+  if (!config) {
+    return {};
+  }
+  const rest = { ...config };
+  delete rest.params;
+  return rest;
+}
+
+// The ConfigScope fields, now stored FLAT at the doc's top level (no `config`
+// wrapper) - everything on a node is config, so the wrapper was noise. None of
+// these collide with the node's own doc keys (name/method/url/body/params/order/
+// environmentColors), so spreading in/out is unambiguous.
+const CONFIG_KEYS: (keyof ConfigScope)[] = [
+  "variables",
+  "environments",
+  "headers",
+  "auth",
+  "scripts",
+  "timeoutMs",
+];
+
+// Serialize a config to flat top-level fields, omitting empty ones for a minimal
+// diff (an all-empty config contributes nothing). Exported so the request-settings
+// JSON editor emits the identical doc shape.
+export function configField(config: ConfigScope): Record<string, unknown> {
+  return CONFIG_KEYS.reduce<Record<string, unknown>>((acc, key) => {
+    const value = config[key];
+    if (value === undefined) {
+      return acc;
+    }
+    return { ...acc, [key]: value };
+  }, {});
+}
+
+// Read a config from a parsed doc: the flat top-level fields (new v5 shape) win,
+// falling back to the legacy nested `config` object (<= v4) for any field the top
+// level doesn't carry. `params` (legacy query) is always dropped. Exported so the
+// request-settings JSON editor reads the identical doc shape.
+export function readConfig(parsed: {
+  config?: (Record<string, unknown> & { params?: unknown }) | undefined;
+} & Partial<Record<keyof ConfigScope, unknown>>): ConfigScope {
+  const legacy = configWithoutParams(parsed.config);
+  // `variables` + each env's vars are now KeyValue[] rows; a legacy doc stored a
+  // `name -> value` record. sanitizeRows / normalizeEnvironments tolerate both
+  // (and garbage), so old files still load.
+  const normalize = (key: keyof ConfigScope, value: unknown): unknown => {
+    if (key === "variables") {
+      return sanitizeRows(value);
+    }
+    if (key === "environments") {
+      return normalizeEnvironments(value);
+    }
+    return value;
+  };
+  return CONFIG_KEYS.reduce<ConfigScope>((acc, key) => {
+    const flat = parsed[key];
+    if (flat !== undefined) {
+      return { ...acc, [key]: normalize(key, flat) };
+    }
+    if (legacy[key] !== undefined) {
+      return { ...acc, [key]: normalize(key, legacy[key]) };
     }
     return acc;
   }, {});
+}
+
+type ParsedFolder = Omit<ConfigScope, "environments"> & {
+  name?: string;
+  // v5 stores config fields FLAT (mixed in above); `config` is the legacy nested
+  // wrapper read as a fallback.
+  config?: Omit<ConfigScope, "environments"> & { environments?: unknown };
+  environments?: unknown;
+  order?: number;
+  // Legacy (<= the environments-array change): a separate env-name -> hex map.
+  // Colors now ride inside each `environments` entry's `color`; read as a fallback.
+  environmentColors?: Record<string, unknown>;
+};
+
+// Narrow a parsed `environments` to the in-memory Environment[] (name + variable
+// rows; `color` is stripped - it's tracked on the folder node, not in config). A
+// current doc stores an array of `{name, color?, variables}`; a legacy doc stored
+// a `name -> { varName: value }` record. Variables migrate via sanitizeRows.
+function normalizeEnvironments(value: unknown): Environment[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => {
+      if (typeof entry !== "object" || entry === null) {
+        return [];
+      }
+      const env = entry as { name?: unknown; variables?: unknown };
+      if (typeof env.name !== "string") {
+        return [];
+      }
+      return [{ name: env.name, variables: sanitizeRows(env.variables) }];
+    });
+  }
+  if (typeof value !== "object" || value === null) {
+    return [];
+  }
+  return Object.entries(value as Record<string, unknown>).map(
+    ([name, vars]) => ({ name, variables: sanitizeRows(vars) }),
+  );
+}
+
+// The folder's env border colors, gathered from BOTH the per-entry `color` on the
+// `environments` array (current shape) AND the legacy separate `environmentColors`
+// record (fallback). Per-entry wins; only #rrggbb(aa) hex survives (lowercased).
+function readEnvironmentColors(
+  parsed: ParsedFolder,
+): { environmentColors: Record<string, string> } | undefined {
+  const clean: Record<string, string> = {};
+  const envArray = Array.isArray(parsed.environments)
+    ? parsed.environments
+    : Array.isArray(parsed.config?.environments)
+      ? parsed.config.environments
+      : [];
+  for (const entry of envArray) {
+    if (typeof entry !== "object" || entry === null) {
+      continue;
+    }
+    const env = entry as { name?: unknown; color?: unknown };
+    if (
+      typeof env.name === "string" &&
+      typeof env.color === "string" &&
+      HEX_COLOR.test(env.color)
+    ) {
+      clean[env.name] = env.color.toLowerCase();
+    }
+  }
+  if (typeof parsed.environmentColors === "object" && parsed.environmentColors) {
+    for (const [name, color] of Object.entries(parsed.environmentColors)) {
+      if (typeof color === "string" && HEX_COLOR.test(color) && !(name in clean)) {
+        clean[name] = color.toLowerCase();
+      }
+    }
+  }
   return Object.keys(clean).length > 0
     ? { environmentColors: clean }
     : undefined;
+}
+
+// The disk shape for a folder's environments: each in-memory Environment plus its
+// border `color` (from the separate environmentColors map) folded in, and an entry
+// synthesized for any env colored-but-not-declared (empty variables). Undefined
+// when there's nothing to write.
+function environmentsToDisk(
+  environments: Environment[] | undefined,
+  colors: Record<string, string> | undefined,
+): unknown[] | undefined {
+  const envs = environments ?? [];
+  const declared = new Set(envs.map((env) => env.name));
+  const coloredOnly = Object.keys(colors ?? {}).filter(
+    (name) => !declared.has(name),
+  );
+  const entries = [
+    ...envs.map((env) => ({
+      name: env.name,
+      ...(colors?.[env.name] ? { color: colors[env.name] } : {}),
+      variables: env.variables,
+    })),
+    ...coloredOnly.map((name) => ({
+      name,
+      color: colors![name],
+      variables: [],
+    })),
+  ];
+  return entries.length > 0 ? entries : undefined;
+}
+
+// The folder's config as the request-settings/folder JSON editor shows it: the
+// flat config fields with `environments` REPLACED by the disk-merged array (each
+// entry carrying its border `color`), so the editor doc matches the on-disk shape
+// exactly - the same reason bodyField/paramsField/configField are exported.
+export function folderConfigDoc(
+  config: ConfigScope,
+  colors: Record<string, string> | undefined,
+): Record<string, unknown> {
+  const envDisk = environmentsToDisk(config.environments, colors);
+  const flat = configField(config);
+  if (envDisk) {
+    return { ...flat, environments: envDisk };
+  }
+  delete flat.environments;
+  return flat;
+}
+
+// Read a folder JSON doc back into `{config, environmentColors}`: config via
+// readConfig (normalizes env vars to rows, strips per-entry color), colors via
+// readEnvironmentColors (per-entry color + legacy fallbacks). The inverse of
+// folderConfigDoc, so the Settings editor round-trips the on-disk shape.
+export function readFolderConfigDoc(parsed: Record<string, unknown>): {
+  config: ConfigScope;
+  environmentColors: Record<string, string>;
+} {
+  return {
+    config: readConfig(parsed as Parameters<typeof readConfig>[0]),
+    environmentColors:
+      readEnvironmentColors(parsed as ParsedFolder)?.environmentColors ?? {},
+  };
 }
 
 function tryParse<T>(raw: string): T | undefined {
@@ -167,15 +459,19 @@ function serializeInto(
     const slug = uniqueSlug(slugify(node.name), used);
     if (node.kind === "folder") {
       const dir = `${prefix}${slug}`;
+      // Fold the folder's env border colors into each `environments` entry (and
+      // synthesize an entry for a colored-but-undeclared env), so disk carries ONE
+      // environments array - no separate environmentColors field.
+      const envDisk = environmentsToDisk(
+        node.config.environments,
+        node.environmentColors,
+      );
       files[`${dir}/folder.json`] = JSON.stringify(
         {
           name: node.name,
-          config: node.config,
+          ...configField(node.config),
+          ...(envDisk ? { environments: envDisk } : {}),
           order,
-          ...(node.environmentColors &&
-          Object.keys(node.environmentColors).length > 0
-            ? { environmentColors: node.environmentColors }
-            : {}),
         },
         null,
         2,
@@ -191,12 +487,9 @@ function serializeInto(
         name: node.name,
         method: node.method,
         url: node.url,
-        body: bodyToStored(node.body),
-        ...bodyModeFields(node),
-        ...(node.pathParams && Object.keys(node.pathParams).length > 0
-          ? { pathParams: node.pathParams }
-          : {}),
-        config: node.config,
+        ...bodyField(node.body),
+        ...paramsField(node.params),
+        ...configField(node.config),
         order,
       },
       null,
@@ -211,7 +504,7 @@ export function serialize(
 ): FileMap {
   const files: FileMap = {
     [MANIFEST]: JSON.stringify(
-      { schemaVersion: 3, name: workspaceName },
+      { schemaVersion: 5, name: workspaceName },
       null,
       2,
     ),
@@ -238,11 +531,9 @@ function parseRequest(
       name: parsed.name ?? slug,
       method: parsed.method ?? "GET",
       url: parsed.url ?? "",
-      body: storedToBody(parsed.body),
-      ...(parsed.bodyMode ? { bodyMode: parsed.bodyMode } : {}),
-      ...(parsed.bodyForm ? { bodyForm: parsed.bodyForm } : {}),
-      ...(sanitizePathParams(parsed.pathParams) ?? {}),
-      config: parsed.config ?? {},
+      body: migrateBody(parsed),
+      params: migrateParams(parsed),
+      config: readConfig(parsed),
     },
   };
 }
@@ -293,9 +584,9 @@ function buildLevel(
       kind: "folder",
       id: dir,
       name: parsed?.name ?? segment,
-      config: parsed?.config ?? {},
+      config: readConfig(parsed ?? {}),
       ...(dotenv ? { dotenv } : {}),
-      ...sanitizeEnvironmentColors(parsed?.environmentColors),
+      ...(parsed ? readEnvironmentColors(parsed) : {}),
       children: buildLevel(files, `${dir}/`, skipped),
     };
     return [{ order: parsed?.order, node: folder }];

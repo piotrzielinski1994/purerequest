@@ -1,8 +1,20 @@
 import type {
+  KeyValue,
+  RequestBody,
   RequestNode,
   FolderNode,
   TreeNode,
 } from "@/lib/workspace/model";
+import { authOf } from "@/lib/workspace/model";
+
+// Test builders mirroring the runtime helpers: a json body with the given text,
+// and request params carrying just query rows (path empty unless a test sets it).
+const jsonBody = (json: string): RequestBody => ({
+  active: "json",
+  types: { json, form: [], multipart: [] },
+});
+const emptyBody = (): RequestBody => jsonBody("");
+const queryParams = (query: KeyValue[]) => ({ path: [], query });
 
 // Small, explicit fixture tree used by all workspace tests.
 // Shape mirrors spec section 4 (TreeNode/RequestNode/FolderNode discriminated unions).
@@ -21,16 +33,16 @@ export const tokenRequest: RequestNode = {
   name: "token",
   method: "POST",
   url: "{{baseUrl}}/oauth/token",
-  body: "",
+  body: emptyBody(),
+  params: queryParams([
+    { key: "grant_type", value: "client_credentials" },
+    { key: "scope", value: "read" },
+  ]),
   config: {
-    params: [
-      { key: "grant_type", value: "client_credentials" },
-      { key: "scope", value: "read" },
-    ],
     headers: [
       { key: "Content-Type", value: "application/x-www-form-urlencoded" },
     ],
-    auth: { type: "bearer", token: "tok-abc-123" },
+    auth: authOf({ active: "bearer", token: "tok-abc-123" }),
     scripts: { pre: "", post: "" },
   },
   response: {
@@ -51,11 +63,11 @@ export const profileRequest: RequestNode = {
   name: "profile",
   method: "GET",
   url: "{{baseUrl}}/users/:id",
-  body: "",
+  body: emptyBody(),
+  params: { path: [{ key: "id", value: "1" }], query: [{ key: "expand", value: "roles" }] },
   config: {
-    params: [{ key: "expand", value: "roles" }],
     headers: [{ key: "Accept", value: "application/json" }],
-    auth: { type: "basic", username: "admin", password: "s3cret" },
+    auth: authOf({ active: "basic", username: "admin", password: "s3cret" }),
     scripts: { pre: "", post: "" },
   },
   response: {
@@ -73,9 +85,10 @@ export const sessionRequest: RequestNode = {
   name: "session",
   method: "DELETE",
   url: "{{baseUrl}}/session",
-  body: "",
+  body: emptyBody(),
+  params: { path: [], query: [] },
   config: {
-    auth: { type: "none" },
+    auth: authOf({ active: "none" }),
     scripts: { pre: "", post: "" },
   },
   response: {
@@ -99,7 +112,7 @@ const authFolder: FolderNode = {
   kind: "folder",
   id: "folder-auth",
   name: "Auth",
-  config: { variables: { baseUrl: "https://api.example.com" } },
+  config: { variables: [{ key: "baseUrl", value: "https://api.example.com" }] },
   children: [oauthFolder],
 };
 
@@ -128,21 +141,21 @@ export const jsonBodyRequest: RequestNode = {
   ...tokenRequest,
   id: "req-json-body",
   name: "json-body",
-  body: JSON_BODY,
+  body: jsonBody(JSON_BODY),
 };
 
 export const otherBodyRequest: RequestNode = {
   ...profileRequest,
   id: "req-other-body",
   name: "other-body",
-  body: OTHER_BODY,
+  body: jsonBody(OTHER_BODY),
 };
 
 export const emptyBodyRequest: RequestNode = {
   ...sessionRequest,
   id: "req-empty-body",
   name: "empty-body",
-  body: "",
+  body: emptyBody(),
 };
 
 export const bodyFixtureTree: TreeNode[] = [

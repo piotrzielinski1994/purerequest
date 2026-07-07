@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { UrlBar } from "@/components/workspace/url-bar";
 import type { TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const tree: TreeNode[] = [
   {
@@ -12,8 +13,8 @@ const tree: TreeNode[] = [
     id: "root",
     name: "Echo",
     config: {
-      variables: { BASE_URL: "https://api" },
-      environments: { prod: { ENV_TOKEN: "tok" } },
+      variables: [{ key: "BASE_URL", value: "https://api" }],
+      environments: [{ name: "prod", variables: [{ key: "ENV_TOKEN", value: "tok" }] }],
     },
     children: [
       {
@@ -22,7 +23,8 @@ const tree: TreeNode[] = [
         name: "Req",
         method: "GET",
         url: "",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],
@@ -140,7 +142,7 @@ describe("UrlBar token autocomplete", () => {
         kind: "folder",
         id: "root",
         name: "Echo",
-        config: { variables: { FOLDER_VAR: "f" } },
+        config: { variables: [{ key: "FOLDER_VAR", value: "f" }] },
         children: [
           {
             kind: "request",
@@ -148,8 +150,9 @@ describe("UrlBar token autocomplete", () => {
             name: "Req",
             method: "GET",
             url: "",
-            body: "",
-            config: { variables: { REQ_VAR: "r" } },
+            body: emptyBody(),
+            params: emptyParams(),
+            config: { variables: [{ key: "REQ_VAR", value: "r" }] },
           },
         ],
       },

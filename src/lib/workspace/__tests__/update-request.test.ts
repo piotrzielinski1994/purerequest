@@ -5,6 +5,7 @@ import { describe, it, expect } from "vitest";
 // assertions pin updateRequest's purity + targeted url/method/body patch
 // (AC-001). Mirrors update-config.test.ts.
 import { updateRequest } from "@/lib/workspace/update-request";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type {
   ConfigScope,
   FolderNode,
@@ -18,8 +19,14 @@ const request = (id: string, config: ConfigScope = {}): RequestNode => ({
   name: id,
   method: "GET",
   url: `https://example.test/${id}`,
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config,
+});
+
+const jsonBody = (json: string): RequestNode["body"] => ({
+  active: "json",
+  types: { json, form: [], multipart: [] },
 });
 
 const folder = (
@@ -58,18 +65,18 @@ describe("updateRequest patches the target request fields", () => {
     const result = updateRequest(tree, "r1", {
       url: "https://changed.test/r1",
       method: "POST",
-      body: '{"a":1}',
+      body: jsonBody('{"a":1}'),
     });
 
     const r1 = findNode(result, "r1") as RequestNode;
     expect(r1.url).toBe("https://changed.test/r1");
     expect(r1.method).toBe("POST");
-    expect(r1.body).toBe('{"a":1}');
+    expect(r1.body).toEqual(jsonBody('{"a":1}'));
     // sibling untouched
     const r2 = findNode(result, "r2") as RequestNode;
     expect(r2.url).toBe("https://example.test/r2");
     expect(r2.method).toBe("GET");
-    expect(r2.body).toBe("");
+    expect(r2.body).toEqual(emptyBody());
   });
 
   // AC-001 - behavior: a partial patch only touches the supplied fields.
@@ -82,7 +89,7 @@ describe("updateRequest patches the target request fields", () => {
     expect(r1.method).toBe("DELETE");
     // url + body keep their original values
     expect(r1.url).toBe("https://example.test/r1");
-    expect(r1.body).toBe("");
+    expect(r1.body).toEqual(emptyBody());
   });
 
   // full-request Settings - behavior: name and config are patchable too.
@@ -91,12 +98,12 @@ describe("updateRequest patches the target request fields", () => {
 
     const result = updateRequest(tree, "r1", {
       name: "Renamed",
-      config: { variables: { token: "x" } },
+      config: { variables: [{ key: "token", value: "x" }] },
     });
 
     const r1 = findNode(result, "r1") as RequestNode;
     expect(r1.name).toBe("Renamed");
-    expect(r1.config).toEqual({ variables: { token: "x" } });
+    expect(r1.config).toEqual({ variables: [{ key: "token", value: "x" }] });
     // unsupplied fields untouched
     expect(r1.url).toBe("https://example.test/r1");
   });
@@ -109,12 +116,12 @@ describe("updateRequest patches the target request fields", () => {
 
     const result = updateRequest(tree, "deep", {
       url: "https://deep.test/x",
-      body: "DEEP-BODY",
+      body: jsonBody("DEEP-BODY"),
     });
 
     const deep = findNode(result, "deep") as RequestNode;
     expect(deep.url).toBe("https://deep.test/x");
-    expect(deep.body).toBe("DEEP-BODY");
+    expect(deep.body).toEqual(jsonBody("DEEP-BODY"));
   });
 
   // AC-001 - behavior: the target request's config and name are preserved.

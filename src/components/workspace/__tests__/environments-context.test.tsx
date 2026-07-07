@@ -7,6 +7,7 @@ import {
   useWorkspace,
 } from "@/components/workspace/workspace-context";
 import type { TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
 
 // Root folder defines two environments; the request url uses a bare {{baseUrl}}
@@ -17,10 +18,16 @@ const tree: TreeNode[] = [
     id: "root",
     name: "Root",
     config: {
-      environments: {
-        local: { baseUrl: "http://localhost:3000" },
-        prod: { baseUrl: "https://api.example.com" },
-      },
+      environments: [
+        {
+          name: "local",
+          variables: [{ key: "baseUrl", value: "http://localhost:3000" }],
+        },
+        {
+          name: "prod",
+          variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+        },
+      ],
     },
     children: [
       {
@@ -29,7 +36,8 @@ const tree: TreeNode[] = [
         name: "Req",
         method: "GET",
         url: "{{baseUrl}}/get?h={{process.env.HOST}}",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],

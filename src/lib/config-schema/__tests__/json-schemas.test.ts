@@ -43,7 +43,6 @@ describe("generated config JSON schemas", () => {
         "variables",
         "environments",
         "headers",
-        "params",
         "auth",
         "scripts",
         "timeoutMs",
@@ -67,9 +66,21 @@ describe("generated config JSON schemas", () => {
     expect(schema.type).toBe("object");
     expect(schema.additionalProperties).toBe(false);
     const props = Object.keys(schema.properties as object);
+    // Config fields are FLAT at the top level now (no `config` wrapper).
     expect(props).toEqual(
-      expect.arrayContaining(["name", "method", "url", "body", "config"]),
+      expect.arrayContaining([
+        "name",
+        "method",
+        "url",
+        "body",
+        "params",
+        "headers",
+        "auth",
+        "scripts",
+        "variables",
+      ]),
     );
+    expect(props).not.toContain("config");
   });
 
   // AC-002 - behavior: the HTTP method + bodyMode enums survive into the request schema.

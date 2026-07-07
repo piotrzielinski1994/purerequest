@@ -1,6 +1,6 @@
-import { json, jsonLanguage } from "@codemirror/lang-json";
+import { jsonLanguage } from "@codemirror/lang-json";
 import { hoverTooltip, type EditorView } from "@codemirror/view";
-import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
+import { linter, type Diagnostic } from "@codemirror/lint";
 import type { Extension } from "@codemirror/state";
 import type { JSONSchema7 } from "json-schema";
 import {
@@ -10,12 +10,6 @@ import {
   stateExtensions,
   handleRefresh,
 } from "codemirror-json-schema";
-import {
-  makeChrome,
-  makeHighlight,
-  emptyTolerantJsonLinter,
-  type EditorColors,
-} from "@/components/workspace/editor-theme";
 
 // The schema linter emits `severity:"error"` for every schema violation, which
 // would make malformed-vs-merely-invalid indistinguishable and (in spirit) gate
@@ -32,27 +26,21 @@ function asWarning(
     }));
 }
 
-// Schema-aware JSON editor extensions: the existing JSON language + empty-tolerant
-// syntax linter (errors) + themed chrome/highlight, plus schema-driven validation
-// (as warnings), autocomplete, and hover docs sourced from `schema`. When `schema`
-// is undefined (generation failed) it degrades to the plain JSON editor pieces.
+// Schema-aware JSON editor extensions: the SHARED config editor base (JSON +
+// empty-tolerant syntax linter + lint gutter + folding + themed chrome/highlight -
+// the exact `configExtensions` set, so the Settings editor can't drift from the
+// plain config editor) plus schema-driven validation (as warnings), autocomplete,
+// and hover docs sourced from `schema`. When `schema` is undefined (generation
+// failed) it degrades to just the shared base.
 export function makeSchemaExtensions(
+  configBase: Extension[],
   schema: JSONSchema7 | undefined,
-  colors: EditorColors,
-  isDark: boolean,
 ): Extension[] {
-  const base: Extension[] = [
-    json(),
-    linter(emptyTolerantJsonLinter()),
-    lintGutter(),
-    makeChrome(colors, isDark),
-    makeHighlight(colors),
-  ];
   if (!schema) {
-    return base;
+    return configBase;
   }
   return [
-    ...base,
+    ...configBase,
     linter(asWarning(jsonSchemaLinter()), { needsRefresh: handleRefresh }),
     jsonLanguage.data.of({ autocomplete: jsonCompletion() }),
     hoverTooltip(jsonSchemaHover()),

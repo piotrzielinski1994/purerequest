@@ -7,6 +7,7 @@ import { UrlBar } from "@/components/workspace/url-bar";
 import { FolderPane } from "@/components/workspace/folder-pane";
 import { ToastProvider } from "@/components/ui/toast";
 import type { TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 function renderWith(tree: TreeNode[], activeEnvironment?: string) {
   return render(
@@ -35,7 +36,7 @@ describe("token popup: go to source", () => {
         kind: "folder",
         id: "root",
         name: "Root",
-        config: { variables: { authToken: "tok-1" } },
+        config: { variables: [{ key: "authToken", value: "tok-1" }] },
         children: [
           {
             kind: "request",
@@ -43,7 +44,8 @@ describe("token popup: go to source", () => {
             name: "Req",
             method: "GET",
             url: "{{authToken}}/x",
-            body: "",
+            body: emptyBody(),
+            params: emptyParams(),
             config: {},
           },
         ],
@@ -65,7 +67,11 @@ describe("token popup: go to source", () => {
         kind: "folder",
         id: "root",
         name: "Root",
-        config: { environments: { prod: { baseUrl: "https://prod" } } },
+        config: {
+          environments: [
+            { name: "prod", variables: [{ key: "baseUrl", value: "https://prod" }] },
+          ],
+        },
         children: [
           {
             kind: "request",
@@ -73,7 +79,8 @@ describe("token popup: go to source", () => {
             name: "Req",
             method: "GET",
             url: "{{baseUrl}}/x",
-            body: "",
+            body: emptyBody(),
+            params: emptyParams(),
             config: {},
           },
         ],
@@ -104,7 +111,8 @@ describe("token popup: go to source", () => {
             name: "Req",
             method: "GET",
             url: "{{process.env.HOST}}/x",
-            body: "",
+            body: emptyBody(),
+            params: emptyParams(),
             config: {},
           },
         ],

@@ -11,6 +11,7 @@ import { createNoopFolderPicker } from "@/lib/workspace/folder-picker";
 import { serialize } from "@/lib/workspace/disk-format";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
 import type { TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const pickedTree: TreeNode[] = [
   {
@@ -25,7 +26,8 @@ const pickedTree: TreeNode[] = [
         name: "Picked Request",
         method: "GET",
         url: "https://api/picked",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],

@@ -5,6 +5,7 @@ import {
   environmentNamesForScope,
   environmentOrigins,
 } from "@/lib/workspace/resolve";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (id: string, name: string): RequestNode => ({
@@ -13,7 +14,8 @@ const request = (id: string, name: string): RequestNode => ({
   name,
   method: "GET",
   url: "",
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config: {},
 });
 
@@ -205,10 +207,17 @@ describe("environmentNamesForScope(tree, nodeId) - chain union (AC-009)", () => 
             "mid",
             "Mid",
             [request("req-1", "Req")],
-            { config: { environments: { staging: {} } } },
+            { config: { environments: [{ name: "staging", variables: [] }] } },
           ),
         ],
-        { config: { environments: { prod: {}, local: {} } } },
+        {
+          config: {
+            environments: [
+              { name: "prod", variables: [] },
+              { name: "local", variables: [] },
+            ],
+          },
+        },
       ),
     ];
 
@@ -224,10 +233,15 @@ describe("environmentNamesForScope(tree, nodeId) - chain union (AC-009)", () => 
   it("should return only the folder's own envs and exclude a sibling folder's envs", () => {
     const tree: TreeNode[] = [
       folder("a", "A", [request("req-a", "A Req")], {
-        config: { environments: { prod: {}, local: {} } },
+        config: {
+          environments: [
+            { name: "prod", variables: [] },
+            { name: "local", variables: [] },
+          ],
+        },
       }),
       folder("b", "B", [request("req-b", "B Req")], {
-        config: { environments: { staging: {} } },
+        config: { environments: [{ name: "staging", variables: [] }] },
       }),
     ];
 
@@ -240,7 +254,12 @@ describe("environmentNamesForScope(tree, nodeId) - chain union (AC-009)", () => 
   it("should include an env name the folder has colored even if it is not in config.environments", () => {
     const tree: TreeNode[] = [
       folder("f-1", "Folder", [request("req-1", "Req")], {
-        config: { environments: { prod: {}, local: {} } },
+        config: {
+          environments: [
+            { name: "prod", variables: [] },
+            { name: "local", variables: [] },
+          ],
+        },
         environmentColors: { staging: "#2563eb80" },
       }),
     ];
@@ -266,9 +285,16 @@ describe("environmentNamesForScope(tree, nodeId) - chain union (AC-009)", () => 
         "asd1",
         "asd1",
         [folder("asd2", "asd2", [request("req", "Req")], {
-          config: { environments: { "env-21": {} } },
+          config: { environments: [{ name: "env-21", variables: [] }] },
         })],
-        { config: { environments: { "env-11": {}, "env-12": {} } } },
+        {
+          config: {
+            environments: [
+              { name: "env-11", variables: [] },
+              { name: "env-12", variables: [] },
+            ],
+          },
+        },
       ),
     ];
 
@@ -287,8 +313,8 @@ describe("environmentNamesForScope(tree, nodeId) - chain union (AC-009)", () => 
       folder(
         "parent",
         "parent",
-        [folder("child", "child", [], { config: { environments: { env: {} } } })],
-        { config: { environments: { env: {} } } },
+        [folder("child", "child", [], { config: { environments: [{ name: "env", variables: [] }] } })],
+        { config: { environments: [{ name: "env", variables: [] }] } },
       ),
     ];
 
@@ -300,10 +326,15 @@ describe("environmentNamesForScope(tree, nodeId) - chain union (AC-009)", () => 
   it("should return all tree env names if nodeId is null", () => {
     const tree: TreeNode[] = [
       folder("a", "A", [request("req-a", "A Req")], {
-        config: { environments: { prod: {}, local: {} } },
+        config: {
+          environments: [
+            { name: "prod", variables: [] },
+            { name: "local", variables: [] },
+          ],
+        },
       }),
       folder("b", "B", [request("req-b", "B Req")], {
-        config: { environments: { staging: {} } },
+        config: { environments: [{ name: "staging", variables: [] }] },
       }),
     ];
 

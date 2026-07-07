@@ -171,16 +171,21 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > write - so a fresh install is writable out of the box. Point the app elsewhere by hand-editing
 > `workspacePath` in that same `settings.json`; it loads on launch (and a configured-but-empty or
 > not-yet-created folder mounts a writable empty workspace, bootstrapped by the first request you
-> create). Folders/requests carry an inheritable config (variables,
-> environments, headers, params, auth, scripts, timeout); a request resolves it by inheriting
+> create). Folders/requests carry inheritable config fields (variables,
+> environments, headers, auth, scripts, timeout); a request resolves them by inheriting
 > from its folder chain (child overrides parent), and that resolved config is what Send uses.
-> The request/folder pane's **Vars / Auth / Headers / Params / Script** tabs are structured
+> On disk these fields sit flat at the doc's top level (no `config` wrapper). Body and
+> params also live directly on the request (`request.body`,
+> `request.params`) and are never inherited. The request pane's **Vars / Auth / Headers /
+> Params / Body / Script** tabs are structured
 > editors: Vars/Headers/Query are key→value grids (edit a cell, or type into the always-present
 > trailing blank row to add; trash icon removes; Headers/Query rows have a full-cell enable
-> checkbox - a disabled row is kept on disk but excluded from the sent request).
-> The **Params** tab nests a **Path / Query** sub-bar (Query default): **Query** is the inherited
-> `config.params` grid above; **Path** is a request-only key→value grid (`request.pathParams`,
-> not inherited). A path param can be defined in the grid OR by writing `:name` in the URL
+> checkbox - a disabled row is kept on disk but excluded from the sent request). A folder pane
+> has no Params or Body tab.
+> The **Params** tab nests a **Path / Query** sub-bar (Query default), both request-only:
+> **Query** is `request.params.query` (a key→value grid, bidirectionally mirrored to the URL
+> `?query`); **Path** is `request.params.path` (a `:name`→value record). A path param can be
+> defined in the grid OR by writing `:name` in the URL
 > (e.g. `/users/:id`) - the two stay in sync (typing `:name` in the URL adds a row, removing it
 > prunes that row; grid-only rows are untouched). At send time each `:name` is replaced by its
 > value (editable, `{{var}}`-interpolated); an empty value leaves the `:name` literal. Auth is a
@@ -191,7 +196,7 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > setBody`, still `{{var}}`-interpolated downstream) or set variables (`requi.setVar`); a **post**
 > script runs after the response and can read it (`res.getStatus/getBody/getJson/getHeader`) and
 > set variables for chaining the next request. `requi.setVar(name, value)` persists the variable to
-> `config.variables` on disk (nearest scope that already defines it, else the request's own config).
+> the `variables` field (nearest scope that already defines it, else the request's own).
 > Bruno's `bru.*` API is aliased onto the same surface (`bru.setVar`, `bru.getVar`/`getEnvVar`/
 > `getCollectionVar` -> `getVar`, `bru.getProcessEnv`, `bru.cwd()` is a no-op), so scripts in an
 > imported Bruno collection run instead of throwing `'bru' is not defined`.
@@ -200,10 +205,11 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > use `async`/`await`. A throwing **pre** script aborts the send (error in the response pane); a
 > throwing **post** script only logs (the response stays). Config can also be edited as raw JSON
 > (**Edit** in a sidebar row's right-click menu opens a raw-JSON editor in the content
-> area - a **folder** edits its `config` block, while a **request**'s Settings tab edits the
+> area - a **folder** edits its config object, while a **request**'s Settings tab edits the
 > **whole request** JSON
-> `{name, method, url, body, config}` so everything about it lives in one place (saving a new
-> body/url/method there re-syncs the Body tab + URL bar). The raw-JSON editors have no Save
+> `{name, method, url, body, params, headers, auth, scripts, variables, ...}` (config fields flat
+> at the top level) so everything about it lives in one place (saving a
+> new body/url/method there re-syncs the Body tab + URL bar). The raw-JSON editors have no Save
 > button - save with `Mod+S` or via the close-confirm popup (its **Save** is disabled while the
 > JSON is invalid); malformed JSON shows a red lint underline. You can also hand-edit the files.
 > A folder's own `.env` and its `config.environments` are edited from the folder pane's **Env**
@@ -227,29 +233,42 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > workspace root **and in any folder**; a request resolves a key by folding its folder chain
 > over the root - the **nearest folder** defining the key wins, the root `.env` is the base
 > fallback (a request outside any folder resolves only the root `.env`). On-disk format
-> (schemaVersion 3):
+> (schemaVersion 5):
 >
 > ```
 > <workspace>/
 >   requi.workspace.json        manifest { schemaVersion, name }
->   <folder>/folder.json        { name, config, order }
+>   <folder>/folder.json        { name, <config fields...>, order }
 >   <folder>/.env               KEY=value (per-folder, gitignored; nearest wins)
->   <folder>/<request>.req.json { name, method, url, body, config, order }
+>   <folder>/<request>.req.json { name, method, url, body, params, <config fields...>, order }
 >   .env                        root base KEY=value (gitignored; {{process.env.KEY}})
 > ```
 >
-> `body` is a tagged value: `{ "type": "json", "payload": <parsed JSON> }` (a JSON body is
-> stored as real nested JSON, not an escaped string) or `{ "type": "text", "payload": "<raw>" }`.
-> Legacy v2 workspaces stored `body` as a bare string; those still load and migrate to the
-> tagged shape on the next save.
+> Config fields (variables, environments, headers, auth, scripts, timeoutMs) sit flat at the
+> doc's top level - there is no `config` wrapper. Legacy files (a nested `config` object, or
+> the earlier body/param shapes) still load and migrate to the flat shape on the next save.
 >
-> A `config` with environments looks like:
+> `body` is `{ "active": "json"|"none"|"form"|"multipart", "types": { "json": <StoredBody>,
+> "form": [rows], "multipart": [rows] } }` - `active` picks the sent type while every type's
+> payload is kept side-by-side (switching mode never discards the others). The `json` slot is a
+> tagged `StoredBody`: `{ "type": "json", "payload": <parsed JSON> }` (real nested JSON, not an
+> escaped string) or `{ "type": "text", "payload": "<raw>" }`. `params` is
+> `{ "path": [rows], "query": [rows] }` - both `[{ "key", "value", "enabled"? }]` arrays, like
+> `headers` and `variables`. Empty body/param slots are omitted for a minimal diff. Legacy
+> workspaces (v2 bare-string body; v3 `body`+`bodyMode`+`bodyForm`, `config.params`, `pathParams`;
+> pre-array record `variables`/path params) still load and migrate to the new shape on the next save.
+>
+> The variables + environments fields (flat on the node's doc) look like - every
+> config grid is a `[{ key, value }]` array now (variables, headers, path, query,
+> and each env's vars). A folder's per-env border color folds into its environments
+> entry as `color`; a colored-but-undeclared env is an entry with empty `variables`.
 >
 > ```
-> { "variables": { "baseUrl": "https://default" },
->   "environments": {
->     "local": { "baseUrl": "http://localhost:3000" },
->     "prod":  { "baseUrl": "https://api.example.com" } } }
+>   "variables": [ { "key": "baseUrl", "value": "https://default" } ],
+>   "environments": [
+>     { "name": "local", "variables": [ { "key": "baseUrl", "value": "http://localhost:3000" } ] },
+>     { "name": "prod", "color": "#dc262680",
+>       "variables": [ { "key": "baseUrl", "value": "https://api.example.com" } ] } ]
 > ```
 >
 > `order` is the node's position among its siblings (written on a drag-move; siblings sort by

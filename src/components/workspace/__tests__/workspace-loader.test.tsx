@@ -9,6 +9,7 @@ import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import { createInMemoryWorkspaceFs } from "@/lib/workspace/in-memory-fs";
 import { serialize, type FileMap } from "@/lib/workspace/disk-format";
 import type { TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const sampleTree: TreeNode[] = [
   {
@@ -23,7 +24,8 @@ const sampleTree: TreeNode[] = [
         name: "List Invoices",
         method: "GET",
         url: "https://api/invoices",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],
@@ -53,7 +55,11 @@ const envTree: TreeNode[] = [
     kind: "folder",
     id: "pending",
     name: "API",
-    config: { environments: { prod: { baseUrl: "https://api.example.com" } } },
+    config: {
+      environments: [
+        { name: "prod", variables: [{ key: "baseUrl", value: "https://api.example.com" }] },
+      ],
+    },
     children: [
       {
         kind: "request",
@@ -61,7 +67,8 @@ const envTree: TreeNode[] = [
         name: "Get",
         method: "GET",
         url: "{{baseUrl}}/get",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],

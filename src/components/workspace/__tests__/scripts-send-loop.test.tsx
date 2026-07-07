@@ -12,6 +12,7 @@ import type {
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
 
 // The script runner port + fake adapter don't exist yet: imported so RED fails
@@ -32,14 +33,20 @@ const makeTree = (scripts: { pre?: string; post?: string }): TreeNode[] => {
     name: "main",
     method: "GET",
     url: "{{baseUrl}}/thing",
-    body: "",
+    body: emptyBody(),
+    params: emptyParams(),
     config: { scripts },
   };
   const folder: FolderNode = {
     kind: "folder",
     id: "folder-root",
     name: "Root",
-    config: { variables: { baseUrl: "https://api.example.com", v: "vee" } },
+    config: {
+      variables: [
+        { key: "baseUrl", value: "https://api.example.com" },
+        { key: "v", value: "vee" },
+      ],
+    },
     children: [request],
   };
   return [folder];
@@ -187,9 +194,9 @@ describe("send loop - pre setVar persistence + runtime (TC-004 / AC-002 / AC-003
     const reqVars = findRequest(persistedTree, "req-main")?.config.variables;
     const folderVars = findFolder(persistedTree, "folder-root")?.config
       .variables;
-    const landed =
-      reqVars?.token === "abc" || folderVars?.token === "abc";
-    expect(landed).toBe(true);
+    const hasToken = (rows?: { key: string; value: string }[]) =>
+      rows?.some((row) => row.key === "token" && row.value === "abc") ?? false;
+    expect(hasToken(reqVars) || hasToken(folderVars)).toBe(true);
   });
 });
 
@@ -263,8 +270,9 @@ describe("send loop - post reads res + setVar (TC-006 / AC-004 / AC-006)", () =>
     const reqVars = findRequest(persistedTree, "req-main")?.config.variables;
     const folderVars = findFolder(persistedTree, "folder-root")?.config
       .variables;
-    const landed = reqVars?.id === "42" || folderVars?.id === "42";
-    expect(landed).toBe(true);
+    const hasId = (rows?: { key: string; value: string }[]) =>
+      rows?.some((row) => row.key === "id" && row.value === "42") ?? false;
+    expect(hasId(reqVars) || hasId(folderVars)).toBe(true);
   });
 
   // behavior: a post script can read `req` (the sent request): getUrl returns the
@@ -433,7 +441,8 @@ describe("send loop - edge cases (spec §9)", () => {
       name: "main",
       method: "POST",
       url: "{{baseUrl}}/thing",
-      body: '{"a":1}',
+      body: { active: "json", types: { json: '{"a":1}', form: [], multipart: [] } },
+      params: emptyParams(),
       config: { scripts: { pre: "/* pre */" } },
     };
     const tree: TreeNode[] = [
@@ -441,7 +450,9 @@ describe("send loop - edge cases (spec §9)", () => {
         kind: "folder",
         id: "folder-root",
         name: "Root",
-        config: { variables: { baseUrl: "https://api.example.com" } },
+        config: {
+          variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+        },
         children: [request],
       },
     ];
@@ -478,11 +489,15 @@ describe("send loop - edge cases (spec §9)", () => {
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalledTimes(1));
     const persisted = onTreeChange.mock.calls[0][0];
-    expect(findRequest(persisted, "req-main")?.config.variables).toMatchObject({
-      a: "1",
-      b: "2",
-      c: "3",
-    });
+    expect(
+      findRequest(persisted, "req-main")?.config.variables,
+    ).toEqual(
+      expect.arrayContaining([
+        { key: "a", value: "1" },
+        { key: "b", value: "2" },
+        { key: "c", value: "3" },
+      ]),
+    );
   });
 
   // behavior: console.clear() in a script wipes the Console panel, including
@@ -552,9 +567,10 @@ describe("send loop - edge cases (spec §9)", () => {
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
     const persisted =
       onTreeChange.mock.calls[onTreeChange.mock.calls.length - 1][0];
-    expect(findRequest(persisted, "req-main")?.config.variables?.saved).toBe(
-      "yes",
-    );
+    expect(findRequest(persisted, "req-main")?.config.variables).toContainEqual({
+      key: "saved",
+      value: "yes",
+    });
     expect(screen.getByTestId("console").textContent).toContain("late boom");
   });
 });

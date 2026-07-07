@@ -16,18 +16,24 @@ const keyValueSchema = z
 // Single-member `z.enum([...])` per variant (not `z.literal`) so the generated
 // JSON Schema carries a `type.enum` array for `auth.type` while the inferred
 // type stays the exact discriminated `Auth` union.
-const authSchema = z.union([
-  z.object({ type: z.enum(["inherit"]) }).strict(),
-  z.object({ type: z.enum(["none"]) }).strict(),
-  z.object({ type: z.enum(["bearer"]), token: z.string() }).strict(),
-  z
-    .object({
-      type: z.enum(["basic"]),
-      username: z.string(),
-      password: z.string(),
-    })
-    .strict(),
-]);
+// Auth mirrors the body model: `active` picks the sent auth, `types` keeps each
+// fielded variant's values side-by-side (so switching type preserves them).
+const authSchema = z
+  .object({
+    active: z
+      .enum(["inherit", "none", "bearer", "basic"])
+      .describe("Which auth is sent."),
+    types: z
+      .object({
+        bearer: z.object({ token: z.string() }).strict(),
+        basic: z
+          .object({ username: z.string(), password: z.string() })
+          .strict(),
+      })
+      .strict()
+      .describe("Per-type auth values, retained across type switches."),
+  })
+  .strict();
 
 const scriptConfigSchema = z
   .object({
@@ -39,20 +45,23 @@ const scriptConfigSchema = z
 export const configScopeSchema = z
   .object({
     variables: z
-      .record(z.string(), z.string())
+      .array(keyValueSchema)
       .describe("Named values usable as {{var}} in this scope.")
       .optional(),
     environments: z
-      .record(z.string(), z.record(z.string(), z.string()))
-      .describe("Per-environment variable overrides, keyed by environment name.")
+      .array(
+        z
+          .object({
+            name: z.string(),
+            variables: z.array(keyValueSchema),
+          })
+          .strict(),
+      )
+      .describe("Per-environment variable overrides, one entry per environment.")
       .optional(),
     headers: z
       .array(keyValueSchema)
       .describe("Request headers applied to this scope.")
-      .optional(),
-    params: z
-      .array(keyValueSchema)
-      .describe("Query parameters applied to this scope.")
       .optional(),
     auth: authSchema
       .describe("Authentication: inherit, none, bearer token, or basic.")
@@ -67,15 +76,72 @@ export const configScopeSchema = z
   })
   .strict();
 
-// Plain z.union (not z.discriminatedUnion): the inferred StoredBody type is
-// identical, but it emits `anyOf` in the generated JSON Schema instead of
-// `oneOf`. The codemirror-json-schema completion drops object properties whose
-// value schema is `oneOf` (no top-level `type`), so a `oneOf` body would be
-// missing from key autocomplete; `anyOf` is kept.
-const storedBodySchema = z.union([
-  z.object({ type: z.literal("json"), payload: z.unknown() }),
-  z.object({ type: z.literal("text"), payload: z.string() }),
-]);
+// The folder Settings JSON doc: the config fields, but `environments` entries may
+// carry an optional `color` (the folder's env border hex, folded in on disk). Kept
+// separate from configScopeSchema so that stays a pure ConfigScope mirror for the
+// drift guard - only the folder editor's doc allows the color key.
+export const folderConfigSchema = configScopeSchema.extend({
+  environments: z
+    .array(
+      z
+        .object({
+          name: z.string(),
+          color: z
+            .string()
+            .describe("Folder border color for this env (#rrggbb/#rrggbbaa).")
+            .optional(),
+          variables: z.array(keyValueSchema),
+        })
+        .strict(),
+    )
+    .describe("Per-environment variable overrides + optional folder border color.")
+    .optional(),
+});
+
+// The `body` object: `active` selects the mode, `types` holds each payload
+// side-by-side. The json slot is the body's natural JSON value (real nested JSON
+// on disk) or a raw string; form/multipart are field-row arrays. Every slot is
+// optional so a minimal-diff doc can omit the empty ones.
+const requestBodySchema = z
+  .object({
+    active: z
+      .enum(["json", "none", "form", "multipart"])
+      .describe("Which body type is sent."),
+    types: z
+      .object({
+        json: z
+          .unknown()
+          .describe("JSON body (nested JSON) or a raw string.")
+          .optional(),
+        form: z
+          .array(keyValueSchema)
+          .describe("Form URL-encoded field rows.")
+          .optional(),
+        multipart: z
+          .array(keyValueSchema)
+          .describe("Multipart form field rows.")
+          .optional(),
+      })
+      .strict()
+      .describe("Payload per body type, retained across mode switches."),
+  })
+  .strict();
+
+// The `params` object: request-only `path` (rows naming each URL `:name`) and
+// `query` (the Query grid, mirrored to the URL). Both KeyValue[] arrays (like
+// headers), both optional for a minimal-diff doc.
+const requestParamsSchema = z
+  .object({
+    path: z
+      .array(keyValueSchema)
+      .describe("Path params: rows naming each URL `:name` -> value.")
+      .optional(),
+    query: z
+      .array(keyValueSchema)
+      .describe("Query parameters, mirrored to the URL.")
+      .optional(),
+  })
+  .strict();
 
 export const requestSettingsSchema = z
   .object({
@@ -84,17 +150,16 @@ export const requestSettingsSchema = z
       .enum(["GET", "POST", "PUT", "PATCH", "DELETE"])
       .describe("HTTP method."),
     url: z.string().describe("Request URL (supports {{var}})."),
-    body: storedBodySchema.describe("Request body, tagged json or text."),
-    bodyMode: z
-      .enum(["json", "none", "form", "multipart"])
-      .describe("How the body is encoded.")
+    body: requestBodySchema
+      .describe("Request body: active type + per-type payloads.")
       .optional(),
-    bodyForm: z
-      .array(keyValueSchema)
-      .describe("Form / multipart field rows.")
+    params: requestParamsSchema
+      .describe("Request params: path + query.")
       .optional(),
-    config: configScopeSchema.describe("Scope config for this request."),
   })
+  // Config fields sit FLAT at the top level (no `config` wrapper): everything on a
+  // request is config, so it's mixed in alongside name/method/url/body/params.
+  .extend(configScopeSchema.shape)
   .strict();
 
 const APP_TOKEN_NAMES = [

@@ -1,4 +1,5 @@
 import type { Auth, HttpMethod, KeyValue } from "@/lib/workspace/model";
+import { authOf } from "@/lib/workspace/model";
 
 export type ParsedCurl = {
   method: HttpMethod;
@@ -126,13 +127,13 @@ function toHeader(raw: string): KeyValue {
 function toBasicAuth(raw: string): Auth {
   const index = raw.indexOf(":");
   if (index === -1) {
-    return { type: "basic", username: raw, password: "" };
+    return authOf({ active: "basic", username: raw, password: "" });
   }
-  return {
-    type: "basic",
+  return authOf({
+    active: "basic",
     username: raw.slice(0, index),
     password: raw.slice(index + 1),
-  };
+  });
 }
 
 export function parseCurl(text: string): CurlParseResult {

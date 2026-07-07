@@ -16,6 +16,11 @@ export type TokenHighlightContext = {
   // The scope being edited; token-autocomplete blanks the source label for a
   // variable defined in this scope (its name would otherwise repeat a long path).
   ownScopeId?: string;
+  // The active request + its `:name` path-param values, so a `:name` token in the
+  // URL gets the same hover preview/edit card as a {{var}}. Absent -> `:name`
+  // tokens stay a flat color, no hover (e.g. a folder pane or a value cell).
+  requestId?: string | null;
+  pathValues?: Record<string, string>;
 };
 
 const dropBlankKeys = (rows: KeyValue[]) =>

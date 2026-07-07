@@ -11,6 +11,7 @@ import { ContentHeader } from "@/components/workspace/content-header";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
 import { ToastProvider } from "@/components/ui/toast";
 import type { FolderNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 type OnTreeChange = (
   tree: TreeNode[],
@@ -21,7 +22,11 @@ const tree: TreeNode[] = [
     kind: "folder",
     id: "folder-1",
     name: "Folder",
-    config: { environments: { prod: { baseUrl: "https://old" } } },
+    config: {
+      environments: [
+        { name: "prod", variables: [{ key: "baseUrl", value: "https://old" }] },
+      ],
+    },
     dotenv: "EXISTING=keep",
     children: [
       {
@@ -30,7 +35,8 @@ const tree: TreeNode[] = [
         name: "Req",
         method: "GET",
         url: "https://api/get",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],
@@ -160,7 +166,7 @@ describe("folder Env tab - Envs view (AC-006)", () => {
         kind: "folder",
         id: "folder-2",
         name: "Sibling",
-        config: { environments: { staging: {} } },
+        config: { environments: [{ name: "staging", variables: [] }] },
         children: [],
       },
     ];
@@ -204,9 +210,11 @@ describe("folder Env tab - Envs view (AC-006)", () => {
     await user.click(screen.getByRole("button", { name: /fire save/i }));
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedFolder(onTreeChange).config.environments?.prod).toEqual({
-      baseUrl: "https://api",
-    });
+    expect(
+      savedFolder(onTreeChange).config.environments?.find(
+        (e) => e.name === "prod",
+      )?.variables,
+    ).toEqual([{ key: "baseUrl", value: "https://api" }]);
   });
 
   // AC-006 - behavior: a new env is added through a modal (a "+" button opens it,
@@ -234,7 +242,10 @@ describe("folder Env tab - Envs view (AC-006)", () => {
     await user.click(screen.getByRole("button", { name: /fire save/i }));
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedFolder(onTreeChange).config.environments?.qa).toEqual({});
+    expect(
+      savedFolder(onTreeChange).config.environments?.find((e) => e.name === "qa")
+        ?.variables,
+    ).toEqual([]);
   });
 
   // AC-006 - side-effect-contract: deleting the picked env asks for confirmation
@@ -257,7 +268,11 @@ describe("folder Env tab - Envs view (AC-006)", () => {
     await user.click(screen.getByRole("button", { name: /fire save/i }));
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedFolder(onTreeChange).config.environments?.prod).toBeUndefined();
+    expect(
+      savedFolder(onTreeChange).config.environments?.find(
+        (e) => e.name === "prod",
+      ),
+    ).toBeUndefined();
   });
 
   // AC-006 - behavior: cancelling the delete confirm keeps the env.
@@ -341,7 +356,9 @@ describe("folder Env tab - single-write save + dirty (AC-008)", () => {
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalledTimes(1));
     const folder = savedFolder(onTreeChange);
-    expect(folder.config.environments?.prod).toEqual({ baseUrl: "https://api" });
+    expect(
+      folder.config.environments?.find((e) => e.name === "prod")?.variables,
+    ).toEqual([{ key: "baseUrl", value: "https://api" }]);
     expect(folder.dotenv ?? "").toContain("KEY=secret");
   });
 
@@ -483,7 +500,7 @@ describe("folder Env tab - delete env (AC-006)", () => {
       kind: "folder",
       id: "asd1",
       name: "asd1",
-      config: { environments: { "env-11": {} } },
+      config: { environments: [{ name: "env-11", variables: [] }] },
       children: [
         {
           kind: "folder",
@@ -523,7 +540,7 @@ describe("folder Env tab - inherited env marker (AC-011)", () => {
       kind: "folder",
       id: "asd1",
       name: "asd1",
-      config: { environments: { "env-11": {} } },
+      config: { environments: [{ name: "env-11", variables: [] }] },
       children: [
         { kind: "folder", id: "asd2", name: "asd2", config: {}, children: [] },
       ],
@@ -559,7 +576,7 @@ describe("folder Env tab - inherited env marker (AC-011)", () => {
         kind: "folder",
         id: "asd1",
         name: "asd1",
-        config: { environments: { "env-11": {} } },
+        config: { environments: [{ name: "env-11", variables: [] }] },
         children: [
           {
             kind: "folder",

@@ -1,6 +1,8 @@
 import type {
   ConfigScope,
+  Environment,
   FolderNode,
+  RequestBody,
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
@@ -64,12 +66,31 @@ function tryParseJson(raw: string | undefined): { name?: string } {
 function configFrom(parsed: ParsedBru): ConfigScope {
   return {
     ...(Object.keys(parsed.variables).length > 0
-      ? { variables: parsed.variables }
+      ? {
+          variables: Object.entries(parsed.variables).map(([key, value]) => ({
+            key,
+            value,
+          })),
+        }
       : {}),
     ...(parsed.headers.length > 0 ? { headers: parsed.headers } : {}),
-    ...(parsed.params.length > 0 ? { params: parsed.params } : {}),
     ...(parsed.auth ? { auth: parsed.auth } : {}),
     ...(parsed.scripts ? { scripts: parsed.scripts } : {}),
+  };
+}
+
+// Fold the parser's flat body fields into the new `body` object: the legacy
+// `bodyForm` rows land in the slot the parsed `bodyMode` names (form/multipart),
+// and the raw `body` text is always kept as the json slot.
+function bodyFrom(parsed: ParsedBru): RequestBody {
+  const active = parsed.bodyMode ?? "json";
+  return {
+    active,
+    types: {
+      json: parsed.body,
+      form: active === "form" ? parsed.bodyForm : [],
+      multipart: active === "multipart" ? parsed.bodyForm : [],
+    },
   };
 }
 
@@ -99,9 +120,8 @@ function toRequestNode(
     name: parsed.name ?? fileBaseName(path),
     method: parsed.method ?? "GET",
     url: parsed.url ?? "",
-    body: parsed.body,
-    ...(parsed.bodyMode ? { bodyMode: parsed.bodyMode } : {}),
-    ...(parsed.bodyForm.length > 0 ? { bodyForm: parsed.bodyForm } : {}),
+    body: bodyFrom(parsed),
+    params: { path: [], query: parsed.params },
     config: configFrom(parsed),
   };
 }
@@ -167,7 +187,7 @@ function buildLevel(
       name: parsed?.name ?? segment,
       config: {
         ...(parsed ? configFrom(parsed) : {}),
-        ...(Object.keys(environments).length > 0 ? { environments } : {}),
+        ...(environments.length > 0 ? { environments } : {}),
       },
       children: buildLevel(files, `${dir}/`, nextId),
     };
@@ -177,13 +197,13 @@ function buildLevel(
   return [...folders, ...requests];
 }
 
-// Environment files directly under `<prefix>environments/` -> { envName: vars }.
-// Only the immediate level (no deeper nesting) so each collection root owns its
-// own environments.
+// Environment files directly under `<prefix>environments/` -> Environment[] (each
+// env's vars as KeyValue[] rows). Only the immediate level (no deeper nesting) so
+// each collection root owns its own environments.
 function collectEnvironments(
   files: BrunoFileMap,
   prefix: string,
-): Record<string, Record<string, string>> {
+): Environment[] {
   const envPrefix = `${prefix}${ENV_DIR}/`;
   return Object.keys(files)
     .filter((path) => {
@@ -200,10 +220,12 @@ function collectEnvironments(
         rest.endsWith(".yaml")
       );
     })
-    .reduce<Record<string, Record<string, string>>>((acc, path) => {
-      const envName = fileBaseName(path);
-      return { ...acc, [envName]: parseFile(files[path], path).variables };
-    }, {});
+    .map((path) => ({
+      name: fileBaseName(path),
+      variables: Object.entries(parseFile(files[path], path).variables).map(
+        ([key, value]) => ({ key, value }),
+      ),
+    }));
 }
 
 // Map a Bruno collection file-map into a single ReqUI root folder wrapping the
@@ -227,7 +249,7 @@ export function brunoToTree(
   const baseConfig = rootParsed ? configFrom(rootParsed) : {};
   const config: ConfigScope = {
     ...baseConfig,
-    ...(Object.keys(environments).length > 0 ? { environments } : {}),
+    ...(environments.length > 0 ? { environments } : {}),
   };
 
   const root: FolderNode = {

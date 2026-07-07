@@ -11,6 +11,7 @@ import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { ToastProvider } from "@/components/ui/toast";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 // requi uses the raw env color for --border (its #rrggbbaa alpha pair IS the
 // tint - no color-mix), so the override is the hex EXACTLY. Read it off the shell
@@ -36,7 +37,8 @@ const request = (id: string, name: string): RequestNode => ({
   name,
   method: "GET",
   url: "https://api/x",
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config: {},
 });
 
@@ -51,7 +53,12 @@ const fA: FolderNode = {
   kind: "folder",
   id: "f-a",
   name: "A",
-  config: { environments: { prod: {}, local: {} } },
+  config: {
+    environments: [
+      { name: "prod", variables: [] },
+      { name: "local", variables: [] },
+    ],
+  },
   environmentColors: { prod: RED, local: GREEN },
   children: [request("req-a", "in-a")],
 };
@@ -59,7 +66,7 @@ const fProd: FolderNode = {
   kind: "folder",
   id: "f-prod",
   name: "ProdOnly",
-  config: { environments: { prod: {} } },
+  config: { environments: [{ name: "prod", variables: [] }] },
   environmentColors: { prod: RED },
   children: [request("req-prod", "in-prod")],
 };
@@ -67,7 +74,7 @@ const fParent: FolderNode = {
   kind: "folder",
   id: "f-parent",
   name: "Parent",
-  config: { environments: { prod: {} } },
+  config: { environments: [{ name: "prod", variables: [] }] },
   environmentColors: { prod: RED },
   children: [
     {
@@ -83,7 +90,7 @@ const fStaging: FolderNode = {
   kind: "folder",
   id: "f-staging",
   name: "Staging",
-  config: { environments: { staging: {} } },
+  config: { environments: [{ name: "staging", variables: [] }] },
   children: [request("req-staging", "in-staging")],
 };
 

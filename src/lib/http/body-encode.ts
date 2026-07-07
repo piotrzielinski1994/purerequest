@@ -1,4 +1,4 @@
-import type { BodyMode, KeyValue } from "@/lib/workspace/model";
+import type { BodyMode, KeyValue, RequestBody } from "@/lib/workspace/model";
 
 // A fixed, deterministic boundary token. The script/test env forbids
 // Math.random; a long fixed token keeps multipart output stable + testable and
@@ -39,26 +39,28 @@ function encodeMultipart(
   return `${parts.join("")}--${MULTIPART_BOUNDARY}--\r\n`;
 }
 
-// Resolve a request's body + canonical Content-Type from its mode. JSON text and
-// form/multipart rows interpolate via `subst` (same {{var}} substitution as
-// headers/params). `none` sends nothing and carries no content type.
+// Resolve a request's body + canonical Content-Type from its active type. JSON
+// text and form/multipart rows interpolate via `subst` (same {{var}} substitution
+// as headers/params). `none` sends nothing and carries no content type.
 export function encodeBody(
-  mode: BodyMode,
-  jsonText: string,
-  rows: KeyValue[],
+  body: RequestBody,
   subst: (input: string) => string,
 ): EncodedBody {
+  const mode: BodyMode = body.active;
   if (mode === "none") {
     return { body: null, contentType: null };
   }
   if (mode === "form") {
-    return { body: encodeForm(rows, subst), contentType: CONTENT_TYPE.form };
+    return {
+      body: encodeForm(body.types.form, subst),
+      contentType: CONTENT_TYPE.form,
+    };
   }
   if (mode === "multipart") {
     return {
-      body: encodeMultipart(rows, subst),
+      body: encodeMultipart(body.types.multipart, subst),
       contentType: CONTENT_TYPE.multipart,
     };
   }
-  return { body: subst(jsonText), contentType: CONTENT_TYPE.json };
+  return { body: subst(body.types.json), contentType: CONTENT_TYPE.json };
 }

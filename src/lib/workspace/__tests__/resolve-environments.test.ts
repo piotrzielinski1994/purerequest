@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { resolveConfig } from "@/lib/workspace/resolve";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (
@@ -13,7 +14,8 @@ const request = (
   name,
   method: "GET",
   url: "",
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config,
 });
 
@@ -32,10 +34,16 @@ describe("resolveConfig environments - active env layer", () => {
       "root",
       "Root",
       {
-        environments: {
-          local: { baseUrl: "http://localhost:3000" },
-          prod: { baseUrl: "https://api.example.com" },
-        },
+        environments: [
+          {
+            name: "local",
+            variables: [{ key: "baseUrl", value: "http://localhost:3000" }],
+          },
+          {
+            name: "prod",
+            variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+          },
+        ],
       },
       [req],
     );
@@ -52,10 +60,16 @@ describe("resolveConfig environments - active env layer", () => {
       "root",
       "Root",
       {
-        environments: {
-          local: { baseUrl: "http://localhost:3000" },
-          prod: { baseUrl: "https://api.example.com" },
-        },
+        environments: [
+          {
+            name: "local",
+            variables: [{ key: "baseUrl", value: "http://localhost:3000" }],
+          },
+          {
+            name: "prod",
+            variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+          },
+        ],
       },
       [req],
     );
@@ -75,7 +89,14 @@ describe("resolveConfig environments - no active env", () => {
     const root = folder(
       "root",
       "Root",
-      { environments: { prod: { baseUrl: "https://api.example.com" } } },
+      {
+        environments: [
+          {
+            name: "prod",
+            variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+          },
+        ],
+      },
       [req],
     );
 
@@ -90,7 +111,14 @@ describe("resolveConfig environments - no active env", () => {
     const root = folder(
       "root",
       "Root",
-      { environments: { prod: { baseUrl: "https://api.example.com" } } },
+      {
+        environments: [
+          {
+            name: "prod",
+            variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+          },
+        ],
+      },
       [req],
     );
 
@@ -105,7 +133,14 @@ describe("resolveConfig environments - no active env", () => {
     const root = folder(
       "root",
       "Root",
-      { environments: { prod: { baseUrl: "https://api.example.com" } } },
+      {
+        environments: [
+          {
+            name: "prod",
+            variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+          },
+        ],
+      },
       [req],
     );
 
@@ -116,11 +151,13 @@ describe("resolveConfig environments - no active env", () => {
 
   // AC-007 - behavior: plain vars still resolve regardless of env layer being empty
   it("should still resolve plain variables when no environment is active", () => {
-    const req = request("req", "Req", { variables: { token: "plain" } });
+    const req = request("req", "Req", {
+      variables: [{ key: "token", value: "plain" }],
+    });
     const root = folder(
       "root",
       "Root",
-      { environments: { prod: { baseUrl: "x" } } },
+      { environments: [{ name: "prod", variables: [{ key: "baseUrl", value: "x" }] }] },
       [req],
     );
 
@@ -138,8 +175,8 @@ describe("resolveConfig environments - precedence", () => {
       "root",
       "Root",
       {
-        variables: { host: "folder-host" },
-        environments: { local: { host: "env-host" } },
+        variables: [{ key: "host", value: "folder-host" }],
+        environments: [{ name: "local", variables: [{ key: "host", value: "env-host" }] }],
       },
       [req],
     );
@@ -155,7 +192,7 @@ describe("resolveConfig environments - precedence", () => {
     const root = folder(
       "root",
       "Root",
-      { environments: { local: { host: "env-host" } } },
+      { environments: [{ name: "local", variables: [{ key: "host", value: "env-host" }] }] },
       [req],
     );
 
@@ -166,11 +203,13 @@ describe("resolveConfig environments - precedence", () => {
 
   // AC-006, TC-004 - behavior: a nearer scope's plain var beats a farther scope's env block
   it("should let a nearer scope plain var override a farther scope env block", () => {
-    const req = request("req", "Req", { variables: { host: "request-host" } });
+    const req = request("req", "Req", {
+      variables: [{ key: "host", value: "request-host" }],
+    });
     const root = folder(
       "root",
       "Root",
-      { environments: { local: { host: "env-host" } } },
+      { environments: [{ name: "local", variables: [{ key: "host", value: "env-host" }] }] },
       [req],
     );
 
@@ -185,13 +224,13 @@ describe("resolveConfig environments - precedence", () => {
     const sub = folder(
       "sub",
       "Sub",
-      { environments: { local: { host: "sub-env" } } },
+      { environments: [{ name: "local", variables: [{ key: "host", value: "sub-env" }] }] },
       [req],
     );
     const root = folder(
       "root",
       "Root",
-      { environments: { local: { host: "root-env" } } },
+      { environments: [{ name: "local", variables: [{ key: "host", value: "root-env" }] }] },
       [sub],
     );
 
@@ -208,7 +247,14 @@ describe("resolveConfig environments - provenance", () => {
     const root = folder(
       "root",
       "Root",
-      { environments: { prod: { baseUrl: "https://api.example.com" } } },
+      {
+        environments: [
+          {
+            name: "prod",
+            variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+          },
+        ],
+      },
       [req],
     );
 
@@ -223,7 +269,7 @@ describe("resolveConfig environments - provenance", () => {
     const root = folder(
       "root",
       "Root",
-      { environments: { staging: { apiKey: "k1" } } },
+      { environments: [{ name: "staging", variables: [{ key: "apiKey", value: "k1" }] }] },
       [req],
     );
 
@@ -239,8 +285,8 @@ describe("resolveConfig environments - provenance", () => {
       "root",
       "Root",
       {
-        variables: { host: "folder-host" },
-        environments: { prod: { host: "env-host" } },
+        variables: [{ key: "host", value: "folder-host" }],
+        environments: [{ name: "prod", variables: [{ key: "host", value: "env-host" }] }],
       },
       [req],
     );

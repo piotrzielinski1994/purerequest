@@ -1,9 +1,11 @@
 import { json, jsonParseLinter } from "@codemirror/lang-json";
-import { EditorView } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import {
   HighlightStyle,
   syntaxHighlighting,
   foldGutter,
+  codeFolding,
+  foldKeymap,
 } from "@codemirror/language";
 import { closeBrackets } from "@codemirror/autocomplete";
 import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
@@ -19,6 +21,8 @@ export type EditorColors = Record<EditorTokenName, string>;
 // background stays transparent so the editor inherits the themed pane behind it
 // (the request body editor, response viewer, console, config/env/script editors
 // all share this) - avoids the white-flash the @uiw default-light theme injects.
+// Fold-gutter chevrons are ALWAYS invisible (design.md): folding still works
+// (the gutter element stays clickable, plus the fold keymap), but no arrow shows.
 export function makeChrome(colors: EditorColors, isDark: boolean): Extension {
   return EditorView.theme(
     {
@@ -38,8 +42,10 @@ export function makeChrome(colors: EditorColors, isDark: boolean): Extension {
         color: colors.gutter,
         border: "none",
       },
-      // Keep the fold gutter clickable but never show its arrows (incl. on hover).
-      ".cm-foldGutter .cm-gutterElement": { opacity: "0" },
+      // The fold chevrons are always invisible (design.md: folding works but the
+      // arrows must not show) - kept clickable (still an affordance for a mouse)
+      // and paired with the fold keymap for keyboard collapse/expand.
+      ".cm-foldGutter .cm-gutterElement": { opacity: "0", cursor: "pointer" },
       ".cm-scroller": {
         fontFamily: "var(--font-mono, ui-monospace, monospace)",
       },
@@ -105,7 +111,9 @@ type EditorExtensionOpts = {
 };
 
 // JSON editor extensions (editable). Composes json() + chrome + highlight plus
-// the optional pieces each consumer needs (close-bracket, lint, lint gutter).
+// the optional pieces each consumer needs (close-bracket, lint, lint gutter,
+// code folding). `withFold` wires collapse/expand: the fold state, the fold
+// gutter (arrows kept INVISIBLE by makeChrome), and the fold keymap (Ctrl-Shift-[ / ]).
 export function makeEditorExtensions(opts: EditorExtensionOpts): Extension[] {
   const { colors, isDark } = opts;
   return [
@@ -113,7 +121,9 @@ export function makeEditorExtensions(opts: EditorExtensionOpts): Extension[] {
     ...(opts.withCloseBrackets ? [closeBrackets()] : []),
     ...(opts.withLinter ? [linter(emptyTolerantJsonLinter())] : []),
     ...(opts.withLintGutter ? [lintGutter()] : []),
-    ...(opts.withFold ? [foldGutter()] : []),
+    ...(opts.withFold
+      ? [codeFolding(), foldGutter(), keymap.of(foldKeymap)]
+      : []),
     makeChrome(colors, isDark),
     makeHighlight(colors),
   ];

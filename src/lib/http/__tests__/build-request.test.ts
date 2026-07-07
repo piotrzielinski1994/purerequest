@@ -3,9 +3,11 @@ import { describe, it, expect } from "vitest";
 import { buildHttpRequest } from "@/lib/http/build-request";
 import { resolveConfig } from "@/lib/workspace/resolve";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 import type {
   Auth,
   HttpMethod,
+  KeyValue,
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
@@ -17,17 +19,20 @@ const request = (
   name: overrides.name ?? overrides.id,
   method: "GET",
   url: "https://example.test/path",
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config: {},
   ...overrides,
 });
+
+const queryParams = (entries: Record<string, string>): KeyValue[] =>
+  Object.entries(entries).map(([key, value]) => ({ key, value }));
 
 // A hand-built EffectiveConfig so each test pins exactly the resolved inputs
 // buildHttpRequest consumes (resolveConfig is exercised in resolve.test.ts).
 const effectiveOf = (over: {
   variables?: Record<string, string>;
   headers?: Record<string, string>;
-  params?: Record<string, string>;
   auth?: Auth;
   timeoutMs?: number;
 }): EffectiveConfig => {
@@ -39,8 +44,7 @@ const effectiveOf = (over: {
   return {
     variables: wrapKeyed(over.variables),
     headers: wrapKeyed(over.headers),
-    params: wrapKeyed(over.params),
-    auth: { value: over.auth ?? { type: "none" }, from },
+    auth: { value: over.auth ?? authOf({ active: "none" }), from },
     scripts: { pre: { value: "", from }, post: { value: "", from } },
     timeoutMs: { value: over.timeoutMs ?? 30000, from },
   };
@@ -102,14 +106,15 @@ describe("buildHttpRequest - variable substitution", () => {
 
   // AC-004 — behavior
   it("should substitute {{var}} tokens in resolved param values before appending them", () => {
-    const node = request({ id: "r", url: "https://api.example.com/get" });
+    const node = request({
+      id: "r",
+      url: "https://api.example.com/get",
+      params: { path: [], query: queryParams({ stage: "{{env}}" }) },
+    });
 
     const wire = buildHttpRequest(
       node,
-      effectiveOf({
-        variables: { env: "prod" },
-        params: { stage: "{{env}}" },
-      }),
+      effectiveOf({ variables: { env: "prod" } }),
     );
 
     expect(wire.url).toBe("https://api.example.com/get?stage=prod");
@@ -119,12 +124,13 @@ describe("buildHttpRequest - variable substitution", () => {
 describe("buildHttpRequest - query param merge", () => {
   // AC-004, TC-002 — behavior
   it("should append resolved params to a url that has no existing query", () => {
-    const node = request({ id: "r", url: "https://postman-echo.com/get" });
+    const node = request({
+      id: "r",
+      url: "https://postman-echo.com/get",
+      params: { path: [], query: queryParams({ foo: "bar" }) },
+    });
 
-    const wire = buildHttpRequest(
-      node,
-      effectiveOf({ params: { foo: "bar" } }),
-    );
+    const wire = buildHttpRequest(node, effectiveOf({}));
 
     expect(wire.url).toBe("https://postman-echo.com/get?foo=bar");
   });
@@ -134,12 +140,10 @@ describe("buildHttpRequest - query param merge", () => {
     const node = request({
       id: "r",
       url: "https://api.example.com/get?keep=1",
+      params: { path: [], query: queryParams({ foo: "bar" }) },
     });
 
-    const wire = buildHttpRequest(
-      node,
-      effectiveOf({ params: { foo: "bar" } }),
-    );
+    const wire = buildHttpRequest(node, effectiveOf({}));
 
     expect(wire.url).toContain("keep=1");
     expect(wire.url).toContain("foo=bar");
@@ -163,7 +167,7 @@ describe("buildHttpRequest - auth mapping", () => {
 
     const wire = buildHttpRequest(
       node,
-      effectiveOf({ auth: { type: "bearer", token: "tok-abc" } }),
+      effectiveOf({ auth: authOf({ active: "bearer", token: "tok-abc" }) }),
     );
 
     const header = wire.headers.find(
@@ -179,7 +183,7 @@ describe("buildHttpRequest - auth mapping", () => {
     const wire = buildHttpRequest(
       node,
       effectiveOf({
-        auth: { type: "basic", username: "alice", password: "s3cret" },
+        auth: authOf({ active: "basic", username: "alice", password: "s3cret" }),
       }),
     );
 
@@ -196,7 +200,7 @@ describe("buildHttpRequest - auth mapping", () => {
 
     const wire = buildHttpRequest(
       node,
-      effectiveOf({ auth: { type: "none" } }),
+      effectiveOf({ auth: authOf({ active: "none" }) }),
     );
 
     const header = wire.headers.find(
@@ -213,7 +217,11 @@ describe("buildHttpRequest - body per method", () => {
   bodyCarryingMethods.forEach((method) => {
     // AC-003, spec §6 — behavior
     it(`should carry the node body for ${method}`, () => {
-      const node = request({ id: "r", method, body: '{"a":1}' });
+      const node = request({
+        id: "r",
+        method,
+        body: { active: "json", types: { json: '{"a":1}', form: [], multipart: [] } },
+      });
 
       const wire = buildHttpRequest(node, effectiveOf({}));
 
@@ -224,7 +232,11 @@ describe("buildHttpRequest - body per method", () => {
   bodylessMethods.forEach((method) => {
     // AC-003, spec §6 — behavior: GET/DELETE drop the body
     it(`should set body to null for ${method} even if the node has a body`, () => {
-      const node = request({ id: "r", method, body: '{"a":1}' });
+      const node = request({
+        id: "r",
+        method,
+        body: { active: "json", types: { json: '{"a":1}', form: [], multipart: [] } },
+      });
 
       const wire = buildHttpRequest(node, effectiveOf({}));
 
@@ -262,6 +274,7 @@ describe("buildHttpRequest - integration with resolveConfig", () => {
       id: "req-1",
       method: "GET",
       url: "{{baseUrl}}/get",
+      params: { path: [], query: queryParams({ foo: "bar" }) },
     });
     const tree: TreeNode[] = [
       {
@@ -269,8 +282,7 @@ describe("buildHttpRequest - integration with resolveConfig", () => {
         id: "root",
         name: "Root",
         config: {
-          variables: { baseUrl: "https://postman-echo.com" },
-          params: [{ key: "foo", value: "bar" }],
+          variables: [{ key: "baseUrl", value: "https://postman-echo.com" }],
         },
         children: [node],
       },

@@ -5,6 +5,7 @@ import type {
   KeyValue,
   ScriptConfig,
 } from "@/lib/workspace/model";
+import { authOf } from "@/lib/workspace/model";
 
 // A single `.bru` file parsed into the fields ReqUI needs. Total function -
 // never throws; missing blocks leave the optionals undefined / collections empty.
@@ -159,22 +160,25 @@ function chooseBody(blocks: Block[], selector: string | undefined): Block | null
 function resolveAuth(blocks: Block[], selector: string | undefined): Auth | undefined {
   const bearer = blocks.find((block) => block.name === "auth:bearer");
   if (bearer) {
-    return { type: "bearer", token: dictToRecord(bearer.inner).token ?? "" };
+    return authOf({
+      active: "bearer",
+      token: dictToRecord(bearer.inner).token ?? "",
+    });
   }
   const basic = blocks.find((block) => block.name === "auth:basic");
   if (basic) {
     const record = dictToRecord(basic.inner);
-    return {
-      type: "basic",
+    return authOf({
+      active: "basic",
       username: record.username ?? "",
       password: record.password ?? "",
-    };
+    });
   }
   if (selector === "none") {
-    return { type: "none" };
+    return authOf({ active: "none" });
   }
   if (selector === "inherit") {
-    return { type: "inherit" };
+    return authOf({ active: "inherit" });
   }
   return undefined;
 }

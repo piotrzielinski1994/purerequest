@@ -15,6 +15,7 @@ import {
   findNode,
   containsId,
 } from "@/lib/workspace/tree-edit";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type {
   ConfigScope,
   FolderNode,
@@ -32,7 +33,8 @@ const request = (
   name,
   method: "GET",
   url: `https://example.test/${name}`,
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config,
 });
 
@@ -180,12 +182,15 @@ describe("duplicateRequest", () => {
   // AC-007 - behavior: the copy is a deep clone of every other field.
   it("should deep-copy the original's method/url/body/config", () => {
     const original = request("r1", "profile", {
-      variables: { token: "abc" },
+      variables: [{ key: "token", value: "abc" }],
       headers: [{ key: "X", value: "1" }],
     });
     original.method = "POST";
     original.url = "https://api.test/profile";
-    original.body = '{"a":1}';
+    original.body = {
+      active: "json",
+      types: { json: '{"a":1}', form: [], multipart: [] },
+    };
     const tree: TreeNode[] = [original];
 
     const result = duplicateRequest(tree, "r1", "new-1");
@@ -193,9 +198,12 @@ describe("duplicateRequest", () => {
     const copy = find(result, "new-1") as RequestNode;
     expect(copy.method).toBe("POST");
     expect(copy.url).toBe("https://api.test/profile");
-    expect(copy.body).toBe('{"a":1}');
+    expect(copy.body).toEqual({
+      active: "json",
+      types: { json: '{"a":1}', form: [], multipart: [] },
+    });
     expect(copy.config).toEqual({
-      variables: { token: "abc" },
+      variables: [{ key: "token", value: "abc" }],
       headers: [{ key: "X", value: "1" }],
     });
   });
@@ -204,17 +212,19 @@ describe("duplicateRequest", () => {
   // original (proves a deep, not shallow, copy of config).
   it("should deep-copy config so mutating the copy leaves the original intact", () => {
     const tree: TreeNode[] = [
-      request("r1", "profile", { variables: { token: "abc" } }),
+      request("r1", "profile", { variables: [{ key: "token", value: "abc" }] }),
     ];
 
     const result = duplicateRequest(tree, "r1", "new-1");
 
     const copy = find(result, "new-1") as RequestNode;
     // mutate the copy's nested config object.
-    copy.config.variables!.token = "MUTATED";
+    copy.config.variables!.find((r) => r.key === "token")!.value = "MUTATED";
 
     const original = find(result, "r1") as RequestNode;
-    expect(original.config.variables!.token).toBe("abc");
+    expect(
+      original.config.variables!.find((r) => r.key === "token")?.value,
+    ).toBe("abc");
   });
 
   // AC-007 - behavior: a folder id is a no-op (duplicate request only).

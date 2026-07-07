@@ -15,7 +15,7 @@ const tree: TreeNode[] = [
     kind: "folder",
     id: "folder-1",
     name: "Folder",
-    config: { variables: { apiBase: "{{process.env.HOST}}/v1" } },
+    config: { variables: [{ key: "apiBase", value: "{{process.env.HOST}}/v1" }] },
     dotenv: "HOST=https://folder.example.com",
     children: [],
   },

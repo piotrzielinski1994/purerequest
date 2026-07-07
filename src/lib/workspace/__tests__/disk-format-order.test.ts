@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import { serialize, deserialize } from "@/lib/workspace/disk-format";
 import type { FileMap } from "@/lib/workspace/disk-format";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (name: string): RequestNode => ({
@@ -10,7 +11,8 @@ const request = (name: string): RequestNode => ({
   name,
   method: "GET",
   url: `https://example.test/${name}`,
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config: {},
 });
 
@@ -230,15 +232,15 @@ describe("disk-format deserialize order field", () => {
   });
 });
 
-describe("disk-format manifest schemaVersion 3", () => {
+describe("disk-format manifest schemaVersion 5", () => {
   // AC-011 - behavior
-  it("should emit a manifest with schemaVersion 3", () => {
+  it("should emit a manifest with schemaVersion 5", () => {
     const map = serialize([], "My API");
 
     const manifestRaw = map["requi.workspace.json"];
     expect(manifestRaw).toBeDefined();
     expect(JSON.parse(manifestRaw)).toMatchObject({
-      schemaVersion: 3,
+      schemaVersion: 5,
       name: "My API",
     });
   });

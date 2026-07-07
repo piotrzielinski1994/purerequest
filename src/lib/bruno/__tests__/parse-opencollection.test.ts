@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { parseOpenCollection } from "@/lib/bruno/parse-opencollection";
+import { authOf } from "@/lib/workspace/model";
 
 describe("parseOpenCollection - info / http (AC-011)", () => {
   // AC-011 - behavior: info.name -> name; http.method/url -> upper method + url.
@@ -190,7 +191,7 @@ describe("parseOpenCollection - auth (AC-011)", () => {
       ),
     );
 
-    expect(parsed.auth).toEqual({ type: "inherit" });
+    expect(parsed.auth).toEqual(authOf({ active: "inherit" }));
   });
 
   // AC-011 - behavior: auth string "none" -> {type:"none"}.
@@ -201,7 +202,7 @@ describe("parseOpenCollection - auth (AC-011)", () => {
       ),
     );
 
-    expect(parsed.auth).toEqual({ type: "none" });
+    expect(parsed.auth).toEqual(authOf({ active: "none" }));
   });
 
   // AC-011 - behavior: auth object {type:bearer, token} -> bearer auth.
@@ -219,7 +220,7 @@ describe("parseOpenCollection - auth (AC-011)", () => {
       ].join("\n"),
     );
 
-    expect(parsed.auth).toEqual({ type: "bearer", token: "{{BEARER_TOKEN}}" });
+    expect(parsed.auth).toEqual(authOf({ active: "bearer", token: "{{BEARER_TOKEN}}" }));
   });
 
   // AC-011 - behavior: auth object {type:basic, username, password} -> basic auth.
@@ -238,11 +239,13 @@ describe("parseOpenCollection - auth (AC-011)", () => {
       ].join("\n"),
     );
 
-    expect(parsed.auth).toEqual({
-      type: "basic",
-      username: "{{CLIENT_ID}}",
-      password: "{{CLIENT_SECRET}}",
-    });
+    expect(parsed.auth).toEqual(
+      authOf({
+        active: "basic",
+        username: "{{CLIENT_ID}}",
+        password: "{{CLIENT_SECRET}}",
+      }),
+    );
   });
 });
 
