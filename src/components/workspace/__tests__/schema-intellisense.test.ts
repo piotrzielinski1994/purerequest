@@ -14,6 +14,7 @@ import {
 
 import { jsonSchemaHover } from "codemirror-json-schema";
 import { makeSchemaExtensions } from "@/components/workspace/schema-intellisense";
+import { makeEditorExtensions } from "@/components/workspace/editor-theme";
 import {
   configScopeJsonSchema,
   requestSettingsJsonSchema,
@@ -40,6 +41,18 @@ function sentinelEditorColors(
   };
 }
 
+// The shared config-editor base the Settings editor layers schema pieces onto,
+// built from the given sentinel colors (mirrors useEditorExtensions.configExtensions).
+function schemaBase(colors: EditorColors = sentinelEditorColors()) {
+  return makeEditorExtensions({
+    colors,
+    isDark: true,
+    withLinter: true,
+    withLintGutter: true,
+    withFold: true,
+  });
+}
+
 function injectedCss(): string {
   return Array.from(document.querySelectorAll("style"))
     .map((s) => s.textContent ?? "")
@@ -55,9 +68,8 @@ function mountWith(doc: string): EditorView {
     state: EditorState.create({
       doc,
       extensions: makeSchemaExtensions(
+        schemaBase(),
         configScopeJsonSchema,
-        sentinelEditorColors(),
-        true,
       ) as never,
     }),
     parent,
@@ -135,11 +147,7 @@ describe("makeSchemaExtensions completion", () => {
   ): Promise<CompletionResult | null> {
     const state = EditorState.create({
       doc,
-      extensions: makeSchemaExtensions(
-        schema,
-        sentinelEditorColors(),
-        true,
-      ) as never,
+      extensions: makeSchemaExtensions(schemaBase(), schema) as never,
     });
     const ctx = new CompletionContext(state, pos, true);
     const sources = state.languageDataAt<
@@ -160,7 +168,7 @@ describe("makeSchemaExtensions completion", () => {
     expect(result).not.toBeNull();
     const labels = result!.options.map((o) => o.label.replace(/"/g, ""));
     expect(labels).toEqual(
-      expect.arrayContaining(["variables", "headers", "params", "auth", "scripts"]),
+      expect.arrayContaining(["variables", "headers", "auth", "scripts"]),
     );
   });
 
@@ -206,9 +214,8 @@ describe("makeSchemaExtensions hover", () => {
       state: EditorState.create({
         doc,
         extensions: makeSchemaExtensions(
+          schemaBase(),
           configScopeJsonSchema,
-          sentinelEditorColors(),
-          true,
         ) as never,
       }),
       parent,
@@ -236,9 +243,8 @@ describe("makeSchemaExtensions themed chrome", () => {
       state: EditorState.create({
         doc: '"x"',
         extensions: makeSchemaExtensions(
+          schemaBase(sentinelEditorColors({ string: "oklch(0.123 0.321 321)" })),
           configScopeJsonSchema,
-          sentinelEditorColors({ string: "oklch(0.123 0.321 321)" }),
-          true,
         ) as never,
       }),
       parent,
@@ -252,11 +258,7 @@ describe("makeSchemaExtensions themed chrome", () => {
   // AC-008 - side-effect-contract: the factory carries a json language layer (so
   // the editor stays a JSON editor with the schema pieces layered on top).
   it("should include the json language extension", () => {
-    const withJson = makeSchemaExtensions(
-      configScopeJsonSchema,
-      sentinelEditorColors(),
-      true,
-    );
+    const withJson = makeSchemaExtensions(schemaBase(), configScopeJsonSchema);
     const plainJsonLength = ([json()] as unknown[]).flat(Infinity).length;
 
     expect(([withJson] as unknown[]).flat(Infinity).length).toBeGreaterThan(

@@ -11,6 +11,7 @@ import { ContentHeader } from "@/components/workspace/content-header";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
 import { ToastProvider } from "@/components/ui/toast";
 import type { FolderNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 type OnTreeChange = (
   tree: TreeNode[],
@@ -27,7 +28,12 @@ const makeTree = (environmentColors?: Record<string, string>): TreeNode[] => [
     kind: "folder",
     id: "folder-1",
     name: "Folder",
-    config: { environments: { local: {}, prod: {} } },
+    config: {
+      environments: [
+        { name: "local", variables: [] },
+        { name: "prod", variables: [] },
+      ],
+    },
     ...(environmentColors ? { environmentColors } : {}),
     children: [
       {
@@ -36,7 +42,8 @@ const makeTree = (environmentColors?: Record<string, string>): TreeNode[] => [
         name: "Req",
         method: "GET",
         url: "https://api/get",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],
@@ -209,5 +216,67 @@ describe("folder Env tab accent live persist (AC-002)", () => {
     expect(savedFolder(onTreeChange).environmentColors).toEqual({
       local: "#aabbcc",
     });
+  });
+});
+
+describe("folder Settings JSON shows env colors folded in", () => {
+  const openSettingsTab = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(
+      screen.getByRole("button", { name: /open folder config/i }),
+    );
+    const tablist = await screen.findByRole("tablist", {
+      name: /folder sections/i,
+    });
+    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await waitFor(() =>
+      expect(document.querySelector(".cm-editor")).not.toBeNull(),
+    );
+  };
+  const editorText = () =>
+    document.querySelector(".cm-editor")?.textContent ?? "";
+
+  // the reported bug: a folder colored for prod showed no color in the Settings
+  // JSON. The doc is the on-disk shape, so the color must fold into the prod entry.
+  it("should render the env's color inside its environments entry in the Settings JSON", async () => {
+    const user = userEvent.setup();
+    renderFolder(
+      vi.fn<OnTreeChange>().mockResolvedValue({ ok: true }),
+      makeTree({ prod: RED }),
+    );
+
+    await openSettingsTab(user);
+
+    const text = editorText();
+    expect(text).toContain('"name": "prod"');
+    expect(text).toContain(`"color": "${RED}"`);
+  });
+
+  // saving the Settings JSON persists the folded color back onto the folder's
+  // environmentColors (the doc round-trips config + colors together).
+  it("should persist an env color edited via the Settings JSON", async () => {
+    const user = userEvent.setup();
+    const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
+    renderFolder(onTreeChange, makeTree({ prod: RED }));
+
+    await openSettingsTab(user);
+    // retype the whole doc with prod's color changed to GREEN.
+    const doc = JSON.stringify(
+      {
+        environments: [
+          { name: "local", variables: [] },
+          { name: "prod", color: GREEN, variables: [] },
+        ],
+      },
+      null,
+      2,
+    );
+    const editor = document.querySelector<HTMLElement>(".cm-content");
+    editor?.focus();
+    await user.keyboard(`{Control>}a{/Control}`);
+    await user.paste(doc);
+    await fireSave(user);
+
+    await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
+    expect(savedFolder(onTreeChange).environmentColors).toEqual({ prod: GREEN });
   });
 });

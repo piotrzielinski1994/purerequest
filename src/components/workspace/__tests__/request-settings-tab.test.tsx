@@ -19,6 +19,7 @@ import { RequestPane } from "@/components/workspace/request-pane";
 import { SidebarTree } from "@/components/workspace/sidebar-tree";
 import { ToastProvider } from "@/components/ui/toast";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient } from "./fake-http-client";
 
 // Saving is via Mod+S (saveActiveEditor) or the close popup - the per-editor
@@ -48,7 +49,8 @@ const tree: TreeNode[] = [
     name: "Req",
     method: "GET",
     url: "https://api/get",
-    body: "",
+    body: emptyBody(),
+    params: emptyParams(),
     config: REQ_CONFIG,
   },
 ];
@@ -106,19 +108,20 @@ describe("RequestPane Settings sub-tab", () => {
     ).toBeInTheDocument();
   });
 
-  // body is a tagged StoredBody on disk + in the Settings JSON (json -> parsed
-  // payload, text -> raw string); default here is an empty text body.
+  // body/params are minimal-diff: omitted when default. A non-default body carries
+  // `{active,types}` where the json slot is the body's natural JSON value (nested
+  // JSON) or a raw string. A default json request omits body entirely.
   const fullRequestDoc = (overrides: Record<string, unknown> = {}) =>
     JSON.stringify({
       name: "Req",
       method: "GET",
       url: "https://api/get",
-      body: { type: "text", payload: "" },
       config: REQ_CONFIG,
       ...overrides,
     });
 
-  // behavior: the Settings sub-tab shows the WHOLE request (name/method/url/body/config) as JSON
+  // behavior: the Settings sub-tab shows the WHOLE request (name/method/url + flat
+  // config fields, plus body/params when non-default) as JSON
   it("should show the full request as raw JSON in the Settings sub-tab", async () => {
     const user = userEvent.setup();
     renderPane();
@@ -135,8 +138,7 @@ describe("RequestPane Settings sub-tab", () => {
           name: "Req",
           method: "GET",
           url: "https://api/get",
-          body: { type: "text", payload: "" },
-          config: REQ_CONFIG,
+          ...REQ_CONFIG,
         },
         null,
         2,
@@ -144,9 +146,9 @@ describe("RequestPane Settings sub-tab", () => {
     );
   });
 
-  // behavior: a JSON body shows as a parsed {type:"json", payload} block in the
-  // Settings JSON (the readability win - no escaped "{\n ...}" string).
-  it("should show a JSON body as a structured json StoredBody in the Settings JSON", async () => {
+  // behavior: a JSON body shows as real nested JSON in the Settings JSON (the
+  // readability win - no escaped "{\n ...}" string).
+  it("should show a JSON body as real nested JSON in the Settings JSON", async () => {
     const user = userEvent.setup();
     render(
       <ToastProvider>
@@ -158,7 +160,15 @@ describe("RequestPane Settings sub-tab", () => {
               name: "Req",
               method: "POST",
               url: "https://api/get",
-              body: '{\n  "grant_type": "client_credentials"\n}',
+              body: {
+                active: "json",
+                types: {
+                  json: '{\n  "grant_type": "client_credentials"\n}',
+                  form: [],
+                  multipart: [],
+                },
+              },
+              params: emptyParams(),
               config: REQ_CONFIG,
             },
           ]}
@@ -179,8 +189,10 @@ describe("RequestPane Settings sub-tab", () => {
 
     const doc = JSON.parse(liveDoc()) as { body: unknown };
     expect(doc.body).toEqual({
-      type: "json",
-      payload: { grant_type: "client_credentials" },
+      active: "json",
+      types: {
+        json: { grant_type: "client_credentials" },
+      },
     });
   });
 
@@ -199,8 +211,11 @@ describe("RequestPane Settings sub-tab", () => {
     await setDoc(
       fullRequestDoc({
         method: "POST",
-        body: { type: "json", payload: { a: 1 } },
-        config: { variables: { token: "abc" } },
+        body: {
+          active: "json",
+          types: { json: { a: 1 } },
+        },
+        config: { variables: [{ key: "token", value: "abc" }] },
       }),
     );
     await user.click(screen.getByRole("button", { name: /fire shortcut/i }));
@@ -211,11 +226,13 @@ describe("RequestPane Settings sub-tab", () => {
     const next = onTreeChange.mock.calls[0][0] as TreeNode[];
     const saved = next.find((n) => n.id === "req-1");
     expect(saved?.kind === "request" && saved.method).toBe("POST");
-    // a json StoredBody is stored in-memory as the pretty-printed string.
-    expect(saved?.kind === "request" && saved.body).toBe(
+    // a nested-JSON body is stored in-memory as the pretty-printed string.
+    expect(saved?.kind === "request" && saved.body.types.json).toBe(
       JSON.stringify({ a: 1 }, null, 2),
     );
-    expect(saved?.config).toEqual({ variables: { token: "abc" } });
+    expect(saved?.config).toEqual({
+      variables: [{ key: "token", value: "abc" }],
+    });
   });
 
   // behavior: saving a new body via the Settings JSON re-syncs the Body tab
@@ -231,7 +248,12 @@ describe("RequestPane Settings sub-tab", () => {
     });
 
     await setDoc(
-      fullRequestDoc({ body: { type: "json", payload: { from: "settings" } } }),
+      fullRequestDoc({
+        body: {
+          active: "json",
+          types: { json: { from: "settings" } },
+        },
+      }),
     );
     await user.click(screen.getByRole("button", { name: /fire shortcut/i }));
 
@@ -244,7 +266,7 @@ describe("RequestPane Settings sub-tab", () => {
 
   // behavior: invalid full-request JSON makes the editor non-saveable (popupCanSave
   // false -> the close popup disables its Save; parseRequest rejects the content).
-  const goodBody = { type: "text", payload: "" };
+  const goodBody = { active: "json", types: {} };
   it.each([
     [
       "a bare old-shape config object",
@@ -268,37 +290,24 @@ describe("RequestPane Settings sub-tab", () => {
         method: "FETCH",
         url: "u",
         body: goodBody,
-        config: {},
       }),
     ],
     [
-      "a non-object config",
-      JSON.stringify({
-        name: "R",
-        method: "GET",
-        url: "u",
-        body: goodBody,
-        config: 7,
-      }),
-    ],
-    [
-      "a bare-string body (not a StoredBody)",
+      "a bare-string body (not a body object)",
       JSON.stringify({
         name: "R",
         method: "GET",
         url: "u",
         body: "raw",
-        config: {},
       }),
     ],
     [
-      "a body with an unknown type",
+      "a body with an unknown active mode",
       JSON.stringify({
         name: "R",
         method: "GET",
         url: "u",
-        body: { type: "xml", payload: "" },
-        config: {},
+        body: { active: "xml", types: {} },
       }),
     ],
     ["malformed JSON", "{ not json"],
@@ -360,9 +369,9 @@ describe("RequestPane Settings sub-tab", () => {
     expect(screen.getByTestId("popup-can-save")).toHaveTextContent("true");
   });
 
-  // AC-009, spec §5 - behavior: editing bodyMode + bodyForm via the Settings JSON
-  // and saving persists them onto the request through onTreeChange.
-  it("should persist bodyMode and bodyForm edited via the Settings JSON", async () => {
+  // AC-009, spec §5 - behavior: editing the body active mode + form rows via the
+  // Settings JSON and saving persists them onto the request through onTreeChange.
+  it("should persist the body active mode and form rows edited via the Settings JSON", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn().mockResolvedValue({ ok: true });
     renderPane(onTreeChange);
@@ -376,8 +385,7 @@ describe("RequestPane Settings sub-tab", () => {
     await setDoc(
       fullRequestDoc({
         method: "POST",
-        bodyMode: "form",
-        bodyForm: [{ key: "a", value: "1" }],
+        body: { active: "form", types: { form: [{ key: "a", value: "1" }] } },
       }),
     );
     await user.click(screen.getByRole("button", { name: /fire shortcut/i }));
@@ -387,15 +395,15 @@ describe("RequestPane Settings sub-tab", () => {
     });
     const next = onTreeChange.mock.calls[0][0] as TreeNode[];
     const saved = next.find((n) => n.id === "req-1");
-    expect(saved?.kind === "request" && saved.bodyMode).toBe("form");
-    expect(saved?.kind === "request" && saved.bodyForm).toEqual([
+    expect(saved?.kind === "request" && saved.body.active).toBe("form");
+    expect(saved?.kind === "request" && saved.body.types.form).toEqual([
       { key: "a", value: "1" },
     ]);
   });
 
-  // AC-009 - behavior: a default json request omits bodyMode/bodyForm from the
-  // Settings JSON document (minimal, matches the on-disk omission).
-  it("should omit bodyMode and bodyForm from the Settings JSON for a default json request", async () => {
+  // AC-009 - behavior: a default json request omits body/params from the Settings
+  // JSON document (minimal, matches the on-disk omission).
+  it("should omit body and params from the Settings JSON for a default json request", async () => {
     const user = userEvent.setup();
     renderPane();
 
@@ -406,8 +414,8 @@ describe("RequestPane Settings sub-tab", () => {
     });
 
     const doc = JSON.parse(liveDoc()) as Record<string, unknown>;
-    expect("bodyMode" in doc).toBe(false);
-    expect("bodyForm" in doc).toBe(false);
+    expect("body" in doc).toBe(false);
+    expect("params" in doc).toBe(false);
   });
 
   // behavior: a successful save shows a confirmation toast
@@ -452,7 +460,7 @@ describe("RequestPane Settings sub-tab", () => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });
 
-    const editedConfig = { variables: { token: "via-hotkey" } };
+    const editedConfig = { variables: [{ key: "token", value: "via-hotkey" }] };
     await setDoc(fullRequestDoc({ config: editedConfig }));
     await user.click(screen.getByRole("button", { name: /fire shortcut/i }));
 

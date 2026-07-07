@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { UrlBar } from "@/components/workspace/url-bar";
 import type { TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const tree: TreeNode[] = [
   {
@@ -12,10 +13,16 @@ const tree: TreeNode[] = [
     id: "root",
     name: "Echo",
     config: {
-      environments: {
-        local: { baseUrl: "http://localhost:3000" },
-        prod: { baseUrl: "https://api.example.com" },
-      },
+      environments: [
+        {
+          name: "local",
+          variables: [{ key: "baseUrl", value: "http://localhost:3000" }],
+        },
+        {
+          name: "prod",
+          variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+        },
+      ],
     },
     children: [
       {
@@ -24,7 +31,8 @@ const tree: TreeNode[] = [
         name: "Req",
         method: "GET",
         url: "{{baseUrl}}/get?t={{process.env.TOKEN}}",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],
@@ -125,7 +133,9 @@ describe("UrlBar token hover preview", () => {
         kind: "folder",
         id: "root",
         name: "C",
-        config: { variables: { CULTURE: "{{process.env.CULTURE}}" } },
+        config: {
+          variables: [{ key: "CULTURE", value: "{{process.env.CULTURE}}" }],
+        },
         children: [
           {
             kind: "request",
@@ -133,7 +143,8 @@ describe("UrlBar token hover preview", () => {
             name: "Req",
             method: "GET",
             url: "{{LTS_URL}}/references?culture={{CULTURE}}",
-            body: "",
+            body: emptyBody(),
+            params: emptyParams(),
             config: {},
           },
         ],
@@ -224,5 +235,102 @@ describe("UrlBar token hover preview", () => {
     expect(
       screen.queryByRole("button", { name: /copy/i }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("UrlBar path param token hover", () => {
+  const pathTree = (path: Record<string, string>): TreeNode[] => [
+    {
+      kind: "folder",
+      id: "root",
+      name: "Echo",
+      config: {
+        variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+        environments: [],
+      },
+      children: [
+        {
+          kind: "request",
+          id: "req",
+          name: "Req",
+          method: "GET",
+          url: "{{baseUrl}}/users/:id",
+          body: emptyBody(),
+          params: {
+            path: Object.entries(path).map(([key, value]) => ({ key, value })),
+            query: [],
+          },
+          config: {},
+        },
+      ],
+    },
+  ];
+
+  const renderPathBar = (path: Record<string, string>) =>
+    render(
+      <WorkspaceProvider
+        tree={pathTree(path)}
+        initialActiveRequestId="req"
+        initialExpandedIds={["root"]}
+      >
+        <UrlBar />
+      </WorkspaceProvider>,
+    );
+
+  // behavior: hovering a `:name` path token shows its value in an editable input,
+  // the SAME popup as a {{var}} token (not a plain colored span).
+  it("should show the path param value in an editable input if a :name token is hovered", async () => {
+    const user = userEvent.setup();
+    renderPathBar({ id: "42" });
+
+    await user.hover(screen.getByText(":id"));
+
+    const input = await screen.findByRole("textbox", { name: /value/i });
+    expect(input).toHaveValue("42");
+  });
+
+  // behavior: a path value that is itself a {{var}} previews the RESOLVED value.
+  it("should preview the resolved value if the path value is a token", async () => {
+    const user = userEvent.setup();
+    renderPathBar({ id: "{{baseUrl}}" });
+
+    await user.hover(screen.getByText(":id"));
+
+    const input = await screen.findByRole("textbox", { name: /value/i });
+    expect(input).toHaveValue("https://api.example.com");
+  });
+
+  // behavior: an empty path value still shows the editable input (a `:name` is a
+  // valid, editable token even before a value is set) - not an "unresolved" hint.
+  it("should show an editable input even if the path value is empty", async () => {
+    const user = userEvent.setup();
+    renderPathBar({});
+
+    await user.hover(screen.getByText(":id"));
+
+    const input = await screen.findByRole("textbox", { name: /value/i });
+    expect(input).toHaveValue("");
+  });
+
+  // behavior: editing the value input + committing writes back to params.path.
+  it("should write the edited value back to the path param", async () => {
+    const user = userEvent.setup();
+    renderPathBar({ id: "42" });
+
+    await user.hover(screen.getByText(":id"));
+    const input = await screen.findByRole("textbox", { name: /value/i });
+    await user.clear(input);
+    await user.type(input, "99{Enter}");
+
+    await user.hover(screen.getByText(":id"));
+    const reopened = await screen.findByRole("textbox", { name: /value/i });
+    expect(reopened).toHaveValue("99");
+  });
+
+  // behavior: a path token is colored sky/blue.
+  it("should color a path param token sky/blue", () => {
+    renderPathBar({ id: "42" });
+
+    expect(screen.getByText(":id").className).toContain("text-sky-600");
   });
 });

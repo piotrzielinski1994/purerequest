@@ -63,6 +63,7 @@ export function useEditorExtensions(): EditorExtensionSets {
         isDark,
         withLinter: true,
         withLintGutter: true,
+        withFold: true,
       }),
       viewerExtensions: makeViewerExtensions({ colors, isDark }),
       consoleViewerExtensions: makeViewerExtensions({

@@ -12,13 +12,14 @@ import { ContentHeader } from "@/components/workspace/content-header";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
 import { ToastProvider } from "@/components/ui/toast";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 type OnTreeChange = (
   tree: TreeNode[],
 ) => Promise<{ ok: true } | { ok: false; error: string }>;
 
 const folderConfig: ConfigScope = {
-  variables: { token: "tok-123" },
+  variables: [{ key: "token", value: "tok-123" }],
 };
 
 const tree: TreeNode[] = [
@@ -34,7 +35,8 @@ const tree: TreeNode[] = [
         name: "Req",
         method: "GET",
         url: "https://api/get",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],
@@ -140,7 +142,9 @@ describe("folder structured panels - explicit save (AC-007)", () => {
     await user.click(screen.getByRole("button", { name: /fire save/i }));
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalledTimes(1));
-    expect(savedConfig(onTreeChange).variables).toEqual({ token: "tok-999" });
+    expect(savedConfig(onTreeChange).variables).toEqual([
+      { key: "token", value: "tok-999" },
+    ]);
   });
 
   // behavior: closing the folder config editor while dirty opens the existing
@@ -206,6 +210,8 @@ describe("folder structured panels - explicit save (AC-007)", () => {
     await user.click(screen.getByRole("button", { name: /fire save/i }));
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedConfig(onTreeChange).variables).toEqual({ fromSettings: "yes" });
+    expect(savedConfig(onTreeChange).variables).toEqual([
+      { key: "fromSettings", value: "yes" },
+    ]);
   });
 });

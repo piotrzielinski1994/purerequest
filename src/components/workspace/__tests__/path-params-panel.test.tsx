@@ -10,23 +10,36 @@ import { RequestPane } from "@/components/workspace/request-pane";
 import { UrlBar } from "@/components/workspace/url-bar";
 import { ToastProvider } from "@/components/ui/toast";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody } from "@/lib/workspace/model";
 
 type OnTreeChange = (
   tree: TreeNode[],
 ) => Promise<{ ok: true } | { ok: false; error: string }>;
 
-const requestWith = (overrides: Partial<RequestNode>): TreeNode[] => [
-  {
-    kind: "request",
-    id: "req-1",
-    name: "Req",
-    method: "GET",
-    url: "https://api.com/users/:id/posts/:postId",
-    body: "",
-    config: { params: [{ key: "page", value: "1" }] },
-    ...overrides,
-  },
-];
+const requestWith = (
+  overrides: Partial<RequestNode> & { pathParams?: Record<string, string> },
+): TreeNode[] => {
+  const { pathParams, params, ...rest } = overrides;
+  return [
+    {
+      kind: "request",
+      id: "req-1",
+      name: "Req",
+      method: "GET",
+      url: "https://api.com/users/:id/posts/:postId",
+      body: emptyBody(),
+      config: {},
+      ...rest,
+      params: params ?? {
+        path: Object.entries(pathParams ?? {}).map(([key, value]) => ({
+          key,
+          value,
+        })),
+        query: [{ key: "page", value: "1" }],
+      },
+    },
+  ];
+};
 
 // Mirrors editable-config-panels.test.tsx: a draft-then-save probe fires the
 // Cmd+S path (saveActiveEditor -> fallback saveActiveRequest) so persistence is
@@ -114,8 +127,8 @@ describe("Params sub-bar (AC-001, TC-001)", () => {
 
 describe("Query sub-view unchanged (AC-002, TC-002)", () => {
   // AC-002, TC-002 - side-effect-contract: toggling a query row off records
-  // enabled:false in config.params on save (the existing Params behaviour).
-  it("should persist enabled:false on config.params when a query row is toggled off and saved", async () => {
+  // enabled:false in params.query on save (the existing Params behaviour).
+  it("should persist enabled:false on params.query when a query row is toggled off and saved", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderPane(requestWith({}), onTreeChange);
@@ -124,7 +137,7 @@ describe("Query sub-view unchanged (AC-002, TC-002)", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedRequest(onTreeChange).config.params).toEqual([
+    expect(savedRequest(onTreeChange).params.query).toEqual([
       { key: "page", value: "1", enabled: false },
     ]);
   });
@@ -177,8 +190,8 @@ describe("Path sub-view is an editable grid (AC-003)", () => {
 
 describe("Path grid define + persist (AC-004, TC-002b, TC-004)", () => {
   // AC-004, TC-004 - side-effect-contract: editing a path-param value stores it as
-  // pathParams[name] on the request, persisted on save.
-  it("should persist a path-param value edit as pathParams[name] on save", async () => {
+  // params.path[name] on the request, persisted on save.
+  it("should persist a path-param value edit as params.path[name] on save", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderPane(requestWith({}), onTreeChange);
@@ -191,7 +204,10 @@ describe("Path grid define + persist (AC-004, TC-002b, TC-004)", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedRequest(onTreeChange).pathParams?.id).toBe("42");
+    expect(savedRequest(onTreeChange).params.path).toContainEqual({
+      key: "id",
+      value: "42",
+    });
   });
 
   // AC-003, AC-004, AC-005, TC-002b - side-effect-contract: a param defined purely
@@ -209,7 +225,7 @@ describe("Path grid define + persist (AC-004, TC-002b, TC-004)", () => {
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
     const saved = savedRequest(onTreeChange);
-    expect(saved.pathParams?.token).toBe("abc");
+    expect(saved.params.path).toContainEqual({ key: "token", value: "abc" });
     expect(saved.url).toBe("https://api.com/health");
   });
 });
@@ -255,8 +271,8 @@ describe("URL drives Path rows + delta prune (AC-005, TC-003, TC-005)", () => {
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
     const saved = savedRequest(onTreeChange);
-    expect(saved.pathParams ?? {}).not.toHaveProperty("id");
-    expect(saved.pathParams?.limit).toBe("5");
+    expect(saved.params.path.map((row) => row.key)).not.toContain("id");
+    expect(saved.params.path).toContainEqual({ key: "limit", value: "5" });
   });
 });
 

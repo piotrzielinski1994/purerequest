@@ -9,6 +9,7 @@ import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 import type {
   BrunoCollectionReader,
 } from "@/lib/bruno/reader";
@@ -24,8 +25,9 @@ const seedRequest: RequestNode = {
   name: "seed",
   method: "GET",
   url: "https://api.example.com/seed",
-  body: "",
-  config: { auth: { type: "none" } },
+  body: emptyBody(),
+  params: emptyParams(),
+  config: { auth: authOf({ active: "none" }) },
 };
 
 const baseTree: TreeNode[] = [seedRequest];

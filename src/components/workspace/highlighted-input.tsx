@@ -190,6 +190,8 @@ export function HighlightedInput({
             effective={highlight.effective}
             processEnv={highlight.processEnv}
             environment={highlight.environment}
+            requestId={highlight.requestId}
+            pathValues={highlight.pathValues}
           />
         </div>
       )}

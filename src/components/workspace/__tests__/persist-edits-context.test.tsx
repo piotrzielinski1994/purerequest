@@ -69,7 +69,7 @@ function PersistProbe({ editorSaver }: { editorSaver?: () => void }) {
       <span data-testid="active-id">{activeRequestId ?? "none"}</span>
       <span data-testid="active-url">{`[${activeRequest?.url ?? "none"}]`}</span>
       <span data-testid="active-method">{activeRequest?.method ?? "none"}</span>
-      <span data-testid="active-body">{`[${activeRequest?.body ?? "none"}]`}</span>
+      <span data-testid="active-body">{`[${activeRequest?.body.types.json ?? "none"}]`}</span>
       <span data-testid="open-count">{openRequestIds.length}</span>
       <span data-testid="dirty-ids">
         {[...dirtyRequestIds].sort().join(",") || "clean"}
@@ -263,7 +263,7 @@ describe("WorkspaceProvider saveActiveRequest", () => {
       throw new Error("expected the edited request in the round-tripped tree");
     }
     expect(saved.method).toBe("PUT");
-    expect(saved.body).toBe("EDITED-BODY");
+    expect(saved.body.types.json).toBe("EDITED-BODY");
   });
 
   // AC-007, edge - behavior: with no onTreeChange host the save still folds the

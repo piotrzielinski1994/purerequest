@@ -6,22 +6,41 @@ import {
   themeColorsSchema,
 } from "@/lib/config-schema/zod-schemas";
 import type { ConfigScope, HttpMethod, BodyMode } from "@/lib/workspace/model";
-import type { StoredBody } from "@/lib/workspace/body-codec";
+import { authOf } from "@/lib/workspace/model";
 import type { ThemeColors } from "@/lib/settings/settings";
 import type { z } from "zod";
 
+type KeyValueRow = { key: string; value: string; enabled?: boolean };
+
 // The request-settings JSON document shape (spec §1 / config-editor.tsx
 // RequestSettingsForm): the whole node minus runtime-only fields, with the body
-// serialized as a tagged StoredBody. The zod schema's inferred type must match
-// this shape so the generated IntelliSense schema can't drift from the editor.
+// as an `{active,types}` object (json slot is any JSON value - nested JSON or a
+// raw string), params as a `{path,query}` object, and the ConfigScope fields FLAT
+// at the top level (no `config` wrapper). Every optional slot is omissible for a
+// minimal-diff doc. The zod schema's inferred type must match so the IntelliSense
+// schema can't drift from the editor.
 type RequestSettingsDoc = {
   name: string;
   method: HttpMethod;
   url: string;
-  body: StoredBody;
-  bodyMode?: BodyMode;
-  bodyForm?: { key: string; value: string; enabled?: boolean }[];
-  config: ConfigScope;
+  body?: {
+    active: BodyMode;
+    types: {
+      json?: unknown;
+      form?: KeyValueRow[];
+      multipart?: KeyValueRow[];
+    };
+  };
+  params?: {
+    path?: KeyValueRow[];
+    query?: KeyValueRow[];
+  };
+  variables?: KeyValueRow[];
+  environments?: { name: string; variables: KeyValueRow[] }[];
+  headers?: KeyValueRow[];
+  auth?: ConfigScope["auth"];
+  scripts?: { pre?: string; post?: string };
+  timeoutMs?: number;
 };
 
 describe("zod config schemas drift guard", () => {
@@ -47,10 +66,9 @@ describe("configScopeSchema runtime behavior", () => {
   // AC-007 - behavior: a valid ConfigScope passes safeParse.
   it("should accept a valid ConfigScope", () => {
     const value: ConfigScope = {
-      variables: { token: "tok-123" },
+      variables: [{ key: "token", value: "tok-123" }],
       headers: [{ key: "Accept", value: "application/json" }],
-      params: [{ key: "page", value: "1" }],
-      auth: { type: "bearer", token: "secret" },
+      auth: authOf({ active: "bearer", token: "secret" }),
       scripts: { pre: "// pre", post: "" },
       timeoutMs: 5000,
     };

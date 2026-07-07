@@ -1,12 +1,13 @@
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import { interpolate } from "@/lib/http/interpolate";
 
-export type TokenKind = "variable" | "environment" | "dotenv";
+export type TokenKind = "variable" | "environment" | "dotenv" | "path";
 
 export type TokenTarget =
   | { kind: "variable"; scopeId: string; name: string }
   | { kind: "environment"; scopeId: string; env: string; name: string }
-  | { kind: "dotenv"; key: string };
+  | { kind: "dotenv"; key: string }
+  | { kind: "path"; requestId: string; name: string };
 
 export type TokenPreview = {
   value: string;
@@ -65,5 +66,29 @@ export function resolveTokenPreview(
       isEnv && environment
         ? { kind: "environment", scopeId, env: environment, name }
         : { kind: "variable", scopeId, name },
+  };
+}
+
+// Preview for a `:name` path param. Its value lives on the request (not in the
+// resolved config), keyed by the bare name; a missing/blank value is still a
+// valid, editable token (shows the empty input), so this only returns null when
+// there's no request context to write back to.
+export function resolvePathTokenPreview(
+  name: string,
+  requestId: string | null,
+  pathValues: Record<string, string>,
+  effective: EffectiveConfig,
+  processEnv: Record<string, string>,
+): TokenPreview | null {
+  if (requestId === null) {
+    return null;
+  }
+  const raw = pathValues[name] ?? "";
+  return {
+    value: interpolate(raw, varMap(effective), processEnv),
+    rawValue: raw,
+    source: "path param",
+    kind: "path",
+    target: { kind: "path", requestId, name },
   };
 }

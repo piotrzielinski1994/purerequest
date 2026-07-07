@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import { toCurl } from "@/lib/curl/to-curl";
 import type { HttpRequest } from "@/lib/http/model";
 import type { Auth, HttpMethod, KeyValue } from "@/lib/workspace/model";
+import { authOf } from "@/lib/workspace/model";
 
 // A hand-built RESOLVED wire request (toCurl consumes buildHttpRequest output).
 // Defaults mirror a typical wire shape: no auth header re-emission, body the
@@ -19,7 +20,7 @@ const wire = (
   url: "https://api.example.com/widgets",
   headers: [],
   body: null,
-  auth: { type: "none" },
+  auth: authOf({ active: "none" }),
   timeoutMs: 30000,
   requestId: "rid",
   ...over,
@@ -36,7 +37,7 @@ describe("toCurl - shape (AC-001)", () => {
         { key: "Authorization", value: "Bearer abc123" },
         { key: "Content-Type", value: "application/json" },
       ],
-      auth: { type: "bearer", token: "abc123" },
+      auth: authOf({ active: "bearer", token: "abc123" }),
       body: '{"name":"foo"}',
     });
 

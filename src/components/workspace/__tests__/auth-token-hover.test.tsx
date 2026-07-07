@@ -9,13 +9,14 @@ import {
 import { RequestPane } from "@/components/workspace/request-pane";
 import { ToastProvider } from "@/components/ui/toast";
 import type { TreeNode } from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const tree: TreeNode[] = [
   {
     kind: "folder",
     id: "api",
     name: "api",
-    config: { variables: { token: "abc-123" } },
+    config: { variables: [{ key: "token", value: "abc-123" }] },
     children: [
       {
         kind: "request",
@@ -23,8 +24,9 @@ const tree: TreeNode[] = [
         name: "Get",
         method: "GET",
         url: "https://api/get",
-        body: "",
-        config: { auth: { type: "bearer", token: "{{token}}" } },
+        body: emptyBody(),
+        params: emptyParams(),
+        config: { auth: authOf({ active: "bearer", token: "{{token}}" }) },
       },
     ],
   },

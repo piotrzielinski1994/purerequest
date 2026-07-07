@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 
 import { buildHttpRequest } from "@/lib/http/build-request";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
-import type { Auth, RequestNode } from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
+import type { Auth, KeyValue, RequestNode } from "@/lib/workspace/model";
 
 const request = (
   overrides: Partial<RequestNode> & { id: string },
@@ -11,16 +12,19 @@ const request = (
   name: overrides.name ?? overrides.id,
   method: "GET",
   url: "https://example.test/path",
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config: {},
   ...overrides,
 });
+
+const queryParams = (entries: Record<string, string>): KeyValue[] =>
+  Object.entries(entries).map(([key, value]) => ({ key, value }));
 
 // Mirrors build-request.test.ts: a hand-built EffectiveConfig pins the resolved
 // inputs buildHttpRequest consumes (resolveConfig is exercised elsewhere).
 const effectiveOf = (over: {
   variables?: Record<string, string>;
-  params?: Record<string, string>;
   auth?: Auth;
   timeoutMs?: number;
 }): EffectiveConfig => {
@@ -32,8 +36,7 @@ const effectiveOf = (over: {
   return {
     variables: wrapKeyed(over.variables),
     headers: {},
-    params: wrapKeyed(over.params),
-    auth: { value: over.auth ?? { type: "none" }, from },
+    auth: { value: over.auth ?? authOf({ active: "none" }), from },
     scripts: { pre: { value: "", from }, post: { value: "", from } },
     timeoutMs: { value: over.timeoutMs ?? 30000, from },
   };
@@ -45,7 +48,7 @@ describe("buildHttpRequest - path param substitution (AC-006)", () => {
     const node = request({
       id: "r",
       url: "https://api.com/users/:id",
-      pathParams: { id: "42" },
+      params: { path: [{ key: "id", value: "42" }], query: [] },
     });
 
     const wire = buildHttpRequest(node, effectiveOf({}));
@@ -58,7 +61,7 @@ describe("buildHttpRequest - path param substitution (AC-006)", () => {
     const node = request({
       id: "r",
       url: "https://api.com/:id/x/:id",
-      pathParams: { id: "9" },
+      params: { path: [{ key: "id", value: "9" }], query: [] },
     });
 
     const wire = buildHttpRequest(node, effectiveOf({}));
@@ -72,7 +75,7 @@ describe("buildHttpRequest - path param substitution (AC-006)", () => {
     const node = request({
       id: "r",
       url: "https://api.com/users/:id",
-      pathParams: { id: "{{uid}}" },
+      params: { path: [{ key: "id", value: "{{uid}}" }], query: [] },
     });
 
     const wire = buildHttpRequest(node, effectiveOf({ variables: { uid: "7" } }));
@@ -86,7 +89,7 @@ describe("buildHttpRequest - path param substitution (AC-006)", () => {
     const node = request({
       id: "r",
       url: "{{base}}/users/:id",
-      pathParams: { id: "42" },
+      params: { path: [{ key: "id", value: "42" }], query: [] },
     });
 
     const wire = buildHttpRequest(
@@ -102,10 +105,10 @@ describe("buildHttpRequest - path param substitution (AC-006)", () => {
     const node = request({
       id: "r",
       url: "https://api.com/users/:id",
-      pathParams: { id: "42" },
+      params: { path: [{ key: "id", value: "42" }], query: queryParams({ foo: "bar" }) },
     });
 
-    const wire = buildHttpRequest(node, effectiveOf({ params: { foo: "bar" } }));
+    const wire = buildHttpRequest(node, effectiveOf({}));
 
     expect(wire.url).toBe("https://api.com/users/42?foo=bar");
   });
@@ -115,7 +118,7 @@ describe("buildHttpRequest - path param substitution (AC-006)", () => {
     const node = request({
       id: "r",
       url: "https://host:8080/users/:id",
-      pathParams: { id: "42" },
+      params: { path: [{ key: "id", value: "42" }], query: [] },
     });
 
     const wire = buildHttpRequest(node, effectiveOf({}));
@@ -131,7 +134,7 @@ describe("buildHttpRequest - empty path param stays literal (AC-007)", () => {
     const node = request({
       id: "r",
       url: "https://api.com/users/:id",
-      pathParams: { id: "" },
+      params: { path: [{ key: "id", value: "" }], query: [] },
     });
 
     const wire = buildHttpRequest(node, effectiveOf({}));
@@ -154,10 +157,10 @@ describe("buildHttpRequest - empty path param stays literal (AC-007)", () => {
     const node = request({
       id: "r",
       url: "https://api.com/users/:id/posts/:postId",
-      pathParams: { id: "42", postId: "" },
+      params: { path: [{ key: "id", value: "42" }, { key: "postId", value: "" }], query: queryParams({ q: "x" }) },
     });
 
-    const wire = buildHttpRequest(node, effectiveOf({ params: { q: "x" } }));
+    const wire = buildHttpRequest(node, effectiveOf({}));
 
     expect(wire.url).toBe("https://api.com/users/42/posts/:postId?q=x");
   });

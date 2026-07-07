@@ -7,6 +7,7 @@ import {
   RequestSettingsForm,
 } from "@/components/workspace/config-editor";
 import type { ConfigScope, RequestNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 function editorText(): string {
   const surface = document.querySelector<HTMLElement>(".cm-content");
@@ -22,7 +23,8 @@ const makeRequest = (config: ConfigScope): RequestNode => ({
   name: "Req",
   method: "GET",
   url: "https://api/get",
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config,
 });
 

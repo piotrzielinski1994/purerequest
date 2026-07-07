@@ -24,6 +24,11 @@ UI design rules for this app. Entries are about *visual language and interaction
 - **The thumb is square - no rounding** (the Corners rule wins over the macOS pill). "macOS-style" is delivered via thin + semi-transparent + overlay + auto-hide, not radius.
 - The content-header tab strip is the one region left on the native/global bar (a `ScrollArea` would break its `@dnd-kit` drag math).
 
+## Code editors / text views
+
+- **One editor look everywhere.** Every place that edits OR previews text (request body, response viewer, console, request/folder Settings JSON, scripts, env `.env`) renders through the shared `CodeEditor` (`src/components/workspace/code-editor.tsx`) so they're visually identical: transparent background (inherits the pane behind, no white flash), no line numbers, themed caret/selection/gutter via `makeChrome`. Never hand-roll a `<textarea>`/`EditorView` for text - route it through `CodeEditor`.
+- **Fold arrows are invisible but functional.** Code folding (collapse/expand of JSON blocks) stays wired - the gutter element is clickable and the fold keymap (Ctrl-Shift-`[` / `]`) works - but the chevrons/arrows must NEVER render (`.cm-foldGutter .cm-gutterElement { opacity: 0 }` in `makeChrome`). Do not reintroduce a "show fold arrows" flag.
+
 ## Tables / grids
 
 - One grid component, reused everywhere a result set is shown. All grids look identical: same row height, padding, header treatment, single-line cells (`overflow-hidden text-ellipsis whitespace-nowrap`), resizable columns.

@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { RequestPane } from "@/components/workspace/request-pane";
 import type { TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const tree: TreeNode[] = [
   {
@@ -13,9 +14,13 @@ const tree: TreeNode[] = [
     name: "Req",
     method: "GET",
     url: "{{token}}/get",
-    body: "",
+    body: emptyBody(),
+    params: emptyParams(),
     config: {
-      variables: { token: "tok-123", scope: "read" },
+      variables: [
+        { key: "token", value: "tok-123" },
+        { key: "scope", value: "read" },
+      ],
     },
   },
   {
@@ -24,7 +29,8 @@ const tree: TreeNode[] = [
     name: "Empty",
     method: "GET",
     url: "https://api/get",
-    body: "",
+    body: emptyBody(),
+    params: emptyParams(),
     config: {},
   },
 ];

@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { JSONSchema7 } from "json-schema";
 import {
   configScopeSchema,
+  folderConfigSchema,
   requestSettingsSchema,
   themeColorsSchema,
 } from "@/lib/config-schema/zod-schemas";
@@ -19,5 +20,6 @@ function toJsonSchema(schema: z.ZodType): JSONSchema7 | undefined {
 }
 
 export const configScopeJsonSchema = toJsonSchema(configScopeSchema);
+export const folderConfigJsonSchema = toJsonSchema(folderConfigSchema);
 export const requestSettingsJsonSchema = toJsonSchema(requestSettingsSchema);
 export const themeColorsJsonSchema = toJsonSchema(themeColorsSchema);

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import { serialize, deserialize } from "@/lib/workspace/disk-format";
 import type { FileMap } from "@/lib/workspace/disk-format";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (name: string): RequestNode => ({
@@ -10,7 +11,8 @@ const request = (name: string): RequestNode => ({
   name,
   method: "GET",
   url: `https://example.test/${name}`,
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config: {},
 });
 
@@ -91,25 +93,27 @@ describe("disk-format folder environmentColors round-trip (AC-003, TC-004)", () 
   });
 });
 
-describe("disk-format environmentColors emit-only-when-non-empty (AC-003, E-7)", () => {
-  // AC-003, TC-004, E-7 - side-effect-contract: serialize writes environmentColors
-  // into folder.json only when the map is non-empty.
-  it("should write environmentColors into folder.json if the folder has at least one env color", () => {
+describe("disk-format env color emit-only-when-non-empty (AC-003, E-7)", () => {
+  // AC-003, TC-004, E-7 - side-effect-contract: serialize folds an env color into a
+  // synthesized `environments` entry (no separate environmentColors field on disk).
+  it("should fold an env color into an environments entry on disk if the folder has at least one", () => {
     const tree: TreeNode[] = [
       folder("Api", [request("Get")], {
         environmentColors: { prod: "#16a34a80" },
       }),
     ];
 
-    expect(folderJson(serialize(tree)).environmentColors).toEqual({
-      prod: "#16a34a80",
-    });
+    const doc = folderJson(serialize(tree));
+    expect(doc.environmentColors).toBeUndefined();
+    expect(doc.environments).toEqual([
+      { name: "prod", color: "#16a34a80", variables: [] },
+    ]);
   });
 
-  // AC-003, E-7 - side-effect-contract: an empty environmentColors map is NOT
-  // emitted (paired below with a non-empty sibling that IS, so a green run proves
-  // the empty case is the only one omitted, not that the field is never written).
-  it("should omit environmentColors from folder.json if the map is empty", () => {
+  // AC-003, E-7 - side-effect-contract: an empty color map emits NO environments
+  // (paired below with a non-empty sibling that DOES, so a green run proves the
+  // empty case is the only one omitted, not that colors are never written).
+  it("should emit no environments on disk if the color map is empty", () => {
     const tree: TreeNode[] = [
       folder("Empty", [request("a")], { environmentColors: {} }),
       folder("Filled", [request("b")], {
@@ -125,15 +129,16 @@ describe("disk-format environmentColors emit-only-when-non-empty (AC-003, E-7)",
       ([path]) => path.startsWith("filled/") && path.endsWith("/folder.json"),
     );
 
+    expect(JSON.parse(emptyEntry![1])).not.toHaveProperty("environments");
     expect(JSON.parse(emptyEntry![1])).not.toHaveProperty("environmentColors");
-    expect(JSON.parse(filledEntry![1]).environmentColors).toEqual({
-      prod: "#dc262680",
-    });
+    expect(JSON.parse(filledEntry![1]).environments).toEqual([
+      { name: "prod", color: "#dc262680", variables: [] },
+    ]);
   });
 
-  // AC-003, E-7 - side-effect-contract: a folder with no environmentColors at all
-  // omits the field; a colored sibling still carries it (paired, non-tautological).
-  it("should write environmentColors only into the colored folder's folder.json", () => {
+  // AC-003, E-7 - side-effect-contract: a folder with no color at all emits no
+  // environments; a colored sibling carries the folded entry (paired, non-tautological).
+  it("should fold the color only into the colored folder's folder.json", () => {
     const tree: TreeNode[] = [
       folder("Colored", [request("a")], {
         environmentColors: { prod: "#dc262680" },
@@ -149,9 +154,10 @@ describe("disk-format environmentColors emit-only-when-non-empty (AC-003, E-7)",
       ([path]) => path.startsWith("plain/") && path.endsWith("/folder.json"),
     );
 
-    expect(JSON.parse(coloredEntry![1]).environmentColors).toEqual({
-      prod: "#dc262680",
-    });
+    expect(JSON.parse(coloredEntry![1]).environments).toEqual([
+      { name: "prod", color: "#dc262680", variables: [] },
+    ]);
+    expect(JSON.parse(plainEntry![1])).not.toHaveProperty("environments");
     expect(JSON.parse(plainEntry![1])).not.toHaveProperty("environmentColors");
   });
 
@@ -248,7 +254,9 @@ describe("disk-format environmentColors sanitize (AC-008, E-2, E-4)", () => {
     const loaded = loadedFolder(result, "Api");
 
     expect(loaded.environmentColors).toEqual({ prod: "#16a34a80" });
-    expect(loaded.config.variables).toEqual({ baseUrl: "https://api" });
+    expect(loaded.config.variables).toEqual([
+      { key: "baseUrl", value: "https://api" },
+    ]);
   });
 
   // AC-008, E-2 - behavior: a 3-digit "#abc" value is dropped (not #rrggbb/#rrggbbaa),
@@ -272,7 +280,9 @@ describe("disk-format environmentColors sanitize (AC-008, E-2, E-4)", () => {
     const loaded = loadedFolder(result, "Api");
 
     expect(loaded.environmentColors).toBeUndefined();
-    expect(loaded.config.variables).toEqual({ baseUrl: "https://api" });
+    expect(loaded.config.variables).toEqual([
+      { key: "baseUrl", value: "https://api" },
+    ]);
     expectGoodSiblingKept(result);
   });
 

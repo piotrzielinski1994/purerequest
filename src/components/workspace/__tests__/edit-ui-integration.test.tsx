@@ -21,16 +21,17 @@ import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import { ToastProvider } from "@/components/ui/toast";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient } from "./fake-http-client";
 
-const REQ_CONFIG: ConfigScope = { variables: { token: "abc" } };
+const REQ_CONFIG: ConfigScope = { variables: [{ key: "token", value: "abc" }] };
 
 const tree: TreeNode[] = [
   {
     kind: "folder",
     id: "folder-1",
     name: "Folder",
-    config: { variables: { baseUrl: "https://api.example.com" } },
+    config: { variables: [{ key: "baseUrl", value: "https://api.example.com" }] },
     children: [
       {
         kind: "request",
@@ -38,7 +39,8 @@ const tree: TreeNode[] = [
         name: "Req",
         method: "GET",
         url: "{{baseUrl}}/get",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: REQ_CONFIG,
       },
     ],

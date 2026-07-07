@@ -8,6 +8,7 @@ import {
 } from "@/lib/scripts/script-context";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import type { HttpResponse } from "@/lib/http/model";
+import { authOf } from "@/lib/workspace/model";
 
 const PROV = { scopeId: "s", scopeName: "Scope" };
 
@@ -17,8 +18,7 @@ function effective(
   return {
     variables: {},
     headers: {},
-    params: {},
-    auth: { value: { type: "none" }, from: PROV },
+    auth: { value: authOf({ active: "none" }), from: PROV },
     scripts: { pre: { value: "", from: PROV }, post: { value: "", from: PROV } },
     timeoutMs: { value: 30000, from: PROV },
     ...overrides,

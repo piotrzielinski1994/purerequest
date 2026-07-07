@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 
 import { resolveConfig } from "@/lib/workspace/resolve";
+import { authOf } from "@/lib/workspace/model";
 import type {
-  Auth,
   FolderNode,
   RequestNode,
   TreeNode,
@@ -18,7 +18,8 @@ const request = (
   name,
   method: "GET",
   url: "",
-  body: "",
+  body: { active: "json", types: { json: "", form: [], multipart: [] } },
+  params: { path: [], query: [] },
   config,
 });
 
@@ -33,7 +34,7 @@ describe("resolveConfig - variables", () => {
   // AC-001, AC-005, TC-001 - behavior
   it("should resolve a request at root over defaults if it has no parent folder", () => {
     const req = request("req-root", "Root Req", {
-      variables: { token: "abc" },
+      variables: [{ key: "token", value: "abc" }],
     });
 
     const effective = resolveConfig([req], "req-root");
@@ -45,13 +46,35 @@ describe("resolveConfig - variables", () => {
     });
   });
 
+  // behavior: a variable row explicitly disabled (enabled:false, only reachable
+  // via a hand-edited doc - no UI toggle) is excluded from the resolved config,
+  // mirroring the header enabled filter.
+  it("should exclude a variable row that is explicitly disabled", () => {
+    const req = request("req-1", "Req", {
+      variables: [
+        { key: "on", value: "1", enabled: true },
+        { key: "off", value: "2", enabled: false },
+      ],
+    });
+
+    const effective = resolveConfig([req], "req-1");
+
+    expect(effective.variables.on.value).toBe("1");
+    expect(effective.variables.off).toBeUndefined();
+  });
+
   // AC-001, AC-002, AC-005, TC-001 - behavior
   it("should let a child variable replace a same-key parent variable", () => {
-    const req = request("req-1", "Req", { variables: { baseUrl: "stg" } });
+    const req = request("req-1", "Req", {
+      variables: [{ key: "baseUrl", value: "stg" }],
+    });
     const sub = folder("sub", "Sub", {}, [req]);
-    const root = folder("root", "Root", { variables: { baseUrl: "prod" } }, [
-      sub,
-    ]);
+    const root = folder(
+      "root",
+      "Root",
+      { variables: [{ key: "baseUrl", value: "prod" }] },
+      [sub],
+    );
 
     const effective = resolveConfig([root], "req-1");
 
@@ -64,11 +87,18 @@ describe("resolveConfig - variables", () => {
 
   // AC-002, AC-005, TC-001 - behavior
   it("should inherit a non-conflicting parent variable with parent provenance", () => {
-    const req = request("req-1", "Req", { variables: { baseUrl: "stg" } });
+    const req = request("req-1", "Req", {
+      variables: [{ key: "baseUrl", value: "stg" }],
+    });
     const root = folder(
       "root",
       "Root",
-      { variables: { baseUrl: "prod", apiKey: "k1" } },
+      {
+        variables: [
+          { key: "baseUrl", value: "prod" },
+          { key: "apiKey", value: "k1" },
+        ],
+      },
       [req],
     );
 
@@ -83,15 +113,27 @@ describe("resolveConfig - variables", () => {
 
   // AC-006, E-2, TC-001 - behavior
   it("should let the deepest scope win if a variable conflicts at three levels", () => {
-    const req = request("req-deep", "Deep", { variables: { env: "request" } });
+    const req = request("req-deep", "Deep", {
+      variables: [{ key: "env", value: "request" }],
+    });
     const subsub = folder(
       "subsub",
       "SubSub",
-      { variables: { env: "subsub" } },
+      { variables: [{ key: "env", value: "subsub" }] },
       [req],
     );
-    const sub = folder("sub", "Sub", { variables: { env: "sub" } }, [subsub]);
-    const root = folder("root", "Root", { variables: { env: "root" } }, [sub]);
+    const sub = folder(
+      "sub",
+      "Sub",
+      { variables: [{ key: "env", value: "sub" }] },
+      [subsub],
+    );
+    const root = folder(
+      "root",
+      "Root",
+      { variables: [{ key: "env", value: "root" }] },
+      [sub],
+    );
 
     const effective = resolveConfig([root], "req-deep");
 
@@ -104,17 +146,27 @@ describe("resolveConfig - variables", () => {
 
   // AC-006 - behavior
   it("should carry the right provenance for each variable if overrides sit at multiple levels", () => {
-    const req = request("req-deep", "Deep", { variables: { c: "fromReq" } });
+    const req = request("req-deep", "Deep", {
+      variables: [{ key: "c", value: "fromReq" }],
+    });
     const subsub = folder(
       "subsub",
       "SubSub",
-      { variables: { b: "fromSubSub" } },
+      { variables: [{ key: "b", value: "fromSubSub" }] },
       [req],
     );
-    const sub = folder("sub", "Sub", { variables: { a: "fromSub" } }, [subsub]);
-    const root = folder("root", "Root", { variables: { root: "fromRoot" } }, [
-      sub,
-    ]);
+    const sub = folder(
+      "sub",
+      "Sub",
+      { variables: [{ key: "a", value: "fromSub" }] },
+      [subsub],
+    );
+    const root = folder(
+      "root",
+      "Root",
+      { variables: [{ key: "root", value: "fromRoot" }] },
+      [sub],
+    );
 
     const effective = resolveConfig([root], "req-deep");
 
@@ -215,66 +267,18 @@ describe("resolveConfig - headers", () => {
   });
 });
 
-describe("resolveConfig - params", () => {
-  // AC-002 - behavior
-  it("should let a child param replace a same-key parent param", () => {
-    const req = request("req-1", "Req", {
-      params: [{ key: "page", value: "2" }],
-    });
-    const root = folder(
-      "root",
-      "Root",
-      { params: [{ key: "page", value: "1" }] },
-      [req],
-    );
-
-    const effective = resolveConfig([root], "req-1");
-
-    expect(effective.params.page.value).toBe("2");
-    expect(effective.params.page.from.scopeId).toBe("req-1");
-  });
-
-  // AC-002 - behavior
-  it("should treat param keys case-sensitively keeping differing-case keys separate", () => {
-    const req = request("req-1", "Req", {
-      params: [{ key: "Page", value: "child" }],
-    });
-    const root = folder(
-      "root",
-      "Root",
-      { params: [{ key: "page", value: "parent" }] },
-      [req],
-    );
-
-    const effective = resolveConfig([root], "req-1");
-
-    expect(effective.params.page.value).toBe("parent");
-    expect(effective.params.page.from.scopeId).toBe("root");
-    expect(effective.params.Page.value).toBe("child");
-    expect(effective.params.Page.from.scopeId).toBe("req-1");
-  });
-
-  // config-grid - behavior: a param with enabled:false is excluded.
-  it("should exclude a param explicitly disabled (enabled:false)", () => {
-    const req = request("req-1", "Req", {
-      params: [
-        { key: "page", value: "1" },
-        { key: "debug", value: "1", enabled: false },
-      ],
-    });
-
-    const effective = resolveConfig([req], "req-1");
-
-    expect(effective.params.page).toBeDefined();
-    expect(effective.params.debug).toBeUndefined();
-  });
-});
+// Query params are no longer resolved through config (they are request-owned in
+// `node.params.query` and never inherited from folders), so the former
+// "resolveConfig - params" block was removed. Query encoding is covered by
+// build-request tests.
 
 describe("resolveConfig - auth", () => {
   // AC-003, E-3, TC-002 - behavior
   it("should inherit the folder auth if the request auth is inherit", () => {
-    const folderAuth: Auth = { type: "bearer", token: "T" };
-    const req = request("req-1", "Req", { auth: { type: "inherit" } });
+    const folderAuth = authOf({ active: "bearer", token: "T" });
+    const req = request("req-1", "Req", {
+      auth: authOf({ active: "inherit" }),
+    });
     const root = folder("root", "Root", { auth: folderAuth }, [req]);
 
     const effective = resolveConfig([root], "req-1");
@@ -290,41 +294,45 @@ describe("resolveConfig - auth", () => {
 
     const effective = resolveConfig([root], "req-1");
 
-    expect(effective.auth.value).toEqual({ type: "none" });
+    expect(effective.auth.value.active).toBe("none");
     expect(effective.auth.from.scopeId).toBe("default");
   });
 
   // AC-003, TC-002 - behavior
   it("should let a request none override an ancestor bearer", () => {
-    const req = request("req-1", "Req", { auth: { type: "none" } });
+    const req = request("req-1", "Req", { auth: authOf({ active: "none" }) });
     const root = folder(
       "root",
       "Root",
-      { auth: { type: "bearer", token: "T" } },
+      { auth: authOf({ active: "bearer", token: "T" }) },
       [req],
     );
 
     const effective = resolveConfig([root], "req-1");
 
-    expect(effective.auth.value).toEqual({ type: "none" });
+    expect(effective.auth.value.active).toBe("none");
     expect(effective.auth.from.scopeId).toBe("req-1");
   });
 
   // AC-003 - behavior
   it("should pick the nearest non-inherit ancestor if an intermediate folder inherits", () => {
-    const req = request("req-1", "Req", { auth: { type: "inherit" } });
-    const sub = folder("sub", "Sub", { auth: { type: "inherit" } }, [req]);
+    const req = request("req-1", "Req", {
+      auth: authOf({ active: "inherit" }),
+    });
+    const sub = folder("sub", "Sub", { auth: authOf({ active: "inherit" }) }, [
+      req,
+    ]);
     const root = folder(
       "root",
       "Root",
-      { auth: { type: "basic", username: "u", password: "p" } },
+      { auth: authOf({ active: "basic", username: "u", password: "p" }) },
       [sub],
     );
 
     const effective = resolveConfig([root], "req-1");
 
-    expect(effective.auth.value).toEqual({
-      type: "basic",
+    expect(effective.auth.value.active).toBe("basic");
+    expect(effective.auth.value.types.basic).toEqual({
       username: "u",
       password: "p",
     });
@@ -334,18 +342,19 @@ describe("resolveConfig - auth", () => {
   // AC-003 - behavior
   it("should resolve auth whole-object and not field-merge across scopes", () => {
     const req = request("req-1", "Req", {
-      auth: { type: "bearer", token: "child" },
+      auth: authOf({ active: "bearer", token: "child" }),
     });
     const root = folder(
       "root",
       "Root",
-      { auth: { type: "basic", username: "u", password: "p" } },
+      { auth: authOf({ active: "basic", username: "u", password: "p" }) },
       [req],
     );
 
     const effective = resolveConfig([root], "req-1");
 
-    expect(effective.auth.value).toEqual({ type: "bearer", token: "child" });
+    expect(effective.auth.value.active).toBe("bearer");
+    expect(effective.auth.value.types.bearer.token).toBe("child");
   });
 });
 

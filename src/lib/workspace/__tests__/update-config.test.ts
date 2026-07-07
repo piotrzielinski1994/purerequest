@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 // feature (module), not on a typo. Once update-config.ts ships, these assertions
 // pin updateNodeConfig's purity + targeted replacement (AC-016).
 import { updateNodeConfig } from "@/lib/workspace/update-config";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 import type {
   ConfigScope,
   FolderNode,
@@ -17,7 +18,8 @@ const request = (id: string, config: ConfigScope = {}): RequestNode => ({
   name: id,
   method: "GET",
   url: `https://example.test/${id}`,
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config,
 });
 
@@ -53,44 +55,55 @@ describe("updateNodeConfig replaces the target node config", () => {
   // AC-016 - behavior: a request node's config is replaced by the given one.
   it("should replace only the target request's config if the id matches a request", () => {
     const tree: TreeNode[] = [
-      request("r1", { variables: { a: "1" } }),
-      request("r2", { variables: { b: "2" } }),
+      request("r1", { variables: [{ key: "a", value: "1" }] }),
+      request("r2", { variables: [{ key: "b", value: "2" }] }),
     ];
-    const next: ConfigScope = { variables: { a: "99" }, timeoutMs: 5000 };
+    const next: ConfigScope = {
+      variables: [{ key: "a", value: "99" }],
+      timeoutMs: 5000,
+    };
 
     const result = updateNodeConfig(tree, "r1", next);
 
     expect(findNode(result, "r1").config).toEqual(next);
     // sibling untouched
-    expect(findNode(result, "r2").config).toEqual({ variables: { b: "2" } });
+    expect(findNode(result, "r2").config).toEqual({
+      variables: [{ key: "b", value: "2" }],
+    });
   });
 
   // AC-016 - behavior: works on a folder node too (one editor handles both).
   it("should replace only the target folder's config if the id matches a folder", () => {
     const tree: TreeNode[] = [
-      folder("f1", [request("c1")], { variables: { x: "old" } }),
-      folder("f2", [], { variables: { y: "keep" } }),
+      folder("f1", [request("c1")], { variables: [{ key: "x", value: "old" }] }),
+      folder("f2", [], { variables: [{ key: "y", value: "keep" }] }),
     ];
     const next: ConfigScope = {
-      environments: { prod: { baseUrl: "https://api" } },
+      environments: [
+        { name: "prod", variables: [{ key: "baseUrl", value: "https://api" }] },
+      ],
     };
 
     const result = updateNodeConfig(tree, "f1", next);
 
     expect(findNode(result, "f1").config).toEqual(next);
-    expect(findNode(result, "f2").config).toEqual({ variables: { y: "keep" } });
+    expect(findNode(result, "f2").config).toEqual({
+      variables: [{ key: "y", value: "keep" }],
+    });
   });
 
   // AC-016 - behavior: a deeply-nested node's config is replaced.
   it("should replace a nested node's config if it is several folders deep", () => {
     const tree: TreeNode[] = [
       folder("root", [
-        folder("mid", [request("deep", { variables: { d: "old" } })], {
-          variables: { m: "1" },
+        folder("mid", [request("deep", { variables: [{ key: "d", value: "old" }] })], {
+          variables: [{ key: "m", value: "1" }],
         }),
       ]),
     ];
-    const next: ConfigScope = { auth: { type: "bearer", token: "{{tok}}" } };
+    const next: ConfigScope = {
+      auth: authOf({ active: "bearer", token: "{{tok}}" }),
+    };
 
     const result = updateNodeConfig(tree, "deep", next);
 
@@ -123,7 +136,9 @@ describe("updateNodeConfig leaves the rest of the tree intact", () => {
       folder("f1", [request("c1"), folder("nested", [request("c2")])]),
     ];
 
-    const result = updateNodeConfig(tree, "c2", { variables: { z: "z" } });
+    const result = updateNodeConfig(tree, "c2", {
+      variables: [{ key: "z", value: "z" }],
+    });
 
     const f1 = findNode(result, "f1") as FolderNode;
     expect(f1.children.map((node) => node.id)).toEqual(["c1", "nested"]);
@@ -133,7 +148,9 @@ describe("updateNodeConfig leaves the rest of the tree intact", () => {
 
   // AC-016 - behavior: non-config fields of the target node are preserved.
   it("should preserve the target node's non-config fields if its config is replaced", () => {
-    const tree: TreeNode[] = [request("r1", { variables: { a: "1" } })];
+    const tree: TreeNode[] = [
+      request("r1", { variables: [{ key: "a", value: "1" }] }),
+    ];
 
     const result = updateNodeConfig(tree, "r1", { timeoutMs: 9 });
 
@@ -160,20 +177,24 @@ describe("updateNodeConfig purity", () => {
   // side-effect-contract: the input tree is not mutated.
   it("should not mutate the input tree if a config is replaced", () => {
     const tree: TreeNode[] = [
-      folder("f1", [request("c1", { variables: { a: "1" } })]),
+      folder("f1", [request("c1", { variables: [{ key: "a", value: "1" }] })]),
     ];
     const snapshot = structuredClone(tree);
 
-    updateNodeConfig(tree, "c1", { variables: { a: "2" } });
+    updateNodeConfig(tree, "c1", { variables: [{ key: "a", value: "2" }] });
 
     expect(tree).toEqual(snapshot);
   });
 
   // side-effect-contract: returns a NEW tree (not the same array reference).
   it("should return a new tree array if a config is replaced", () => {
-    const tree: TreeNode[] = [request("r1", { variables: { a: "1" } })];
+    const tree: TreeNode[] = [
+      request("r1", { variables: [{ key: "a", value: "1" }] }),
+    ];
 
-    const result = updateNodeConfig(tree, "r1", { variables: { a: "2" } });
+    const result = updateNodeConfig(tree, "r1", {
+      variables: [{ key: "a", value: "2" }],
+    });
 
     expect(result).not.toBe(tree);
   });

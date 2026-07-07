@@ -4,7 +4,13 @@ import {
   serialize,
   type FileMap,
 } from "@/lib/workspace/disk-format";
-import type { RequestNode, TreeNode } from "@/lib/workspace/model";
+import type {
+  KeyValue,
+  RequestBody,
+  RequestNode,
+  TreeNode,
+} from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 
 // In-memory fs key + dev-build settings `workspacePath`. The `npm run dev`
 // browser build seeds this path so the workspace renders instead of the empty
@@ -13,22 +19,28 @@ export const DEMO_WORKSPACE_PATH = "demo";
 
 const WORKSPACE_NAME = "Demo";
 
+const jsonBody = (json: string): RequestBody => ({
+  active: "json",
+  types: { json, form: [], multipart: [] },
+});
+const queryParams = (query: KeyValue[]) => ({ path: [], query });
+
 const tokenRequest: RequestNode = {
   kind: "request",
   id: "r-token",
   name: "/oauth/token",
   method: "POST",
   url: "{{baseUrl}}/oauth/token",
-  body: '{\n  "grant_type": "client_credentials"\n}',
+  body: jsonBody('{\n  "grant_type": "client_credentials"\n}'),
+  params: queryParams([
+    { key: "grant_type", value: "client_credentials" },
+    { key: "scope", value: "read write" },
+  ]),
   config: {
-    params: [
-      { key: "grant_type", value: "client_credentials" },
-      { key: "scope", value: "read write" },
-    ],
     headers: [
       { key: "Content-Type", value: "application/x-www-form-urlencoded" },
     ],
-    auth: { type: "bearer", token: "ey.mock.token" },
+    auth: authOf({ active: "bearer", token: "ey.mock.token" }),
     scripts: { pre: "// pre-request script", post: "// post-response script" },
   },
   response: {
@@ -49,10 +61,11 @@ const refreshRequest: RequestNode = {
   name: "/oauth/refresh",
   method: "GET",
   url: "{{baseUrl}}/oauth/refresh",
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config: {
     headers: [{ key: "Accept", value: "application/json" }],
-    auth: { type: "bearer", token: "ey.refresh.token" },
+    auth: authOf({ active: "bearer", token: "ey.refresh.token" }),
   },
   response: {
     status: 200,
@@ -69,10 +82,11 @@ const userinfoRequest: RequestNode = {
   name: "/oauth/userinfo",
   method: "GET",
   url: "{{baseUrl}}/oauth/userinfo",
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config: {
     headers: [{ key: "Authorization", value: "Bearer ey.mock.token" }],
-    auth: { type: "bearer", token: "ey.mock.token" },
+    auth: authOf({ active: "bearer", token: "ey.mock.token" }),
   },
   response: {
     status: 200,
@@ -89,11 +103,11 @@ const getUserRequest: RequestNode = {
   name: "/users/:id",
   method: "GET",
   url: "{{baseUrl}}/users/:id",
-  body: "",
+  body: emptyBody(),
+  params: { path: [{ key: "id", value: "1" }], query: [{ key: "expand", value: "roles" }] },
   config: {
-    params: [{ key: "expand", value: "roles" }],
     headers: [{ key: "Accept", value: "application/json" }],
-    auth: { type: "basic", username: "admin", password: "s3cret" },
+    auth: authOf({ active: "basic", username: "admin", password: "s3cret" }),
   },
   response: {
     status: 200,
@@ -110,11 +124,11 @@ const invoicesRequest: RequestNode = {
   name: "/billing/invoices",
   method: "GET",
   url: "{{baseUrl}}/billing/invoices",
-  body: "",
+  body: emptyBody(),
+  params: queryParams([{ key: "status", value: "open" }]),
   config: {
-    params: [{ key: "status", value: "open" }],
     headers: [{ key: "Accept", value: "application/json" }],
-    auth: { type: "bearer", token: "ey.billing.token" },
+    auth: authOf({ active: "bearer", token: "ey.billing.token" }),
   },
   response: {
     status: 200,
@@ -131,10 +145,11 @@ const chargeRequest: RequestNode = {
   name: "/billing/charge",
   method: "POST",
   url: "{{baseUrl}}/billing/charge",
-  body: '{\n  "amount": 1999,\n  "currency": "eur"\n}',
+  body: jsonBody('{\n  "amount": 1999,\n  "currency": "eur"\n}'),
+  params: emptyParams(),
   config: {
     headers: [{ key: "Content-Type", value: "application/json" }],
-    auth: { type: "bearer", token: "ey.billing.token" },
+    auth: authOf({ active: "bearer", token: "ey.billing.token" }),
   },
   response: {
     status: 201,
@@ -151,9 +166,10 @@ const healthRequest: RequestNode = {
   name: "/health",
   method: "GET",
   url: "{{baseUrl}}/health",
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config: {
-    auth: { type: "none" },
+    auth: authOf({ active: "none" }),
   },
   response: {
     status: 200,
@@ -173,7 +189,7 @@ const seedSource: TreeNode[] = [
     kind: "folder",
     id: "f-auth",
     name: "auth",
-    config: { variables: { baseUrl: "https://api.example.com" } },
+    config: { variables: [{ key: "baseUrl", value: "https://api.example.com" }] },
     children: [
       {
         kind: "folder",

@@ -5,9 +5,7 @@ export type ProcessEnv = Record<string, string>;
 export function listEnvironmentNames(tree: TreeNode[]): string[] {
   const names = new Set<string>();
   const visit = (node: TreeNode) => {
-    Object.keys(node.config.environments ?? {}).forEach((name) =>
-      names.add(name),
-    );
+    (node.config.environments ?? []).forEach((env) => names.add(env.name));
     if (node.kind === "folder") {
       node.children.forEach(visit);
     }

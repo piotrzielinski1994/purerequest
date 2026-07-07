@@ -30,10 +30,11 @@ import { ScriptEditor } from "@/components/workspace/script-editor";
 import { AccentField } from "@/components/workspace/accent-field";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { ScriptStage } from "@/lib/scripts/model";
-import type { Auth, ConfigScope } from "@/lib/workspace/model";
+import type { Auth, AuthMode, ConfigScope, KeyValue } from "@/lib/workspace/model";
+import { emptyAuth } from "@/lib/workspace/model";
 import { parseDotenv } from "@/lib/workspace/environment";
 
-const AUTH_TYPE_LABELS: Record<Auth["type"], string> = {
+const AUTH_TYPE_LABELS: Record<AuthMode, string> = {
   inherit: "Inherit",
   none: "No Auth",
   bearer: "Bearer Token",
@@ -80,6 +81,9 @@ function AuthRow({
   );
 }
 
+// The fields for the ACTIVE auth type. bearer/basic edit their own `types` slot
+// (the other slot is retained untouched, so switching type preserves it);
+// inherit/none carry no fields.
 function AuthFields({
   auth,
   highlight,
@@ -89,7 +93,7 @@ function AuthFields({
   highlight?: TokenHighlightContext;
   onChange: (auth: Auth) => void;
 }) {
-  if (auth.type === "inherit") {
+  if (auth.active === "inherit") {
     return (
       <p className="p-3 text-sm text-muted-foreground">
         Inherited from parent folder
@@ -97,7 +101,7 @@ function AuthFields({
     );
   }
 
-  if (auth.type === "none") {
+  if (auth.active === "none") {
     return (
       <p className="p-3 text-sm text-muted-foreground">No authentication</p>
     );
@@ -110,43 +114,50 @@ function AuthFields({
       className="grid border-t border-l border-border"
       style={{ gridTemplateColumns: "8rem 1fr" }}
     >
-      {auth.type === "bearer" ? (
+      {auth.active === "bearer" ? (
         <AuthRow
           label="Token"
-          value={auth.token}
+          value={auth.types.bearer.token}
           highlight={highlight}
-          onCommit={(token) => onChange({ type: "bearer", token })}
+          onCommit={(token) =>
+            onChange({ ...auth, types: { ...auth.types, bearer: { token } } })
+          }
         />
       ) : (
         <>
           <AuthRow
             label="Username"
-            value={auth.username}
+            value={auth.types.basic.username}
             highlight={highlight}
-            onCommit={(username) => onChange({ ...auth, username })}
+            onCommit={(username) =>
+              onChange({
+                ...auth,
+                types: {
+                  ...auth.types,
+                  basic: { ...auth.types.basic, username },
+                },
+              })
+            }
           />
           <AuthRow
             label="Password"
-            value={auth.password}
+            value={auth.types.basic.password}
             secret
             highlight={highlight}
-            onCommit={(password) => onChange({ ...auth, password })}
+            onCommit={(password) =>
+              onChange({
+                ...auth,
+                types: {
+                  ...auth.types,
+                  basic: { ...auth.types.basic, password },
+                },
+              })
+            }
           />
         </>
       )}
     </div>
   );
-}
-
-// Switching auth type seeds sensible empty fields for the new variant.
-export function authForType(type: Auth["type"]): Auth {
-  if (type === "bearer") {
-    return { type: "bearer", token: "" };
-  }
-  if (type === "basic") {
-    return { type: "basic", username: "", password: "" };
-  }
-  return { type };
 }
 
 export function AuthPanel({
@@ -158,7 +169,7 @@ export function AuthPanel({
   onChange: (config: ConfigScope) => void;
   highlight?: TokenHighlightContext;
 }) {
-  const auth = config.auth ?? { type: "inherit" };
+  const auth = config.auth ?? emptyAuth();
 
   const change = (nextAuth: Auth) => onChange({ ...config, auth: nextAuth });
 
@@ -166,14 +177,16 @@ export function AuthPanel({
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex h-10.25 items-stretch overflow-x-auto border-b bg-muted/30">
         <Select
-          value={auth.type}
-          onValueChange={(type) => change(authForType(type as Auth["type"]))}
+          value={auth.active}
+          onValueChange={(active) =>
+            change({ ...auth, active: active as Auth["active"] })
+          }
         >
           <SelectTrigger
             aria-label="Auth type"
             className="h-full! w-fit rounded-none border-0 border-r border-r-border bg-transparent text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
           >
-            {AUTH_TYPE_LABELS[auth.type]}
+            {AUTH_TYPE_LABELS[auth.active]}
           </SelectTrigger>
           <SelectContent position="popper">
             <SelectItem value="inherit">Inherit</SelectItem>
@@ -217,8 +230,10 @@ export function EnvPanel({
   onConfigChange: (config: ConfigScope) => void;
   onDotenvChange: (dotenv: string) => void;
 }) {
+  const envList = config.environments ?? [];
+  const findEnv = (name: string) => envList.find((env) => env.name === name);
   const available = [
-    ...new Set([...envNames, ...Object.keys(config.environments ?? {})]),
+    ...new Set([...envNames, ...envList.map((env) => env.name)]),
   ].sort();
   const [picked, setPicked] = useState<string | null>(available[0] ?? null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -249,21 +264,22 @@ export function EnvPanel({
     }
     onConfigChange({
       ...config,
-      environments: { ...config.environments, [name]: {} },
+      environments: [...envList, { name, variables: [] }],
     });
     setPicked(name);
     setNewEnv("");
     setIsAddOpen(false);
   };
 
-  // Delete an env from THIS folder: drop its vars from config (draft) AND clear its
+  // Delete an env from THIS folder: drop its entry from config (draft) AND clear its
   // color (live). The union may still list it if an ancestor defines it, so it only
   // vanishes from the picker when no scope defines or colors it. Confirm first.
   const deleteEnv = (name: string) => {
-    if (config.environments?.[name] !== undefined) {
-      const rest = { ...config.environments };
-      delete rest[name];
-      onConfigChange({ ...config, environments: rest });
+    if (findEnv(name) !== undefined) {
+      onConfigChange({
+        ...config,
+        environments: envList.filter((env) => env.name !== name),
+      });
     }
     if (envColors?.[name] !== undefined) {
       onEnvColorChange?.(name, null);
@@ -273,8 +289,7 @@ export function EnvPanel({
   };
 
   const isPickedOwned =
-    activePicked !== null &&
-    config.environments?.[activePicked] !== undefined;
+    activePicked !== null && findEnv(activePicked) !== undefined;
   // A trash shows when the env is THIS folder's to remove: declared in its config OR
   // only colored here (then delete just clears the color). An env merely inherited
   // from a parent isn't this folder's to delete.
@@ -286,15 +301,11 @@ export function EnvPanel({
   // env always shows the marker. `envOrigins` only maps a name to an ancestor when a
   // parent (not this folder) defines it, so a same-named env owned here returns null.
   const inheritedOrigin = (name: string): string | null =>
-    config.environments?.[name] === undefined
-      ? (envOrigins?.[name] ?? null)
-      : null;
+    findEnv(name) === undefined ? (envOrigins?.[name] ?? null) : null;
   const inheritedFrom =
     activePicked !== null ? inheritedOrigin(activePicked) : null;
 
-  const envRows = Object.entries(
-    (activePicked && config.environments?.[activePicked]) || {},
-  ).map(([key, value]) => ({ key, value }));
+  const envRows = activePicked ? (findEnv(activePicked)?.variables ?? []) : [];
 
   const dotenvRows = Object.entries(parseDotenv(dotenv)).map(
     ([key, value]) => ({ key, value }),
@@ -422,12 +433,13 @@ export function EnvPanel({
             onChange={(next) =>
               onConfigChange({
                 ...config,
-                environments: {
-                  ...config.environments,
-                  [activePicked]: Object.fromEntries(
-                    next.map((r) => [r.key, r.value]),
-                  ),
-                },
+                environments: findEnv(activePicked)
+                  ? envList.map((env) =>
+                      env.name === activePicked
+                        ? { ...env, variables: next }
+                        : env,
+                    )
+                  : [...envList, { name: activePicked, variables: next }],
               })
             }
           />
@@ -538,21 +550,12 @@ export function VarsPanel({
   onChange: (config: ConfigScope) => void;
   highlight?: TokenHighlightContext;
 }) {
-  const rows = Object.entries(config.variables ?? {}).map(([key, value]) => ({
-    key,
-    value,
-  }));
   return (
     <EditableKeyValueTable
-      rows={rows}
+      rows={config.variables ?? []}
       keyPlaceholder="name"
       highlight={highlight}
-      onChange={(next) =>
-        onChange({
-          ...config,
-          variables: Object.fromEntries(next.map((r) => [r.key, r.value])),
-        })
-      }
+      onChange={(variables) => onChange({ ...config, variables })}
     />
   );
 }
@@ -576,21 +579,24 @@ export function HeadersPanel({
   );
 }
 
+// The request Query grid: enabled/order/duplicate-key rows, bidirectionally
+// mirrored to the URL by the caller. Query is request-owned now (no folder
+// inheritance), so this panel edits a plain rows array, not a ConfigScope.
 export function ParamsPanel({
-  config,
+  rows,
   onChange,
   highlight,
 }: {
-  config: ConfigScope;
-  onChange: (config: ConfigScope) => void;
+  rows: KeyValue[];
+  onChange: (rows: KeyValue[]) => void;
   highlight?: TokenHighlightContext;
 }) {
   return (
     <EditableKeyValueTable
-      rows={config.params ?? []}
+      rows={rows}
       withToggle
       highlight={highlight}
-      onChange={(params) => onChange({ ...config, params })}
+      onChange={onChange}
     />
   );
 }

@@ -9,24 +9,31 @@ import {
 import { RequestPane } from "@/components/workspace/request-pane";
 import { UrlBar } from "@/components/workspace/url-bar";
 import { ToastProvider } from "@/components/ui/toast";
-import type { RequestNode, TreeNode } from "@/lib/workspace/model";
+import type { KeyValue, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody } from "@/lib/workspace/model";
 
 type OnTreeChange = (
   tree: TreeNode[],
 ) => Promise<{ ok: true } | { ok: false; error: string }>;
 
-const requestWith = (overrides: Partial<RequestNode>): TreeNode[] => [
-  {
-    kind: "request",
-    id: "req-1",
-    name: "Req",
-    method: "GET",
-    url: "https://api.com/get",
-    body: "",
-    config: {},
-    ...overrides,
-  },
-];
+const requestWith = (
+  overrides: Partial<RequestNode> & { query?: KeyValue[] },
+): TreeNode[] => {
+  const { query, params, ...rest } = overrides;
+  return [
+    {
+      kind: "request",
+      id: "req-1",
+      name: "Req",
+      method: "GET",
+      url: "https://api.com/get",
+      body: emptyBody(),
+      config: {},
+      ...rest,
+      params: params ?? { path: [], query: query ?? [] },
+    },
+  ];
+};
 
 function SaveProbe() {
   const { saveActiveEditor, saveActiveRequest } = useWorkspace();
@@ -92,8 +99,8 @@ describe("URL -> Query grid (AC-011, AC-014)", () => {
     expect(screen.getByDisplayValue("123")).toBeInTheDocument();
   });
 
-  // AC-011 - side-effect-contract: the added row persists to config.params on save.
-  it("should persist a url-typed query param into config.params on save", async () => {
+  // AC-011 - side-effect-contract: the added row persists to params.query on save.
+  it("should persist a url-typed query param into params.query on save", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderPane(requestWith({}), onTreeChange);
@@ -104,7 +111,7 @@ describe("URL -> Query grid (AC-011, AC-014)", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedRequest(onTreeChange).config.params).toEqual([
+    expect(savedRequest(onTreeChange).params.query).toEqual([
       { key: "qwe", value: "123", enabled: true },
     ]);
   });
@@ -116,7 +123,7 @@ describe("URL -> Query grid (AC-011, AC-014)", () => {
     renderPane(
       requestWith({
         url: "https://api.com/get?qwe=123",
-        config: { params: [{ key: "qwe", value: "123", enabled: true }] },
+        query: [{ key: "qwe", value: "123", enabled: true }],
       }),
       onTreeChange,
     );
@@ -127,7 +134,7 @@ describe("URL -> Query grid (AC-011, AC-014)", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedRequest(onTreeChange).config.params).toEqual([
+    expect(savedRequest(onTreeChange).params.query).toEqual([
       { key: "qwe", value: "123", enabled: false },
     ]);
   });
@@ -140,7 +147,7 @@ describe("Query grid -> URL (AC-012, AC-013)", () => {
     renderPane(
       requestWith({
         url: "https://api.com/get?qwe=123",
-        config: { params: [{ key: "qwe", value: "123", enabled: true }] },
+        query: [{ key: "qwe", value: "123", enabled: true }],
       }),
     );
 
@@ -156,7 +163,7 @@ describe("Query grid -> URL (AC-012, AC-013)", () => {
     renderPane(
       requestWith({
         url: "https://api.com/get?qwe=123",
-        config: { params: [{ key: "qwe", value: "123", enabled: true }] },
+        query: [{ key: "qwe", value: "123", enabled: true }],
       }),
     );
 
@@ -177,7 +184,7 @@ describe("Query sync leaves path + :pathParams alone (AC-012, AC-016)", () => {
     renderPane(
       requestWith({
         url: "https://api.com/users/:id?qwe=123",
-        config: { params: [{ key: "qwe", value: "123", enabled: true }] },
+        query: [{ key: "qwe", value: "123", enabled: true }],
       }),
     );
 

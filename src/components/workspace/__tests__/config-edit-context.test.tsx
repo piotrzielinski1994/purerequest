@@ -7,6 +7,7 @@ import {
   useWorkspace,
 } from "@/components/workspace/workspace-context";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient } from "./fake-http-client";
 
 // A small explicit tree: a folder with vars + one request inside it. The
@@ -17,7 +18,7 @@ const tree: TreeNode[] = [
     kind: "folder",
     id: "folder-1",
     name: "Folder",
-    config: { variables: { baseUrl: "https://old.example.com" } },
+    config: { variables: [{ key: "baseUrl", value: "https://old.example.com" }] },
     children: [
       {
         kind: "request",
@@ -25,7 +26,8 @@ const tree: TreeNode[] = [
         name: "Req",
         method: "GET",
         url: "{{baseUrl}}/get",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],
@@ -33,7 +35,7 @@ const tree: TreeNode[] = [
 ];
 
 const NEW_FOLDER_CONFIG: ConfigScope = {
-  variables: { baseUrl: "https://new.example.com" },
+  variables: [{ key: "baseUrl", value: "https://new.example.com" }],
 };
 
 // The edit-target/editor surface is new on the context; cast through an

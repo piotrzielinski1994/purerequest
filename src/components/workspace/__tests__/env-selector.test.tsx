@@ -8,6 +8,7 @@ import {
 } from "@/components/workspace/workspace-context";
 import { EnvSelector } from "@/components/workspace/env-selector";
 import type { TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 // A tree with env names spread across nested scopes; the selector lists the
 // union (prod/local/staging) found anywhere.
@@ -17,17 +18,27 @@ const envTree: TreeNode[] = [
     id: "root",
     name: "Root",
     config: {
-      environments: {
-        prod: { baseUrl: "https://api.example.com" },
-        local: { baseUrl: "http://localhost:3000" },
-      },
+      environments: [
+        {
+          name: "prod",
+          variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+        },
+        {
+          name: "local",
+          variables: [{ key: "baseUrl", value: "http://localhost:3000" }],
+        },
+      ],
     },
     children: [
       {
         kind: "folder",
         id: "sub",
         name: "Sub",
-        config: { environments: { staging: { baseUrl: "https://stg" } } },
+        config: {
+          environments: [
+            { name: "staging", variables: [{ key: "baseUrl", value: "https://stg" }] },
+          ],
+        },
         children: [
           {
             kind: "request",
@@ -35,7 +46,8 @@ const envTree: TreeNode[] = [
             name: "Req",
             method: "GET",
             url: "{{baseUrl}}/get",
-            body: "",
+            body: emptyBody(),
+            params: emptyParams(),
             config: {},
           },
         ],
@@ -51,7 +63,8 @@ const emptyTree: TreeNode[] = [
     name: "Req",
     method: "GET",
     url: "https://api.test/get",
-    body: "",
+    body: emptyBody(),
+    params: emptyParams(),
     config: {},
   },
 ];

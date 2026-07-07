@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import {
   accentColorFor,
   environmentNamesForScope,
@@ -55,7 +56,10 @@ import {
 } from "@/lib/workspace/environment";
 import { updateNodeConfig } from "@/lib/workspace/update-config";
 import { updateFolderDotenv } from "@/lib/workspace/update-folder-dotenv";
-import { updateFolderEnvColor } from "@/lib/workspace/update-folder-env-color";
+import {
+  updateFolderEnvColor,
+  setFolderEnvironmentColors,
+} from "@/lib/workspace/update-folder-env-color";
 import {
   updateRequest,
   type RequestPatch,
@@ -72,22 +76,12 @@ import {
 } from "@/lib/bruno/bruno-to-tree";
 
 type RequestOverride = Partial<
-  Pick<
-    RequestNode,
-    | "name"
-    | "url"
-    | "method"
-    | "body"
-    | "bodyMode"
-    | "bodyForm"
-    | "pathParams"
-    | "config"
-  >
+  Pick<RequestNode, "name" | "url" | "method" | "body" | "params" | "config">
 >;
 
-// `config` is an object, so an override is only "dirty" when it differs from the
-// saved value by VALUE (a re-created-but-equal config must clear the dot). Every
-// other override field is a primitive, compared by `!==`.
+// `config`/`body`/`params` are objects, so an override is only "dirty" when it
+// differs from the saved value by VALUE (a re-created-but-equal object must clear
+// the dot). `name`/`url`/`method` are primitives, compared by `!==`.
 function isOverrideFieldDirty(
   field: keyof RequestOverride,
   overrideValue: unknown,
@@ -96,7 +90,7 @@ function isOverrideFieldDirty(
   if (overrideValue === undefined) {
     return false;
   }
-  if (field === "config" || field === "pathParams") {
+  if (field === "config" || field === "body" || field === "params") {
     return JSON.stringify(overrideValue) !== JSON.stringify(baseValue);
   }
   return overrideValue !== baseValue;
@@ -113,6 +107,10 @@ export type RevealTarget = {
   view: "vars" | "envs" | "dotenv";
   env?: string;
 } | null;
+
+// "Go to source" from a path-param token: which Params sub-tab to open. `nonce`
+// re-fires the same jump (the consumer keys its render on identity).
+export type ParamsReveal = { nonce: number; subTab: "path" | "query" } | null;
 
 // The root `.env` Settings editor still registers on the active-editor seam under
 // a distinct scope so Cmd+S / close-confirm route to it; it is no longer an
@@ -183,6 +181,13 @@ type WorkspaceContextValue = {
   closeEditor: () => void;
   saveNodeConfig: (id: string, config: ConfigScope) => void;
   saveFolder: (id: string, config: ConfigScope, dotenv: string) => void;
+  // Folder Settings JSON save: persists config + the whole env-color map together
+  // (the doc merges colors into `environments`).
+  saveFolderConfigDoc: (
+    id: string,
+    config: ConfigScope,
+    colors: Record<string, string>,
+  ) => void;
   // Live (non-draft) write of one env's border color onto a folder; null clears it.
   setFolderEnvColor: (
     folderId: string,
@@ -206,6 +211,7 @@ type WorkspaceContextValue = {
   // Jump from a token popup to where its value is editable (nearest-wins scope).
   revealTokenSource: (target: TokenTarget) => void;
   revealTarget: RevealTarget;
+  paramsReveal: ParamsReveal;
   registerActiveEditor: (editor: ActiveEditor | null) => void;
   saveActiveEditor: () => boolean;
   editorDirty: boolean;
@@ -242,7 +248,7 @@ type WorkspaceContextValue = {
   setRequestForm: (id: string, rows: KeyValue[]) => void;
   setRequestUrl: (id: string, url: string) => void;
   setRequestMethod: (id: string, method: HttpMethod) => void;
-  setRequestPathParams: (id: string, pathParams: Record<string, string>) => void;
+  setRequestPathParams: (id: string, pathParams: KeyValue[]) => void;
   setRequestQueryParams: (id: string, params: KeyValue[]) => void;
   setRequestConfig: (id: string, config: ConfigScope) => void;
   sendRequest: (id: string) => void;
@@ -340,6 +346,10 @@ export function WorkspaceProvider({
   const [isCurlImportOpen, setIsCurlImportOpen] = useState(false);
   const [revealTarget, setRevealTarget] = useState<RevealTarget>(null);
   const revealNonce = useRef(0);
+  // "Go to source" from a `:name` path token opens the Params tab's Path sub-tab;
+  // the nonce re-fires the same jump (consumer keys its render on identity).
+  const [paramsReveal, setParamsReveal] = useState<ParamsReveal>(null);
+  const paramsRevealNonce = useRef(0);
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
   const [consoleLines, setConsoleLines] =
     useState<string[]>(initialConsoleLines);
@@ -615,24 +625,52 @@ export function WorkspaceProvider({
       });
     };
 
-    const setRequestBody = (id: string, body: string) =>
-      mergeOverride(id, { body });
-    const setRequestBodyMode = (id: string, bodyMode: BodyMode) =>
-      mergeOverride(id, { bodyMode });
-    const setRequestForm = (id: string, bodyForm: KeyValue[]) =>
-      mergeOverride(id, { bodyForm });
+    // Body edits patch one slot of the request's `body` object, keeping the other
+    // types intact (so switching mode never discards a payload). `mode` (active)
+    // selects which type is sent; json edits the raw text; form/multipart rows go
+    // into the slot named by the current active mode.
+    const setRequestBody = (id: string, json: string) => {
+      const node = requestsById.get(id);
+      if (!node) {
+        return;
+      }
+      mergeOverride(id, {
+        body: { ...node.body, types: { ...node.body.types, json } },
+      });
+    };
+    const setRequestBodyMode = (id: string, active: BodyMode) => {
+      const node = requestsById.get(id);
+      if (!node) {
+        return;
+      }
+      mergeOverride(id, { body: { ...node.body, active } });
+    };
+    const setRequestForm = (id: string, rows: KeyValue[]) => {
+      const node = requestsById.get(id);
+      if (!node || (node.body.active !== "form" && node.body.active !== "multipart")) {
+        return;
+      }
+      mergeOverride(id, {
+        body: {
+          ...node.body,
+          types: { ...node.body.types, [node.body.active]: rows },
+        },
+      });
+    };
     // Drop a stored path-param value only when its `:name` LEFT the URL (was in the
     // old URL, gone from the new one), so removing `:id` from the address bar prunes
     // it - but a grid-only param (defined in the Path tab, never in the URL) is kept.
     // Returns the patch only when it changes something (a no-op edit stays non-dirty).
-    const prunePathParamsPatch = (
-      id: string,
+    // Path slot after a URL edit: drop a `:name` value only when its token LEFT the
+    // URL (grid-only params are kept). Returns undefined when nothing changed, so a
+    // no-op edit stays non-dirty.
+    const prunePathAfterUrl = (
+      node: RequestNode,
       nextUrl: string,
-    ): RequestOverride => {
-      const node = requestsById.get(id);
-      const current = node?.pathParams;
-      if (!current || Object.keys(current).length === 0) {
-        return {};
+    ): KeyValue[] | undefined => {
+      const current = node.params.path;
+      if (current.length === 0) {
+        return undefined;
       }
       const removed = new Set(
         extractPathParams(node.url).filter(
@@ -640,32 +678,46 @@ export function WorkspaceProvider({
         ),
       );
       if (removed.size === 0) {
-        return {};
+        return undefined;
       }
-      const pruned = Object.fromEntries(
-        Object.entries(current).filter(([name]) => !removed.has(name)),
-      );
-      return { pathParams: pruned };
+      return current.filter((row) => !removed.has(row.key));
     };
-    // Mirror a URL `?query` edit into the request's own `config.params` (the Query
-    // grid): a typed `?key=value` adds/re-enables a row, a key removed from the URL
-    // disables its row (value kept). Returns the patch only when the params actually
-    // change, so a path-only URL edit stays out of the dirty/config override.
-    const syncQueryPatch = (id: string, nextUrl: string): RequestOverride => {
+    // Query slot after a URL edit: mirror the URL `?query` into the grid rows - a
+    // typed `?key=value` adds/re-enables a row, a key removed from the URL disables
+    // its row (value kept). Returns undefined when the rows didn't change.
+    const syncQueryAfterUrl = (
+      node: RequestNode,
+      nextUrl: string,
+    ): KeyValue[] | undefined => {
+      const current = node.params.query;
+      const next = syncParamsFromUrl(node.url, nextUrl, current);
+      if (JSON.stringify(next) === JSON.stringify(current)) {
+        return undefined;
+      }
+      return next;
+    };
+    // Build the `params` patch for a URL edit: path pruning + query sync folded into
+    // one params object (so neither clobbers the other). Undefined when neither slot
+    // changed, keeping a path-literal-only URL edit out of the dirty set.
+    const paramsPatchForUrl = (id: string, nextUrl: string): RequestOverride => {
       const node = requestsById.get(id);
       if (!node) {
         return {};
       }
-      const current = node.config.params ?? [];
-      const next = syncParamsFromUrl(node.url, nextUrl, current);
-      if (JSON.stringify(next) === JSON.stringify(current)) {
+      const path = prunePathAfterUrl(node, nextUrl);
+      const query = syncQueryAfterUrl(node, nextUrl);
+      if (path === undefined && query === undefined) {
         return {};
       }
-      return { config: { ...node.config, params: next } };
+      return {
+        params: {
+          path: path ?? node.params.path,
+          query: query ?? node.params.query,
+        },
+      };
     };
     const setRequestUrl = (id: string, url: string) => {
-      const prune = prunePathParamsPatch(id, url);
-      const query = syncQueryPatch(id, url);
+      const params = paramsPatchForUrl(id, url);
       // A freshly-created request's name tracks the URL verbatim until the user
       // names it; an empty URL falls back to the request's unique untitled name
       // so clearing the field doesn't blank the label.
@@ -674,30 +726,32 @@ export function WorkspaceProvider({
         mergeOverride(id, {
           url,
           name: url.trim() || fallback,
-          ...prune,
-          ...query,
+          ...params,
         });
         return;
       }
-      mergeOverride(id, { url, ...prune, ...query });
+      mergeOverride(id, { url, ...params });
     };
     const setRequestMethod = (id: string, method: HttpMethod) =>
       mergeOverride(id, { method });
-    const setRequestPathParams = (
-      id: string,
-      pathParams: Record<string, string>,
-    ) => mergeOverride(id, { pathParams });
-    // The Query grid edits `config.params` AND mirrors the enabled rows back into the
-    // URL `?query` (path + `:pathParams` preserved), so toggling/editing a row updates
-    // the address bar live (the reverse of syncQueryPatch).
-    const setRequestQueryParams = (id: string, params: KeyValue[]) => {
+    const setRequestPathParams = (id: string, path: KeyValue[]) => {
+      const node = requestsById.get(id);
+      if (!node) {
+        return;
+      }
+      mergeOverride(id, { params: { ...node.params, path } });
+    };
+    // The Query grid edits `params.query` AND mirrors the enabled rows back into the
+    // URL `?query` (path + `:name` tokens preserved), so toggling/editing a row
+    // updates the address bar live (the reverse of syncQueryAfterUrl).
+    const setRequestQueryParams = (id: string, query: KeyValue[]) => {
       const node = requestsById.get(id);
       if (!node) {
         return;
       }
       mergeOverride(id, {
-        config: { ...node.config, params },
-        url: syncUrlFromParams(node.url, params),
+        params: { ...node.params, query },
+        url: syncUrlFromParams(node.url, query),
       });
     };
     const setRequestConfig = (id: string, config: ConfigScope) =>
@@ -758,7 +812,7 @@ export function WorkspaceProvider({
       const reqDraft: ReqDraft = {
         method: node.method,
         url: node.url,
-        body: node.body,
+        body: node.body.types.json,
         headerOverrides: {},
       };
       const preCode = effective.scripts.pre.value;
@@ -794,7 +848,7 @@ export function WorkspaceProvider({
         ...node,
         method: reqDraft.method,
         url: reqDraft.url,
-        body: reqDraft.body,
+        body: { ...node.body, types: { ...node.body.types, json: reqDraft.body } },
       };
       const wire = buildHttpRequest(
         node2,
@@ -896,7 +950,7 @@ export function WorkspaceProvider({
     // focuses the URL input (the New-request flow); imports pass autoName=false
     // since they arrive fully formed.
     const createRequestNode = (
-      partial: Pick<RequestNode, "name" | "method" | "url" | "body"> &
+      partial: Pick<RequestNode, "name" | "method" | "url"> &
         Partial<RequestNode>,
       target?: MoveTarget,
       autoName = false,
@@ -905,6 +959,8 @@ export function WorkspaceProvider({
       const id = `new-${nodeCounter.current}`;
       const request: RequestNode = {
         kind: "request",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
         ...partial,
         id,
@@ -938,7 +994,7 @@ export function WorkspaceProvider({
         (request) => request.name,
       );
       createRequestNode(
-        { name: untitledName(existingNames), method: "GET", url: "", body: "" },
+        { name: untitledName(existingNames), method: "GET", url: "" },
         target,
         true,
       );
@@ -974,7 +1030,10 @@ export function WorkspaceProvider({
         name: url.trim() || "Imported Request",
         method,
         url,
-        body: body ?? "",
+        body: {
+          active: "json",
+          types: { json: body ?? "", form: [], multipart: [] },
+        },
         config: {
           ...(headers.length > 0 ? { headers } : {}),
           ...(auth ? { auth } : {}),
@@ -1033,6 +1092,19 @@ export function WorkspaceProvider({
 
     const saveNodeConfig = (id: string, config: ConfigScope) =>
       persistTree(updateNodeConfig(tree, id, config), "config");
+
+    // Folder Settings JSON save: the doc merges env colors into `environments`, so
+    // persist BOTH the folder's config AND its whole env-color map in one write
+    // (the JSON editor is the one place both are edited together).
+    const saveFolderConfigDoc = (
+      id: string,
+      config: ConfigScope,
+      colors: Record<string, string>,
+    ) =>
+      persistTree(
+        setFolderEnvironmentColors(updateNodeConfig(tree, id, config), id, colors),
+        "config",
+      );
 
     // Folder pane save: persist the folder's config AND its own `.env` in ONE
     // tree write so the Env tab's two sub-views can't clobber each other.
@@ -1370,26 +1442,56 @@ export function WorkspaceProvider({
         persistTree(updateFolderDotenv(tree, owner, nextDotenv), "env");
         return;
       }
+      if (target.kind === "path") {
+        const node = requestsById.get(target.requestId);
+        if (!node) {
+          return;
+        }
+        const path = node.params.path;
+        const next = path.some((row) => row.key === target.name)
+          ? path.map((row) =>
+              row.key === target.name ? { ...row, value } : row,
+            )
+          : [...path, { key: target.name, value }];
+        setRequestPathParams(target.requestId, next);
+        return;
+      }
       const node = findNode(tree, target.scopeId);
       if (!node) {
         return;
       }
       const config = node.config;
+      // Update-or-append a `{key,value}` in a KeyValue[] rows list.
+      const upsertRow = (rows: KeyValue[], key: string, val: string) =>
+        rows.some((row) => row.key === key)
+          ? rows.map((row) => (row.key === key ? { ...row, value: val } : row))
+          : [...rows, { key, value: val }];
       const nextConfig: ConfigScope =
         target.kind === "environment"
           ? {
               ...config,
-              environments: {
-                ...config.environments,
-                [target.env]: {
-                  ...config.environments?.[target.env],
-                  [target.name]: value,
-                },
-              },
+              environments: (config.environments ?? []).some(
+                (env) => env.name === target.env,
+              )
+                ? (config.environments ?? []).map((env) =>
+                    env.name === target.env
+                      ? {
+                          ...env,
+                          variables: upsertRow(env.variables, target.name, value),
+                        }
+                      : env,
+                  )
+                : [
+                    ...(config.environments ?? []),
+                    {
+                      name: target.env,
+                      variables: [{ key: target.name, value }],
+                    },
+                  ],
             }
           : {
               ...config,
-              variables: { ...config.variables, [target.name]: value },
+              variables: upsertRow(config.variables ?? [], target.name, value),
             };
       saveNodeConfig(target.scopeId, nextConfig);
     };
@@ -1400,6 +1502,20 @@ export function WorkspaceProvider({
     // var -> Env > Envs with its env picked; a plain var -> Vars. A value owned
     // by the request itself opens the request's own tab instead of a folder.
     const revealTokenSource = (target: TokenTarget) => {
+      if (target.kind === "path") {
+        setIsSettingsActive(false);
+        setIsEditorActive(false);
+        setOpenRequestIds((current) =>
+          current.includes(target.requestId)
+            ? current
+            : [...current, target.requestId],
+        );
+        setActiveRequestId(target.requestId);
+        setActiveRequestTab("params");
+        paramsRevealNonce.current += 1;
+        setParamsReveal({ nonce: paramsRevealNonce.current, subTab: "path" });
+        return;
+      }
       if (target.kind === "dotenv") {
         const owner =
           activeRequestId !== null
@@ -1510,6 +1626,7 @@ export function WorkspaceProvider({
       closeEditor: requestCloseEditor,
       saveNodeConfig,
       saveFolder,
+      saveFolderConfigDoc,
       setFolderEnvColor,
       saveRequestNode,
       saveActiveRequest,
@@ -1518,6 +1635,7 @@ export function WorkspaceProvider({
       setTokenValue,
       revealTokenSource,
       revealTarget,
+      paramsReveal,
       registerActiveEditor,
       saveActiveEditor: () => {
         if (!activeEditor) {
@@ -1660,6 +1778,7 @@ export function WorkspaceProvider({
     pendingDelete,
     isCurlImportOpen,
     revealTarget,
+    paramsReveal,
     renamingNodeId,
     focusUrlNonce,
     activeEditor,

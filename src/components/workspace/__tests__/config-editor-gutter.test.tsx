@@ -14,7 +14,10 @@ describe("config editor gutter", () => {
     const { container } = render(
       <ToastProvider>
         <WorkspaceProvider tree={[]}>
-          <ConfigEditorForm id="folder-1" config={{ variables: { a: "1" } }} />
+          <ConfigEditorForm
+            id="folder-1"
+            config={{ variables: [{ key: "a", value: "1" }] }}
+          />
         </WorkspaceProvider>
       </ToastProvider>,
     );

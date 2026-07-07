@@ -6,6 +6,7 @@ import {
   type BrunoFileMap,
 } from "@/lib/bruno/bruno-to-tree";
 import { parseDotenv } from "@/lib/workspace/environment";
+import { authOf } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 function asFolder(node: TreeNode | undefined): FolderNode {
@@ -126,9 +127,9 @@ describe("brunoToTree - collection name + environments (AC-008)", () => {
 
     const root = asFolder(brunoToTree(files, "fallback")[0]);
 
-    expect(root.config.environments?.local).toEqual({
-      baseUrl: "https://api.example.com",
-    });
+    expect(
+      root.config.environments?.find((e) => e.name === "local")?.variables,
+    ).toEqual([{ key: "baseUrl", value: "https://api.example.com" }]);
   });
 
   // AC-008 - behavior: an environments/*.bru file is NOT itself turned into a
@@ -183,12 +184,14 @@ describe("brunoToTree - OpenCollection YAML dispatch (AC-012)", () => {
     const root = asFolder(brunoToTree(files, "fallback")[0]);
     const lts = asFolder(findByName(root.children, "lts"));
 
-    expect(lts.config.variables).toEqual({ LTS_URL: "https://lts.test" });
+    expect(lts.config.variables).toEqual([
+      { key: "LTS_URL", value: "https://lts.test" },
+    ]);
     const request = lts.children.find(
       (node) => node.kind === "request",
     ) as RequestNode | undefined;
     expect(request?.method).toBe("GET");
-    expect(request?.config.auth).toEqual({ type: "bearer", token: "t" });
+    expect(request?.config.auth).toEqual(authOf({ active: "bearer", token: "t" }));
   });
 
   // AC-012 - behavior: a YAML environment file folds into root config.environments
@@ -203,9 +206,9 @@ describe("brunoToTree - OpenCollection YAML dispatch (AC-012)", () => {
 
     const root = asFolder(brunoToTree(files, "fallback")[0]);
 
-    expect(root.config.environments?.local).toEqual({
-      BASE_URL: "http://localhost:8080",
-    });
+    expect(
+      root.config.environments?.find((e) => e.name === "local")?.variables,
+    ).toEqual([{ key: "BASE_URL", value: "http://localhost:8080" }]);
     expect(root.children.some((node) => node.kind === "request")).toBe(true);
     expect(root.children.some((node) => node.name === "local")).toBe(false);
   });
@@ -228,12 +231,12 @@ describe("brunoToTree - OpenCollection YAML dispatch (AC-012)", () => {
     const root = asFolder(brunoToTree(files, "fallback")[0]);
     const mbu = asFolder(findByName(root.children, "mbu"));
 
-    expect(mbu.config.environments?.staging).toEqual({
-      BASE_URL: "https://staging.test",
-    });
-    expect(mbu.config.environments?.prod).toEqual({
-      BASE_URL: "https://prod.test",
-    });
+    expect(
+      mbu.config.environments?.find((e) => e.name === "staging")?.variables,
+    ).toEqual([{ key: "BASE_URL", value: "https://staging.test" }]);
+    expect(
+      mbu.config.environments?.find((e) => e.name === "prod")?.variables,
+    ).toEqual([{ key: "BASE_URL", value: "https://prod.test" }]);
     expect(mbu.children.some((node) => node.name === "environments")).toBe(
       false,
     );

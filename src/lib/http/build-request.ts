@@ -1,5 +1,6 @@
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import type { Auth, KeyValue, RequestNode } from "@/lib/workspace/model";
+import { keyValuesToRecord } from "@/lib/workspace/model";
 import type { HttpRequest } from "@/lib/http/model";
 import { interpolate } from "@/lib/http/interpolate";
 import { encodeBody } from "@/lib/http/body-encode";
@@ -11,12 +12,13 @@ function authHeader(
   auth: Auth,
   subst: (input: string) => string,
 ): KeyValue | null {
-  if (auth.type === "bearer") {
-    return { key: "Authorization", value: `Bearer ${subst(auth.token)}` };
+  if (auth.active === "bearer") {
+    const token = subst(auth.types.bearer.token);
+    return { key: "Authorization", value: `Bearer ${token}` };
   }
-  if (auth.type === "basic") {
-    const user = subst(auth.username);
-    const pass = subst(auth.password);
+  if (auth.active === "basic") {
+    const user = subst(auth.types.basic.username);
+    const pass = subst(auth.types.basic.password);
     return { key: "Authorization", value: `Basic ${btoa(`${user}:${pass}`)}` };
   }
   return null;
@@ -59,10 +61,15 @@ export function buildHttpRequest(
     headers.push(authEntry);
   }
 
-  const params: KeyValue[] = Object.entries(effective.params).map(
-    ([key, resolved]) => ({ key, value: subst(resolved.value) }),
+  const params: KeyValue[] = node.params.query
+    .filter((row) => row.enabled !== false)
+    .map(({ key, value }) => ({ key: subst(key), value: subst(value) }))
+    .filter((row) => row.key.trim() !== "");
+  const pathResolved = applyPathParams(
+    node.url,
+    keyValuesToRecord(node.params.path),
+    subst,
   );
-  const pathResolved = applyPathParams(node.url, node.pathParams ?? {}, subst);
   const url = appendParams(subst(pathResolved), params);
 
   if (BODYLESS_METHODS.has(node.method)) {
@@ -77,12 +84,7 @@ export function buildHttpRequest(
     };
   }
 
-  const { body, contentType } = encodeBody(
-    node.bodyMode ?? "json",
-    node.body,
-    node.bodyForm ?? [],
-    subst,
-  );
+  const { body, contentType } = encodeBody(node.body, subst);
   const hasContentType = headers.some(
     (header) => header.key.toLowerCase() === "content-type",
   );

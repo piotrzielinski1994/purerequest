@@ -8,6 +8,7 @@ import {
 } from "@/components/workspace/workspace-context";
 import { ToastProvider } from "@/components/ui/toast";
 import type { FolderNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
 
 type OnTreeChange = (
@@ -28,7 +29,8 @@ const tree: TreeNode[] = [
         name: "Get",
         method: "GET",
         url: "https://api/get?t={{process.env.TOKEN}}",
-        body: "",
+        body: emptyBody(),
+        params: emptyParams(),
         config: {},
       },
     ],
@@ -39,7 +41,8 @@ const tree: TreeNode[] = [
     name: "RootGet",
     method: "GET",
     url: "https://root/get?t={{process.env.TOKEN}}",
-    body: "",
+    body: emptyBody(),
+    params: emptyParams(),
     config: {},
   },
 ];

@@ -25,7 +25,7 @@ export function BodyPanel({ request }: { request: RequestNode }) {
     processEnv,
     activeEnvironment,
   } = useWorkspace();
-  const mode = request.bodyMode ?? "json";
+  const mode = request.body.active;
   const highlight = {
     effective: effectiveConfig,
     processEnv,
@@ -59,7 +59,7 @@ export function BodyPanel({ request }: { request: RequestNode }) {
         {mode === "json" && (
           <BodyEditor
             key={request.id}
-            value={request.body}
+            value={request.body.types.json}
             onChange={(body) => setRequestBody(request.id, body)}
           />
         )}
@@ -70,7 +70,7 @@ export function BodyPanel({ request }: { request: RequestNode }) {
         )}
         {(mode === "form" || mode === "multipart") && (
           <EditableKeyValueTable
-            rows={request.bodyForm ?? []}
+            rows={request.body.types[mode]}
             withToggle
             highlight={highlight}
             onChange={(rows) => setRequestForm(request.id, rows)}

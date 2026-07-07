@@ -8,6 +8,7 @@ import {
   emptyZoneId,
   parseEmptyZoneId,
 } from "@/lib/workspace/tree-locate";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (id: string): RequestNode => ({
@@ -16,7 +17,8 @@ const request = (id: string): RequestNode => ({
   name: id,
   method: "GET",
   url: `https://x/${id}`,
-  body: "",
+  body: emptyBody(),
+  params: emptyParams(),
   config: {},
 });
 
