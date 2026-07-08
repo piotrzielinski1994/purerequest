@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TokenHighlight } from "@/components/workspace/var-token";
@@ -8,13 +8,10 @@ import {
   tokenCompletionAt,
   type TokenCandidate,
 } from "@/components/workspace/token-complete";
+import { TokenSuggestionList } from "@/components/workspace/token-suggestions";
 import type { TokenHighlightContext } from "@/components/workspace/editable-key-value-table";
 
-const KIND_COLOR: Record<TokenCandidate["kind"], string> = {
-  variable: "text-emerald-500 dark:text-emerald-400",
-  environment: "text-sky-600 dark:text-sky-400",
-  dotenv: "text-amber-500 dark:text-amber-400",
-};
+const TOKEN_LISTBOX_ID = "highlighted-input-token-listbox";
 
 // The ONE token-aware text input used everywhere a {{var}} value is edited (URL
 // bar, key/value cells, auth fields). When `highlight` is set it renders the
@@ -80,13 +77,6 @@ export function HighlightedInput({
   const activeCandidate = completion?.candidates[
     Math.min(activeIndex, completion.candidates.length - 1)
   ];
-
-  // Keep the highlighted option scrolled into view as ArrowUp/Down moves past the
-  // visible window, so the user can always see the next selectable value.
-  const activeOptionRef = useRef<HTMLLIElement>(null);
-  useEffect(() => {
-    activeOptionRef.current?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex, isOpen]);
 
   const syncCaret = (el: HTMLInputElement) => {
     setCaret(el.selectionStart ?? el.value.length);
@@ -159,9 +149,7 @@ export function HighlightedInput({
         // the autocomplete affordance via aria-* (valid on a textbox).
         aria-expanded={completionEnabled ? isOpen : undefined}
         aria-autocomplete={completionEnabled ? "list" : undefined}
-        aria-controls={
-          isOpen ? "highlighted-input-token-listbox" : undefined
-        }
+        aria-controls={isOpen ? TOKEN_LISTBOX_ID : undefined}
         onChange={(event) => {
           onChange(event.target.value);
           syncCaret(event.target);
@@ -196,47 +184,13 @@ export function HighlightedInput({
         </div>
       )}
       {isOpen && completion && (
-        <ul
-          id="highlighted-input-token-listbox"
-          role="listbox"
-          aria-label="Token suggestions"
-          className="absolute top-full left-0 z-50 mt-px max-h-56 w-72 overflow-y-auto border border-border bg-popover py-1 shadow-md"
-        >
-          {completion.candidates.map((candidate, index) => (
-            <li
-              key={candidate.name}
-              ref={index === activeIndex ? activeOptionRef : undefined}
-            >
-              <button
-                type="button"
-                role="option"
-                aria-selected={index === activeIndex}
-                // mousedown (not click) so the pick runs before the input's blur
-                // would dismiss the dropdown.
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  pick(candidate);
-                }}
-                onMouseEnter={() => setActiveIndex(index)}
-                className={cn(
-                  "flex w-full items-center justify-between gap-2 px-2 py-1 text-left font-mono text-xs",
-                  index === activeIndex
-                    ? "bg-accent text-accent-foreground"
-                    : "text-foreground",
-                )}
-              >
-                <span className={cn("truncate", KIND_COLOR[candidate.kind])}>
-                  {candidate.name}
-                </span>
-                {candidate.source !== "" && (
-                  <span className="shrink-0 text-[10px] text-muted-foreground">
-                    {candidate.source}
-                  </span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <TokenSuggestionList
+          id={TOKEN_LISTBOX_ID}
+          candidates={completion.candidates}
+          activeIndex={activeIndex}
+          onPick={pick}
+          onActivate={setActiveIndex}
+        />
       )}
       {secret && (
         <button

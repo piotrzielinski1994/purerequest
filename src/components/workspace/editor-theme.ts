@@ -61,17 +61,35 @@ export function makeChrome(colors: EditorColors, isDark: boolean): Extension {
       },
       ".cm-tooltip-autocomplete > ul": {
         fontFamily: "var(--font-mono, ui-monospace, monospace)",
+        // Match the React token listbox width (w-72 = 18rem).
+        minWidth: "18rem",
+        maxWidth: "18rem",
       },
+      // Match the React token listbox row: flex, name left + source right
+      // (justify-between via the detail's margin-left:auto), same padding/size.
       ".cm-tooltip-autocomplete > ul > li": {
+        display: "flex",
+        alignItems: "center",
+        gap: "0.5rem",
+        padding: "0.25rem 0.5rem",
+        fontSize: "0.75rem",
+        lineHeight: "1rem",
         color: "var(--popover-foreground)",
       },
       ".cm-tooltip-autocomplete > ul > li[aria-selected]": {
         backgroundColor: "var(--accent)",
         color: "var(--accent-foreground)",
       },
-      ".cm-completionLabel": { color: "inherit" },
+      // The label takes the row's free space + truncates; the source is fixed.
+      ".cm-completionLabel": {
+        color: "inherit",
+        flex: "1 1 auto",
+        minWidth: "0",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+      },
       ".cm-completionMatchedText": {
-        color: "var(--primary)",
+        color: "inherit",
         textDecoration: "none",
         fontWeight: "600",
       },
@@ -79,6 +97,21 @@ export function makeChrome(colors: EditorColors, isDark: boolean): Extension {
       ".cm-completionDetail": {
         color: "var(--muted-foreground)",
         fontStyle: "normal",
+        flex: "0 0 auto",
+        marginLeft: "auto",
+        fontSize: "10px",
+      },
+      // Per-kind label color, keyed off the token option's `optionClass`
+      // (`cm-token-<kind>`, set by `tokenOptionClass`). Matches TOKEN_KIND_COLOR
+      // in token-suggestions.tsx - keep the two in sync.
+      ".cm-token-variable .cm-completionLabel": {
+        color: isDark ? "var(--color-emerald-400)" : "var(--color-emerald-500)",
+      },
+      ".cm-token-environment .cm-completionLabel": {
+        color: isDark ? "var(--color-sky-400)" : "var(--color-sky-600)",
+      },
+      ".cm-token-dotenv .cm-completionLabel": {
+        color: isDark ? "var(--color-amber-400)" : "var(--color-amber-500)",
       },
     },
     { dark: isDark },

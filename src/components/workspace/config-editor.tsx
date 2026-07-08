@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { JSONSchema7 } from "json-schema";
+import { jsonLanguage } from "@codemirror/lang-json";
 import { CodeEditor } from "@/components/workspace/code-editor";
 import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
 import { makeSchemaExtensions } from "@/components/workspace/schema-intellisense";
+import { tokenCompletionSource } from "@/components/workspace/token-complete-source";
+import { tokenCompletionConfig } from "@/components/workspace/token-suggestion-style";
+import {
+  tokenCandidates,
+  type TokenCandidate,
+} from "@/components/workspace/token-complete";
+import { resolveConfig, resolveProcessEnv } from "@/lib/workspace/resolve";
 import {
   folderConfigJsonSchema,
   requestSettingsJsonSchema,
@@ -33,6 +41,21 @@ import {
   readFolderConfigDoc,
 } from "@/lib/workspace/disk-format";
 
+// Resolve the in-scope `{{token}}` candidates for a node id (folder or request),
+// against the SAVED tree + active environment + folded `.env` - the same chain the
+// node's `{{var}}` highlight previews use. Shared by the folder-config and
+// request-Settings raw-JSON editors.
+function useScopeTokenCandidates(scopeId: string): TokenCandidate[] {
+  const { tree, activeEnvironment, rootProcessEnv } = useWorkspace();
+  return tokenCandidates(
+    resolveConfig(tree, scopeId, {
+      environment: activeEnvironment ?? undefined,
+    }),
+    resolveProcessEnv(tree, scopeId, rootProcessEnv),
+    scopeId,
+  );
+}
+
 function parseObject(text: string): Record<string, unknown> | null {
   try {
     const parsed: unknown = JSON.parse(text);
@@ -61,6 +84,7 @@ export function RawJsonEditor<T>({
   onSave,
   commit,
   schema,
+  candidates,
 }: {
   id: string;
   saved: string;
@@ -68,16 +92,33 @@ export function RawJsonEditor<T>({
   onSave: (parsed: T) => void;
   commit: (parsed: T, tree: TreeNode[]) => TreeNode[];
   schema?: JSONSchema7;
+  // In-scope `{{token}}` candidates for this node; absent -> no token completion
+  // (e.g. the theme-colors editor, which has no request scope).
+  candidates?: TokenCandidate[];
 }) {
   const { registerActiveEditor } = useWorkspace();
   const { configExtensions } = useEditorExtensions();
   // Schema editors layer JSON-Schema lint/complete/hover over the SHARED config
   // extensions (same base the plain config editor uses, so chrome can't drift);
-  // no schema -> the base itself.
-  const extensions = useMemo(
-    () => makeSchemaExtensions(configExtensions, schema),
-    [schema, configExtensions],
-  );
+  // no schema -> the base itself. A token completion source, when candidates are
+  // present, is layered on TOP as another language-data autocomplete source so it
+  // COMPOSES with the schema completion (both fire) rather than replacing it.
+  const candidatesKey = (candidates ?? [])
+    .map((c) => `${c.name}:${c.source}`)
+    .join("|");
+  const extensions = useMemo(() => {
+    const base = makeSchemaExtensions(configExtensions, schema);
+    if (!candidates || candidates.length === 0) {
+      return base;
+    }
+    return [
+      ...base,
+      tokenCompletionConfig,
+      jsonLanguage.data.of({ autocomplete: tokenCompletionSource(candidates) }),
+    ];
+    // candidates captured via candidatesKey (stable identity).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schema, configExtensions, candidatesKey]);
   const [text, setText] = useState(saved);
 
   // Re-seed when the saved snapshot changes (node switch, or a sibling panel's
@@ -142,6 +183,7 @@ export function ConfigEditorForm({
   environmentColors?: Record<string, string>;
 }) {
   const { saveFolderConfigDoc } = useWorkspace();
+  const candidates = useScopeTokenCandidates(id);
   const parseFolderDoc = (text: string) => {
     const obj = parseObject(text);
     return obj === null ? null : readFolderConfigDoc(obj);
@@ -162,6 +204,7 @@ export function ConfigEditorForm({
         )
       }
       schema={folderConfigJsonSchema}
+      candidates={candidates}
     />
   );
 }
@@ -279,6 +322,7 @@ function parseRequest(text: string): RequestPatch | null {
 // matches the on-disk shape exactly.
 export function RequestSettingsForm({ request }: { request: RequestNode }) {
   const { saveRequestNode } = useWorkspace();
+  const candidates = useScopeTokenCandidates(request.id);
   const saved = JSON.stringify(
     {
       name: request.name,
@@ -299,6 +343,7 @@ export function RequestSettingsForm({ request }: { request: RequestNode }) {
       onSave={(patch) => saveRequestNode(request.id, patch)}
       commit={(patch, tree) => updateRequest(tree, request.id, patch)}
       schema={requestSettingsJsonSchema}
+      candidates={candidates}
     />
   );
 }
