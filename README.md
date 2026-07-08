@@ -228,7 +228,13 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > every environment name found in the tree plus "No Environment", and the active choice
 > persists per-installation (`activeEnvironment` in `settings.json`, falling back to No
 > Environment if it no longer exists). Interpolation is recursive (a variable value may
-> reference another `{{var}}`), cycle-guarded, and leaves unknown tokens verbatim.
+> reference another `{{var}}`), cycle-guarded, and leaves unknown tokens verbatim. Typing
+> `{{` anywhere a token is valid - the URL bar, key/value + auth fields, the request **Body**
+> editor, and the raw-JSON folder-config / request-Settings editors - opens a **completion
+> dropdown** of the in-scope variables, the active environment's vars, and `.env` keys (as
+> `process.env.X`), grouped nearest-scope-first; accepting one inserts `{{name}}`. The
+> **script** editor (which reads vars via `requi.getVar`, not `{{}}`) and the theme-colors
+> editor are deliberately excluded.
 >
 > `.env` files (standard `KEY=value`, gitignore them) are a separate namespace referenced as
 > `{{process.env.KEY}}` (a bare `{{KEY}}` does not read `.env`). A `.env` may live at the

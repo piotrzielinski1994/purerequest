@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/select";
 import { BodyEditor } from "@/components/workspace/body-editor";
 import { EditableKeyValueTable } from "@/components/workspace/editable-key-value-table";
+import { tokenCandidates } from "@/components/workspace/token-complete";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import type { BodyMode, RequestNode } from "@/lib/workspace/model";
 
@@ -31,6 +32,7 @@ export function BodyPanel({ request }: { request: RequestNode }) {
     processEnv,
     environment: activeEnvironment,
   };
+  const candidates = tokenCandidates(effectiveConfig, processEnv, request.id);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -60,6 +62,7 @@ export function BodyPanel({ request }: { request: RequestNode }) {
           <BodyEditor
             key={request.id}
             value={request.body.types.json}
+            candidates={candidates}
             onChange={(body) => setRequestBody(request.id, body)}
           />
         )}
