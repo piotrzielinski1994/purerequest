@@ -48,7 +48,9 @@ function CrudProbe() {
     setRequestUrl,
     setRequestMethod,
     selectNode,
+    clearSelection,
     setActiveRequest,
+    closeRequest,
     newRequest,
     newFolder,
     saveActiveRequest,
@@ -123,6 +125,16 @@ function CrudProbe() {
       <button type="button" onClick={() => saveActiveRequest()}>
         save active
       </button>
+      <button
+        type="button"
+        onClick={() => {
+          if (activeRequestId !== null) {
+            closeRequest(activeRequestId);
+          }
+        }}
+      >
+        close active tab
+      </button>
       <button type="button" onClick={() => newFolder()}>
         new folder root
       </button>
@@ -134,6 +146,9 @@ function CrudProbe() {
       </button>
       <button type="button" onClick={() => selectNode("folder-users")}>
         select users folder
+      </button>
+      <button type="button" onClick={() => clearSelection()}>
+        clear selection
       </button>
       <button type="button" onClick={() => setActiveRequest("req-profile")}>
         activate profile
@@ -215,6 +230,11 @@ function renderProbe(
     initialActiveRequestId?: string;
     initialOpenRequestIds?: string[];
     initialExpandedIds?: string[];
+    initialDraftTabs?: {
+      id: string;
+      request: RequestNode;
+      placement: { parentId: string | null; index: number };
+    }[];
   } = {},
 ) {
   return render(
@@ -238,12 +258,52 @@ function ConsoleProbe() {
   );
 }
 
-describe("WorkspaceProvider create request (immediate)", () => {
-  // AC-001, AC-002, TC-001 - side-effect-contract: new request inserts a real
-  // node inside the selected folder, persists immediately, opens + activates +
-  // selects its tab (focus goes to the URL input, not inline rename); the
-  // round-trip reproduces it.
-  it("should insert a request into the selected folder, persist, and open its tab", async () => {
+describe("WorkspaceProvider create request (draft)", () => {
+  // behavior: "+"/new request opens a SESSION DRAFT tab - nothing is written to
+  // disk (no onTreeChange) and the request is not added to the sidebar tree. It is
+  // only the active + selected open tab, focused on its URL input.
+  it("should open a draft tab without persisting anything to disk", async () => {
+    const user = userEvent.setup();
+    const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
+    renderProbe({ onTreeChange });
+
+    const requestsBefore = Number(
+      screen.getByTestId("request-count").textContent ?? "0",
+    );
+
+    await user.click(screen.getByRole("button", { name: /new request root/i }));
+
+    // NOT persisted (draft only, no disk write).
+    expect(onTreeChange).not.toHaveBeenCalled();
+    // NOT added to the sidebar tree.
+    expect(screen.getByTestId("request-count")).toHaveTextContent(
+      String(requestsBefore),
+    );
+    // it IS the active + selected open tab, and not in the renaming state.
+    const activeId = screen.getByTestId("active-id").textContent ?? "";
+    expect(activeId).not.toBe("none");
+    expect(screen.getByTestId("open-ids").textContent).toContain(activeId);
+    expect(screen.getByTestId("selected-id")).toHaveTextContent(activeId);
+    expect(screen.getByTestId("renaming-id")).toHaveTextContent("none");
+  });
+
+  // behavior: closing an unedited draft tab discards it - still nothing on disk.
+  it("should discard an unedited draft and never write it to disk on close", async () => {
+    const user = userEvent.setup();
+    const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
+    renderProbe({ onTreeChange });
+
+    await user.click(screen.getByRole("button", { name: /new request root/i }));
+    const activeId = screen.getByTestId("active-id").textContent ?? "";
+    await user.click(screen.getByRole("button", { name: /close active tab/i }));
+
+    expect(onTreeChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId("open-ids").textContent).not.toContain(activeId);
+  });
+
+  // behavior: a draft is promoted to the tree + disk only on save, at its
+  // placement (the selected folder), carrying the edits.
+  it("should promote the draft into the selected folder on save", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderProbe({ onTreeChange });
@@ -252,80 +312,78 @@ describe("WorkspaceProvider create request (immediate)", () => {
       screen.getByRole("button", { name: /select users folder/i }),
     );
     await user.click(screen.getByRole("button", { name: /new request root/i }));
-
-    // persisted immediately on create (no draft/save step).
-    expect(onTreeChange).toHaveBeenCalledTimes(1);
-    // the new node is the active + selected tab.
     const activeId = screen.getByTestId("active-id").textContent ?? "";
-    expect(activeId).not.toBe("none");
-    expect(activeId).not.toMatch(/draft-/);
-    expect(screen.getByTestId("open-ids").textContent).toContain(activeId);
-    expect(screen.getByTestId("selected-id")).toHaveTextContent(activeId);
-    // a new REQUEST focuses the URL input (a new FOLDER begins inline rename),
-    // so it is NOT in the renaming state.
-    expect(screen.getByTestId("renaming-id")).toHaveTextContent("none");
-
-    // it lives under the Users folder in the round-tripped tree.
-    const persisted = onTreeChange.mock.calls[0][0];
-    const roundTrip = deserialize(serialize(persisted));
-    expect(roundTrip.ok).toBe(true);
-    if (!roundTrip.ok) {
-      throw new Error("expected round-trip to succeed");
-    }
-    const usersFolder = collect(roundTrip.tree).find(
-      (node) => node.kind === "folder" && node.name === "Users",
+    await user.click(
+      screen.getByRole("button", { name: /edit active request/i }),
     );
-    expect(usersFolder?.kind).toBe("folder");
-    if (!usersFolder || usersFolder.kind !== "folder") {
-      throw new Error("expected the Users folder in the round-tripped tree");
-    }
-    expect(
-      usersFolder.children.filter((node) => node.kind === "request").length,
-    ).toBeGreaterThan(1);
-  });
-
-  // AC-001 - side-effect-contract: a freshly created request can still be edited
-  // and saved through the normal url/method override -> save path.
-  it("should let the created request be edited and saved like any on-disk request", async () => {
-    const user = userEvent.setup();
-    const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
-    renderProbe({ onTreeChange });
-
-    await user.click(screen.getByRole("button", { name: /new request root/i }));
-    await user.click(screen.getByRole("button", { name: /edit active request/i }));
     await user.click(screen.getByRole("button", { name: /save active/i }));
 
-    // create (1) + edit-save (2).
-    expect(onTreeChange).toHaveBeenCalledTimes(2);
-    const persisted = onTreeChange.mock.calls[1][0];
-    const created = collect(persisted).find(
-      (node) =>
-        node.kind === "request" && node.url === "https://created.test/path",
+    // one disk write, on save (not on create).
+    expect(onTreeChange).toHaveBeenCalledTimes(1);
+    const persisted = onTreeChange.mock.calls[0][0];
+    const usersFolder = collect(persisted).find(
+      (node) => node.kind === "folder" && node.id === "folder-users",
     );
+    if (!usersFolder || usersFolder.kind !== "folder") {
+      throw new Error("expected the Users folder");
+    }
+    const created = usersFolder.children.find((node) => node.id === activeId);
     expect(created).toBeDefined();
+    expect(created?.kind === "request" && created.url).toBe(
+      "https://created.test/path",
+    );
     expect(created?.kind === "request" && created.method).toBe("POST");
   });
 
-  // AC-002, TC-002 - side-effect-contract: with nothing selected the new request
-  // is appended at workspace root.
-  it("should append the new request at workspace root if nothing is selected", async () => {
+  // behavior: with nothing selected, an edited draft promotes to the workspace root.
+  it("should promote the draft to the workspace root if nothing is selected", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderProbe({ onTreeChange });
 
     await user.click(screen.getByRole("button", { name: /new request root/i }));
+    const activeId = screen.getByTestId("active-id").textContent ?? "";
+    await user.click(
+      screen.getByRole("button", { name: /edit active request/i }),
+    );
+    await user.click(screen.getByRole("button", { name: /save active/i }));
 
     const persisted = onTreeChange.mock.calls[0][0];
-    const activeId = screen.getByTestId("active-id").textContent ?? "";
     // present at the ROOT level (not nested in a folder).
-    const created = persisted.find((node) => node.id === activeId);
-    expect(created).toBeDefined();
-    expect(created?.kind).toBe("request");
+    expect(persisted.some((node) => node.id === activeId)).toBe(true);
   });
 
-  // AC-002 - behavior: a request created with an explicit folder target lands in
-  // that folder regardless of selection.
-  it("should place the new request in the explicit target folder", async () => {
+  // behavior: a persisted draft tab is restored as an open tab on mount (survives
+  // an app restart) without appearing in the sidebar tree.
+  it("should restore a persisted draft tab on mount as an open tab", () => {
+    const draftRequest: RequestNode = {
+      kind: "request",
+      id: "new-99",
+      name: "untitled",
+      method: "GET",
+      url: "",
+      body: { active: "json", types: { json: "", form: [], multipart: [] } },
+      params: { path: [], query: [] },
+      config: {},
+    };
+    renderProbe({
+      initialDraftTabs: [
+        { id: "new-99", request: draftRequest, placement: { parentId: null, index: 0 } },
+      ],
+      initialOpenRequestIds: ["new-99"],
+      initialActiveRequestId: "new-99",
+    });
+
+    // it is an open + active tab...
+    expect(screen.getByTestId("open-ids").textContent).toContain("new-99");
+    expect(screen.getByTestId("active-id")).toHaveTextContent("new-99");
+    // ...but NOT a sidebar tree node.
+    expect(screen.getByTestId("tree-ids").textContent).not.toContain("new-99");
+  });
+
+  // behavior: a draft created with an explicit folder target promotes into that
+  // folder on save regardless of selection.
+  it("should promote the draft into the explicit target folder on save", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderProbe({ onTreeChange });
@@ -333,19 +391,59 @@ describe("WorkspaceProvider create request (immediate)", () => {
     await user.click(
       screen.getByRole("button", { name: /new request in users/i }),
     );
+    const activeId = screen.getByTestId("active-id").textContent ?? "";
+    await user.click(
+      screen.getByRole("button", { name: /edit active request/i }),
+    );
+    await user.click(screen.getByRole("button", { name: /save active/i }));
 
     const persisted = onTreeChange.mock.calls[0][0];
-    const activeId = screen.getByTestId("active-id").textContent ?? "";
     const usersFolder = persisted.find(
       (node) => node.kind === "folder" && node.id === "folder-users",
     );
-    expect(usersFolder?.kind).toBe("folder");
     if (!usersFolder || usersFolder.kind !== "folder") {
       throw new Error("expected the users folder");
     }
-    expect(
-      usersFolder.children.some((node) => node.id === activeId),
-    ).toBe(true);
+    expect(usersFolder.children.some((node) => node.id === activeId)).toBe(true);
+  });
+
+  // behavior: a RESTORED draft (edits baked into its request, no live override, so
+  // not "dirty") still promotes to disk on save - a draft is inherently unsaved.
+  it("should promote a restored draft on save even without a live edit", async () => {
+    const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
+    const draftRequest: RequestNode = {
+      kind: "request",
+      id: "new-77",
+      name: "restored",
+      method: "POST",
+      url: "https://restored.test/x",
+      body: { active: "json", types: { json: "", form: [], multipart: [] } },
+      params: { path: [], query: [] },
+      config: {},
+    };
+    const user = userEvent.setup();
+    renderProbe({
+      onTreeChange,
+      initialDraftTabs: [
+        {
+          id: "new-77",
+          request: draftRequest,
+          placement: { parentId: null, index: 0 },
+        },
+      ],
+      initialOpenRequestIds: ["new-77"],
+      initialActiveRequestId: "new-77",
+    });
+
+    // not dirty (no override), yet save must still write it to disk.
+    await user.click(screen.getByRole("button", { name: /save active/i }));
+
+    expect(onTreeChange).toHaveBeenCalledTimes(1);
+    const persisted = onTreeChange.mock.calls[0][0];
+    const created = persisted.find((node) => node.id === "new-77");
+    expect(created?.kind === "request" && created.url).toBe(
+      "https://restored.test/x",
+    );
   });
 });
 

@@ -231,7 +231,7 @@ describe("ContentHeader", () => {
     );
 
     const tablist = screen.getByRole("tablist", { name: /open requests/i });
-    const editorTab = within(tablist).getByRole("tab", { name: /config/i });
+    const editorTab = within(tablist).getByRole("tab", { name: "Users" });
     expect(editorTab).toHaveAttribute("aria-selected", "true");
 
     await user.click(within(tablist).getByRole("tab", { name: "profile" }));
@@ -241,7 +241,7 @@ describe("ContentHeader", () => {
     ).toHaveAttribute("aria-selected", "true");
     // the editor tab is still present, just no longer active.
     expect(
-      within(tablist).getByRole("tab", { name: /config/i }),
+      within(tablist).getByRole("tab", { name: "Users" }),
     ).toHaveAttribute("aria-selected", "false");
   });
 
@@ -267,7 +267,7 @@ describe("ContentHeader", () => {
     );
 
     const tablist = screen.getByRole("tablist", { name: /open requests/i });
-    const editorTab = within(tablist).getByRole("tab", { name: /config/i });
+    const editorTab = within(tablist).getByRole("tab", { name: "Users" });
     expect(editorTab).toHaveAttribute("aria-selected", "true");
   });
 
@@ -296,13 +296,13 @@ describe("ContentHeader", () => {
     // activate the request tab -> editor deactivates but its tab remains.
     await user.click(within(tablist).getByRole("tab", { name: "profile" }));
     expect(
-      within(tablist).getByRole("tab", { name: /config/i }),
+      within(tablist).getByRole("tab", { name: "Users" }),
     ).toHaveAttribute("aria-selected", "false");
 
     // click the editor tab back -> it re-activates.
-    await user.click(within(tablist).getByRole("tab", { name: /config/i }));
+    await user.click(within(tablist).getByRole("tab", { name: "Users" }));
     expect(
-      within(tablist).getByRole("tab", { name: /config/i }),
+      within(tablist).getByRole("tab", { name: "Users" }),
     ).toHaveAttribute("aria-selected", "true");
     expect(
       within(tablist).getByRole("tab", { name: "profile" }),
@@ -336,7 +336,7 @@ describe("ContentHeader", () => {
 
     const tablist = screen.getByRole("tablist", { name: /open requests/i });
     expect(
-      within(tablist).queryByRole("tab", { name: /config/i }),
+      within(tablist).queryByRole("tab", { name: "Users" }),
     ).not.toBeInTheDocument();
     expect(
       within(tablist).getByRole("tab", { name: "profile" }),

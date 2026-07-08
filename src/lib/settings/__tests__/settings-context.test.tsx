@@ -92,6 +92,7 @@ describe("SettingsProvider", () => {
       shortcuts: {},
       openRequestIds: [],
       activeRequestId: null,
+      draftTabs: [],
       theme: DEFAULT_SETTINGS.theme,
     };
     const store = createInMemorySettingsStore(seeded);
@@ -188,6 +189,56 @@ describe("SettingsProvider", () => {
     expect(await screen.findByTestId("workspace-layout")).toHaveTextContent(
       JSON.stringify({ sidebar: 33, content: 67 }),
     );
+  });
+});
+
+// Two saves in the SAME event tick must COMPOSE (not clobber): both read the ref
+// mirror, not the pre-render `settings` value. Mirrors the draft-create path where
+// saveOpenTabs + saveDraftTabs fire together.
+function TwoSaveProbe() {
+  const { settings, saveConsoleHidden, saveSidebarHidden } = useSettings();
+  return (
+    <div>
+      <span data-testid="console-hidden">{String(settings.consoleHidden)}</span>
+      <span data-testid="sidebar-hidden">{String(settings.sidebarHidden)}</span>
+      <button
+        type="button"
+        onClick={() => {
+          saveConsoleHidden(true);
+          saveSidebarHidden(true);
+        }}
+      >
+        save both
+      </button>
+    </div>
+  );
+}
+
+describe("SettingsProvider concurrent saves", () => {
+  // regression: two saves in one tick both persist (neither clobbers the other).
+  it("should compose two saves fired in the same tick", async () => {
+    const user = userEvent.setup();
+    const inner = createInMemorySettingsStore();
+    const saveSpy = vi.fn(inner.save);
+    const store: SettingsStore = { load: inner.load, save: saveSpy };
+
+    render(
+      <SettingsProvider store={store}>
+        <TwoSaveProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("console-hidden");
+    await user.click(screen.getByRole("button", { name: /save both/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("console-hidden")).toHaveTextContent("true");
+    });
+    expect(screen.getByTestId("sidebar-hidden")).toHaveTextContent("true");
+    // the LAST persisted settings carry BOTH flags (not just the second save).
+    const last = saveSpy.mock.calls.at(-1)![0];
+    expect(last.consoleHidden).toBe(true);
+    expect(last.sidebarHidden).toBe(true);
   });
 });
 

@@ -126,7 +126,9 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > like the rest of the tab state). In the sidebar collection tree, drag a request or folder
 > onto another folder to move it inside, or between two rows to reorder siblings; the change
 > is written back to the workspace on disk so it survives a reload (in `npm run dev` there is
-> no Tauri host, so the move stays in-session only).
+> no Tauri host, so the move stays in-session only). The sidebar supports **multi-select**:
+> `Cmd/Ctrl+click` toggles a row into the selection, `Shift+click` picks the range from the
+> last-clicked row, and dragging any selected row moves the whole selection in one drop.
 >
 > The collection tree is fully writable from the UI. **Right-click a folder** for New request /
 > New folder (created inside it) / Rename / Delete; **right-click a request** for Rename /

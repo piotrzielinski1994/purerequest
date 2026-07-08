@@ -55,6 +55,11 @@ export function parseEmptyZoneId(id: string): string | null {
     : null;
 }
 
+// The empty area below the last row. Dropping there moves the node to the END of
+// the workspace root - a reliable escape hatch when every folder is collapsed and
+// there is no root row to drop between.
+export const ROOT_ZONE_ID = "root-zone";
+
 // Pointer-relative drop projection.
 // - Request row: top half = before, bottom half = after (reorder).
 // - Expanded folder row: only a thin top strip = before (reorder above it);
@@ -93,12 +98,18 @@ export function projectDropPosition({
   return fraction < 0.5 ? "before" : "after";
 }
 
-export function dropTarget(
+// The drop target as a RAW slot in the over-row's parent's ORIGINAL children -
+// no compensation for the dragged node's own removal. `moveNodes` wants this raw
+// form (it does its own multi-node compensation); `dropTarget` layers the
+// single-node shift on top.
+export function rawDropTarget(
   tree: TreeNode[],
-  dragId: string,
   overId: string,
   position: DropPosition,
 ): MoveTarget | null {
+  if (overId === ROOT_ZONE_ID) {
+    return { parentId: null, index: tree.length };
+  }
   const emptyZoneFolderId = parseEmptyZoneId(overId);
   if (emptyZoneFolderId !== null) {
     const folder = findNode(tree, emptyZoneFolderId);
@@ -118,13 +129,26 @@ export function dropTarget(
   if (!location) {
     return null;
   }
+  const index = position === "before" ? location.index : location.index + 1;
+  return { parentId: location.parentId, index };
+}
+
+export function dropTarget(
+  tree: TreeNode[],
+  dragId: string,
+  overId: string,
+  position: DropPosition,
+): MoveTarget | null {
+  const raw = rawDropTarget(tree, overId, position);
+  if (!raw || position === "inside" || parseEmptyZoneId(overId) !== null) {
+    return raw;
+  }
   const dragLocation = locateNode(tree, dragId);
-  const rawIndex = position === "before" ? location.index : location.index + 1;
   // moveNode evaluates index AFTER removing the dragged node; if it shared the
   // target parent and sat before the drop point, that removal shifts it down 1.
   const isSameParent =
-    dragLocation !== null && dragLocation.parentId === location.parentId;
+    dragLocation !== null && dragLocation.parentId === raw.parentId;
   const index =
-    isSameParent && dragLocation.index < rawIndex ? rawIndex - 1 : rawIndex;
-  return { parentId: location.parentId, index };
+    isSameParent && dragLocation.index < raw.index ? raw.index - 1 : raw.index;
+  return { parentId: raw.parentId, index };
 }

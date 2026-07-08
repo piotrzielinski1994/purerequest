@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
   DEFAULT_SETTINGS,
+  type DraftTab,
   type PanelGroupKey,
   type PanelLayout,
   type Settings,
@@ -31,6 +32,7 @@ type SettingsContextValue = {
     openRequestIds: string[],
     activeRequestId: string | null,
   ) => void;
+  saveDraftTabs: (draftTabs: DraftTab[]) => void;
   saveActiveEnvironment: (name: string | null) => void;
   saveThemeMode: (mode: ThemeMode) => void;
   saveThemeColors: (colors: ThemeColors) => void;
@@ -58,13 +60,19 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
     };
   }, [store]);
 
+  // Compose off the CURRENT state (functional updater) so two saves in the same
+  // tick chain instead of both reading the pre-render value and clobbering each
+  // other (e.g. saveOpenTabs + saveDraftTabs on draft create). store.save runs
+  // inside the updater with the freshly-composed value.
   const update = useCallback(
     (mutate: (base: Settings) => Settings) => {
-      const next = mutate(settings ?? DEFAULT_SETTINGS);
-      setSettings(next);
-      store.save(next);
+      setSettings((current) => {
+        const next = mutate(current ?? DEFAULT_SETTINGS);
+        store.save(next);
+        return next;
+      });
     },
-    [settings, store],
+    [store],
   );
 
   const saveLayout = useCallback(
@@ -123,6 +131,12 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
     [update],
   );
 
+  const saveDraftTabs = useCallback(
+    (draftTabs: DraftTab[]) =>
+      update((base) => ({ ...base, draftTabs })),
+    [update],
+  );
+
   const saveActiveEnvironment = useCallback(
     (name: string | null) =>
       update((base) => ({
@@ -158,6 +172,7 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
             saveShortcut,
             resetShortcut,
             saveOpenTabs,
+            saveDraftTabs,
             saveActiveEnvironment,
             saveThemeMode,
             saveThemeColors,
@@ -172,6 +187,7 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
       saveShortcut,
       resetShortcut,
       saveOpenTabs,
+      saveDraftTabs,
       saveActiveEnvironment,
       saveThemeMode,
       saveThemeColors,

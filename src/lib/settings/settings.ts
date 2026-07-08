@@ -3,6 +3,17 @@ import {
   type ShortcutOverrides,
 } from "@/lib/shortcuts/registry";
 import { safeNormalize } from "@/lib/shortcuts/resolve";
+import type { RequestNode } from "@/lib/workspace/model";
+import type { MoveTarget } from "@/lib/workspace/move";
+
+// A session "new request" tab kept in app settings (NOT the workspace on disk) so
+// an unsaved draft survives an app restart. `placement` is where it promotes into
+// the tree when saved.
+export type DraftTab = {
+  id: string;
+  request: RequestNode;
+  placement: MoveTarget;
+};
 
 export type PanelLayout = Record<string, number>;
 
@@ -80,6 +91,8 @@ export type Settings = {
   shortcuts: ShortcutOverrides;
   openRequestIds: string[];
   activeRequestId: string | null;
+  // Unsaved "new request" draft tabs (kept across restarts; not on disk).
+  draftTabs: DraftTab[];
   theme: ThemeSettings;
   workspacePath?: string;
   activeEnvironment?: string;
@@ -105,6 +118,7 @@ export const DEFAULT_SETTINGS: Settings = {
   shortcuts: {},
   openRequestIds: [],
   activeRequestId: null,
+  draftTabs: [],
   theme: { mode: "system", colors: emptyThemeColors() },
 };
 
@@ -154,6 +168,36 @@ function mergeOpenRequestIds(value: unknown): string[] {
     return [];
   }
   return value.filter((id): id is string => typeof id === "string");
+}
+
+function isMoveTarget(value: unknown): value is MoveTarget {
+  return (
+    isRecord(value) &&
+    (value.parentId === null || typeof value.parentId === "string") &&
+    typeof value.index === "number"
+  );
+}
+
+// A draft is tolerant-validated: only entries with a string id, a request-shaped
+// object, and a MoveTarget placement survive. A malformed entry is dropped rather
+// than failing the whole load.
+function mergeDraftTabs(value: unknown): DraftTab[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((entry): entry is DraftTab => {
+    if (!isRecord(entry)) {
+      return false;
+    }
+    const request = entry.request;
+    return (
+      typeof entry.id === "string" &&
+      isRecord(request) &&
+      request.kind === "request" &&
+      typeof request.id === "string" &&
+      isMoveTarget(entry.placement)
+    );
+  });
 }
 
 function isThemeMode(value: unknown): value is ThemeMode {
@@ -246,9 +290,12 @@ export function mergeSettings(defaults: Settings, partial: unknown): Settings {
     return defaults;
   }
   const openRequestIds = mergeOpenRequestIds(partial.openRequestIds);
+  const draftTabs = mergeDraftTabs(partial.draftTabs);
+  const draftIds = new Set(draftTabs.map((draft) => draft.id));
   const activeRequestId =
     typeof partial.activeRequestId === "string" &&
-    openRequestIds.includes(partial.activeRequestId)
+    (openRequestIds.includes(partial.activeRequestId) ||
+      draftIds.has(partial.activeRequestId))
       ? partial.activeRequestId
       : null;
   return {
@@ -269,6 +316,7 @@ export function mergeSettings(defaults: Settings, partial: unknown): Settings {
     shortcuts: mergeShortcuts(partial.shortcuts),
     openRequestIds,
     activeRequestId,
+    draftTabs,
     theme: mergeTheme(defaults.theme, partial.theme),
     workspacePath:
       typeof partial.workspacePath === "string"

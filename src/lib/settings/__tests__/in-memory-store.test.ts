@@ -22,6 +22,7 @@ describe("createInMemorySettingsStore", () => {
       shortcuts: {},
       openRequestIds: [],
       activeRequestId: null,
+      draftTabs: [],
       theme: DEFAULT_SETTINGS.theme,
     };
     const store = createInMemorySettingsStore(initial);
@@ -41,6 +42,7 @@ describe("createInMemorySettingsStore", () => {
       shortcuts: {},
       openRequestIds: [],
       activeRequestId: null,
+      draftTabs: [],
       theme: DEFAULT_SETTINGS.theme,
     };
 
@@ -62,6 +64,7 @@ describe("createInMemorySettingsStore", () => {
       shortcuts: {},
       openRequestIds: [],
       activeRequestId: null,
+      draftTabs: [],
       theme: DEFAULT_SETTINGS.theme,
     });
     await store.save({
@@ -73,6 +76,7 @@ describe("createInMemorySettingsStore", () => {
       shortcuts: {},
       openRequestIds: [],
       activeRequestId: null,
+      draftTabs: [],
       theme: DEFAULT_SETTINGS.theme,
     });
 
@@ -85,6 +89,7 @@ describe("createInMemorySettingsStore", () => {
       shortcuts: {},
       openRequestIds: [],
       activeRequestId: null,
+      draftTabs: [],
       theme: DEFAULT_SETTINGS.theme,
     });
   });

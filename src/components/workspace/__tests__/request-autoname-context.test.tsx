@@ -237,8 +237,8 @@ function NewRequestControl() {
   );
 }
 
-describe("request auto-name reflected in the sidebar tree row", () => {
-  it("should update the sidebar tree row label as the URL is typed into the URL input", async () => {
+describe("new request draft (not in the sidebar until saved)", () => {
+  it("should open a draft tab without adding a row to the sidebar tree", async () => {
     const user = userEvent.setup();
     render(
       <ToastProvider>
@@ -250,25 +250,22 @@ describe("request auto-name reflected in the sidebar tree row", () => {
       </ToastProvider>,
     );
 
+    const tree = screen.getByRole("tree", { name: /collection/i });
+    const rowsBefore = within(tree).getAllByRole("treeitem").length;
+
     await user.click(screen.getByRole("button", { name: /new request/i }));
 
-    const tree = screen.getByRole("tree", { name: /collection/i });
-    // freshly created: the row shows the default untitled name.
-    expect(
-      within(tree).getByRole("treeitem", { name: /untitled/i }),
-    ).toBeInTheDocument();
-
-    // type into the real URL input.
-    const urlInput = screen.getByRole("textbox", { name: /url/i });
-    await user.type(urlInput, "{{baseUrl}}/widgets");
-
-    // the sidebar row label now reflects the URL path.
-    expect(
-      within(tree).getByRole("treeitem", { name: /\/widgets/ }),
-    ).toBeInTheDocument();
+    // the draft is NOT in the sidebar (no untitled row appears, row count unchanged).
     expect(
       within(tree).queryByRole("treeitem", { name: /untitled/i }),
     ).not.toBeInTheDocument();
+    expect(within(tree).getAllByRole("treeitem").length).toBe(rowsBefore);
+
+    // typing into the real URL input still drives the draft's name (no crash,
+    // still no sidebar row until it is saved).
+    const urlInput = screen.getByRole("textbox", { name: /url/i });
+    await user.type(urlInput, "{{baseUrl}}/widgets");
+    expect(within(tree).getAllByRole("treeitem").length).toBe(rowsBefore);
   });
 
   it("should focus the URL input when New request is chosen from the empty-area context menu", async () => {

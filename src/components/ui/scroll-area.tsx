@@ -8,8 +8,14 @@ import { cn } from "@/lib/utils";
 function ScrollArea({
   className,
   children,
+  // Radix only makes the viewport scroll on an axis when a ScrollBar for that
+  // axis is mounted; opt in to the horizontal bar for regions whose content can
+  // be wider than the viewport (e.g. the sidebar tree with long request paths).
+  horizontal = false,
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
+}: React.ComponentProps<typeof ScrollAreaPrimitive.Root> & {
+  horizontal?: boolean;
+}) {
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
@@ -25,6 +31,7 @@ function ScrollArea({
         {children}
       </ScrollAreaPrimitive.Viewport>
       <ScrollBar />
+      {horizontal && <ScrollBar orientation="horizontal" />}
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>
   );

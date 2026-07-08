@@ -18,7 +18,16 @@ import {
   resolveProcessEnvProvenance,
   type EffectiveConfig,
 } from "@/lib/workspace/resolve";
-import { moveNode as applyMove, type MoveTarget } from "@/lib/workspace/move";
+import {
+  moveNode as applyMove,
+  moveNodes as applyMoveNodes,
+  type MoveTarget,
+} from "@/lib/workspace/move";
+import {
+  flattenSelectable,
+  rangeBetween,
+} from "@/lib/workspace/tree-select";
+import type { DraftTab } from "@/lib/settings/settings";
 import {
   collectRequestIds,
   duplicateRequest as applyDuplicate,
@@ -140,6 +149,11 @@ export type PendingClose =
 
 export type PendingDelete = { id: string } | null;
 
+// How a click adjusts the sidebar multi-selection: a plain click replaces it, a
+// Cmd/Ctrl click toggles one row, a Shift click selects the range from the
+// anchor to the clicked row over the visible (expanded) rows.
+export type SelectMode = "replace" | "toggle" | "range";
+
 export type RequestTab =
   | "vars"
   | "auth"
@@ -159,6 +173,9 @@ type WorkspaceContextValue = {
   consoleLines: string[];
   expandedFolderIds: Set<string>;
   selectedNodeId: string | null;
+  // The sidebar multi-selection (node ids). Empty until the user Cmd/Shift-clicks
+  // (a plain click keeps it in sync with the single `selectedNodeId`).
+  selectedIds: Set<string>;
   openRequestIds: string[];
   activeRequestId: string | null;
   activeRequestTab: RequestTab;
@@ -228,9 +245,12 @@ type WorkspaceContextValue = {
   isSettingsActive: boolean;
   toggleFolder: (id: string) => void;
   selectNode: (id: string) => void;
+  selectInTree: (id: string, mode: SelectMode) => void;
+  clearSelection: () => void;
   setActiveRequest: (id: string) => void;
   reorderRequests: (nextIds: string[]) => void;
   moveNode: (dragId: string, target: MoveTarget) => void;
+  moveNodes: (dragIds: string[], target: MoveTarget) => void;
   closeRequest: (id: string) => void;
   closeAllRequests: () => void;
   renamingNodeId: string | null;
@@ -298,6 +318,10 @@ type WorkspaceProviderProps = {
     openRequestIds: string[],
     activeRequestId: string | null,
   ) => void;
+  // Restored unsaved "new request" draft tabs + a callback to persist changes to
+  // them (both live in app settings, not the workspace on disk).
+  initialDraftTabs?: DraftTab[];
+  onDraftTabsChange?: (drafts: DraftTab[]) => void;
   onTreeChange?: (tree: TreeNode[]) => Promise<WriteResult>;
   httpClient?: HttpClient;
   scriptRunner?: ScriptRunner;
@@ -315,7 +339,9 @@ export function WorkspaceProvider({
   initialExpandedIds = [],
   initialActiveRequestId,
   initialOpenRequestIds,
+  initialDraftTabs,
   onTabsChange,
+  onDraftTabsChange,
   onTreeChange,
   httpClient,
   scriptRunner,
@@ -356,6 +382,22 @@ export function WorkspaceProvider({
   const [requestOverrides, setRequestOverrides] = useState<
     Map<string, RequestOverride>
   >(() => new Map());
+  // Session-only "new request" tabs: a fresh request lives here (NOT in the tree,
+  // NOT on disk, NOT in the sidebar) as just an open tab until it is edited AND
+  // saved - only then is it promoted into the tree and written to disk. Each draft
+  // remembers where it should land on promotion. Clicking "+" must never write an
+  // empty request to disk; that only happens on an explicit save of an edited draft.
+  const [draftRequests, setDraftRequests] = useState<
+    Map<string, { request: RequestNode; placement: MoveTarget }>
+  >(
+    () =>
+      new Map(
+        (initialDraftTabs ?? []).map((draft) => [
+          draft.id,
+          { request: draft.request, placement: draft.placement },
+        ]),
+      ),
+  );
   const [responseStates, setResponseStates] = useState<
     Map<string, ResponseState>
   >(() => new Map());
@@ -399,6 +441,8 @@ export function WorkspaceProvider({
 
   const requestsById = useMemo(() => {
     const byId = indexRequests(tree);
+    // Session drafts resolve like on-disk requests for the open tab / panes.
+    draftRequests.forEach(({ request }, id) => byId.set(id, request));
     requestOverrides.forEach((override, id) => {
       const base = byId.get(id);
       if (base) {
@@ -406,13 +450,15 @@ export function WorkspaceProvider({
       }
     });
     return byId;
-  }, [tree, requestOverrides]);
+  }, [tree, draftRequests, requestOverrides]);
 
   const dirtyRequestIds = useMemo(() => {
     const treeRequests = indexRequests(tree);
     const dirty = new Set<string>();
     requestOverrides.forEach((override, id) => {
-      const base = treeRequests.get(id);
+      // A draft compares against its own pristine request; an on-disk request
+      // against its tree node.
+      const base = draftRequests.get(id)?.request ?? treeRequests.get(id);
       if (!base) {
         return;
       }
@@ -432,7 +478,7 @@ export function WorkspaceProvider({
       dirty.add(activeEditor.scope.id);
     }
     return dirty;
-  }, [tree, requestOverrides, activeEditor, requestsById]);
+  }, [tree, draftRequests, requestOverrides, activeEditor, requestsById]);
 
   // The active editor (folder config pane / .env) is dirty AND not just a
   // request-config editor already reflected in dirtyRequestIds.
@@ -445,14 +491,17 @@ export function WorkspaceProvider({
 
   const restoredOpenIds = useMemo(() => {
     const known = indexRequests(tree);
-    const restored = (initialOpenRequestIds ?? []).filter((id) =>
-      known.has(id),
+    const draftIds = new Set((initialDraftTabs ?? []).map((draft) => draft.id));
+    // Restore a persisted open tab if it is either an on-disk request OR a
+    // restored draft (drafts live in settings, not the tree).
+    const restored = (initialOpenRequestIds ?? []).filter(
+      (id) => known.has(id) || draftIds.has(id),
     );
     if (restored.length > 0) {
       return restored;
     }
     return initialActiveRequestId ? [initialActiveRequestId] : [];
-  }, [tree, initialOpenRequestIds, initialActiveRequestId]);
+  }, [tree, initialOpenRequestIds, initialActiveRequestId, initialDraftTabs]);
 
   const [expandedFolderIds, setExpandedFolderIds] = useState(
     () => new Set(initialExpandedIds),
@@ -460,6 +509,13 @@ export function WorkspaceProvider({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     initialActiveRequestId ?? restoredOpenIds[0] ?? null,
   );
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => {
+    const initial = initialActiveRequestId ?? restoredOpenIds[0] ?? null;
+    return new Set(initial !== null ? [initial] : []);
+  });
+  // The shift-click anchor: the row a range extends from. Set by a replace/toggle
+  // click, reused by a following range click.
+  const [selectAnchorId, setSelectAnchorId] = useState<string | null>(null);
   const [openRequestIds, setOpenRequestIds] =
     useState<string[]>(restoredOpenIds);
   const [activeRequestId, setActiveRequestId] = useState<string | null>(
@@ -493,6 +549,10 @@ export function WorkspaceProvider({
   useEffect(() => {
     onTabsChangeRef.current = onTabsChange;
   }, [onTabsChange]);
+  const onDraftTabsChangeRef = useRef(onDraftTabsChange);
+  useEffect(() => {
+    onDraftTabsChangeRef.current = onDraftTabsChange;
+  }, [onDraftTabsChange]);
   const onTreeChangeRef = useRef(onTreeChange);
   useEffect(() => {
     onTreeChangeRef.current = onTreeChange;
@@ -527,12 +587,12 @@ export function WorkspaceProvider({
       isFirstTabsRender.current = false;
       return;
     }
-    // A freshly-created node carries a synthetic in-session id (`new-<n>`) that
-    // is replaced by a path-based id on the next disk reload, so it can't match
-    // a persisted open-tab id - drop it from what we persist (it would never
-    // restore anyway, same accepted limitation a drag-move has).
+    // A freshly-created (promoted) node carries a synthetic in-session id
+    // (`new-<n>`) that is replaced by a path-based id on the next disk reload, so
+    // it can't match a persisted open-tab id - drop it. EXCEPT an id that is still
+    // a draft: drafts are restored from settings by that same id, so it must stay.
     const persistableIds = openRequestIds.filter(
-      (id) => !id.startsWith("new-"),
+      (id) => !id.startsWith("new-") || draftRequests.has(id),
     );
     onTabsChangeRef.current?.(
       persistableIds,
@@ -540,13 +600,44 @@ export function WorkspaceProvider({
         ? activeRequestId
         : null,
     );
-  }, [openRequestIds, activeRequestId]);
+  }, [openRequestIds, activeRequestId, draftRequests]);
+
+  // Persist draft tabs to app settings whenever they change, so an unsaved "new
+  // request" survives an app restart. Skip the first render (it would just write
+  // the restored value straight back).
+  const isFirstDraftsRender = useRef(true);
+  useEffect(() => {
+    if (isFirstDraftsRender.current) {
+      isFirstDraftsRender.current = false;
+      return;
+    }
+    // Persist the draft with its live edits FOLDED IN: a draft's unsaved edits live
+    // in requestOverrides, so the pristine draft.request alone would restore a
+    // blank request (URL/method/body lost). Merge the override so a restart keeps
+    // exactly what is on screen.
+    onDraftTabsChangeRef.current?.(
+      [...draftRequests.entries()].map(([id, { request, placement }]) => ({
+        id,
+        request: { ...request, ...(requestOverrides.get(id) ?? {}) },
+        placement,
+      })),
+    );
+  }, [draftRequests, requestOverrides]);
 
   const isWorkspaceWritable = onTreeChange !== undefined;
 
   const value = useMemo<WorkspaceContextValue>(() => {
-    const selectNode = (id: string) => {
+    // Set the primary (CRUD/placement) node AND collapse the multi-selection to
+    // just it, so the sidebar highlight (driven off selectedIds) tracks the
+    // single active node whenever selection is set outside a modifier-click.
+    const selectSingle = (id: string) => {
       setSelectedNodeId(id);
+      setSelectedIds(new Set([id]));
+      setSelectAnchorId(id);
+    };
+
+    const selectNode = (id: string) => {
+      selectSingle(id);
       const request = requestsById.get(id);
       if (!request) {
         setExpandedFolderIds((current) => toggleInSet(current, id));
@@ -583,6 +674,15 @@ export function WorkspaceProvider({
         next.delete(id);
         return next;
       });
+      // Closing a draft tab discards it entirely (never written to disk).
+      setDraftRequests((current) => {
+        if (!current.has(id)) {
+          return current;
+        }
+        const next = new Map(current);
+        next.delete(id);
+        return next;
+      });
       setResponseStates((current) => {
         if (!current.has(id)) {
           return current;
@@ -597,6 +697,7 @@ export function WorkspaceProvider({
       setOpenRequestIds([]);
       setActiveRequestId(null);
       setRequestOverrides(new Map());
+      setDraftRequests(new Map());
       setResponseStates(new Map());
       setIsSettingsOpen(false);
       setIsSettingsActive(false);
@@ -608,6 +709,10 @@ export function WorkspaceProvider({
       setIsSettingsActive(false);
       setIsEditorActive(false);
       setRequestOverrides((current) => {
+        const kept = current.get(id);
+        return kept === undefined ? new Map() : new Map([[id, kept]]);
+      });
+      setDraftRequests((current) => {
         const kept = current.get(id);
         return kept === undefined ? new Map() : new Map([[id, kept]]);
       });
@@ -949,11 +1054,19 @@ export function WorkspaceProvider({
     // + activate + select its tab. `autoName` keeps the name tracking the URL and
     // focuses the URL input (the New-request flow); imports pass autoName=false
     // since they arrive fully formed.
+    // Create a request node and open its tab. `mode: "draft"` keeps it in memory
+    // only (a "+"/new-request tab that is not written to disk until edited AND
+    // saved); `mode: "persist"` writes it to the tree immediately (curl import,
+    // which arrives fully formed). `autoName` keeps the name tracking the URL and
+    // focuses the URL input (the new-request flow).
     const createRequestNode = (
       partial: Pick<RequestNode, "name" | "method" | "url"> &
         Partial<RequestNode>,
-      target?: MoveTarget,
-      autoName = false,
+      options: {
+        target?: MoveTarget;
+        autoName?: boolean;
+        mode: "draft" | "persist";
+      },
     ) => {
       nodeCounter.current += 1;
       const id = `new-${nodeCounter.current}`;
@@ -965,23 +1078,29 @@ export function WorkspaceProvider({
         ...partial,
         id,
       };
-      const placement = derivePlacement(target);
+      const placement = derivePlacement(options.target);
       if (placement.parentId !== null) {
         setExpandedFolderIds((current) =>
           new Set(current).add(placement.parentId!),
         );
       }
-      if (autoName) {
+      if (options.autoName) {
         autoNameIds.current.set(id, request.name);
       }
       setIsSettingsActive(false);
       setIsEditorActive(false);
       setOpenRequestIds((current) => [...current, id]);
       setActiveRequestId(id);
-      setSelectedNodeId(id);
+      selectSingle(id);
       setRenamingNodeId(null);
-      if (autoName) {
+      if (options.autoName) {
         setFocusUrlNonce((nonce) => nonce + 1);
+      }
+      if (options.mode === "draft") {
+        setDraftRequests((current) =>
+          new Map(current).set(id, { request, placement }),
+        );
+        return;
       }
       persistTree(
         insertNode(tree, placement.parentId, placement.index, request),
@@ -995,8 +1114,7 @@ export function WorkspaceProvider({
       );
       createRequestNode(
         { name: untitledName(existingNames), method: "GET", url: "" },
-        target,
-        true,
+        { target, autoName: true, mode: "draft" },
       );
     };
 
@@ -1038,7 +1156,7 @@ export function WorkspaceProvider({
           ...(headers.length > 0 ? { headers } : {}),
           ...(auth ? { auth } : {}),
         },
-      });
+      }, { mode: "persist" });
       setIsCurlImportOpen(false);
       showToastRef.current("Imported request");
       return result;
@@ -1054,7 +1172,7 @@ export function WorkspaceProvider({
       setExpandedFolderIds((current) => new Set(current).add(folder.id));
       setIsSettingsActive(false);
       setIsEditorActive(false);
-      setSelectedNodeId(folder.id);
+      selectSingle(folder.id);
       persistTree(insertNode(tree, null, tree.length, folder), "import");
       // A collection's .env feeds {{process.env.X}} - merge every .env found
       // (at any depth) into the workspace .env so imported requests resolve
@@ -1131,16 +1249,53 @@ export function WorkspaceProvider({
       if (activeRequestId === null) {
         return false;
       }
-      if (!dirtyRequestIds.has(activeRequestId)) {
+      const id = activeRequestId;
+      const draft = draftRequests.get(id);
+      // A draft promotes to the tree on save: fold any edits onto the pristine
+      // draft request, insert at the remembered placement, and drop the draft +
+      // override. A draft is inherently unsaved (never on disk), so it always
+      // promotes on save - even a RESTORED draft whose edits are already baked
+      // into draft.request (no live override, so not "dirty").
+      if (draft) {
+        const patch = requestOverrides.get(id) as RequestPatch | undefined;
+        const node: RequestNode = { ...draft.request, ...(patch ?? {}) };
+        autoNameIds.current.delete(id);
+        setDraftRequests((current) => {
+          const next = new Map(current);
+          next.delete(id);
+          return next;
+        });
+        setRequestOverrides((current) => {
+          if (!current.has(id)) {
+            return current;
+          }
+          const next = new Map(current);
+          next.delete(id);
+          return next;
+        });
+        setExpandedFolderIds((current) =>
+          draft.placement.parentId !== null
+            ? new Set(current).add(draft.placement.parentId)
+            : current,
+        );
+        persistTree(
+          insertNode(
+            tree,
+            draft.placement.parentId,
+            draft.placement.index,
+            node,
+          ),
+          "create",
+        );
+        return true;
+      }
+      if (!dirtyRequestIds.has(id)) {
         return false;
       }
-      const patch = requestOverrides.get(activeRequestId) as
-        | RequestPatch
-        | undefined;
+      const patch = requestOverrides.get(id) as RequestPatch | undefined;
       if (!patch) {
         return false;
       }
-      const id = activeRequestId;
       // Saving establishes the name - the URL no longer drives it.
       autoNameIds.current.delete(id);
       setRequestOverrides((current) => {
@@ -1156,6 +1311,40 @@ export function WorkspaceProvider({
     };
 
     const saveRequestNode = (id: string, patch: RequestPatch) => {
+      const draft = draftRequests.get(id);
+      // A draft's full-request save promotes it into the tree at its placement.
+      if (draft) {
+        const node: RequestNode = { ...draft.request, ...patch };
+        autoNameIds.current.delete(id);
+        setDraftRequests((current) => {
+          const next = new Map(current);
+          next.delete(id);
+          return next;
+        });
+        setRequestOverrides((current) => {
+          if (!current.has(id)) {
+            return current;
+          }
+          const nextOverrides = new Map(current);
+          nextOverrides.delete(id);
+          return nextOverrides;
+        });
+        setExpandedFolderIds((current) =>
+          draft.placement.parentId !== null
+            ? new Set(current).add(draft.placement.parentId)
+            : current,
+        );
+        persistTree(
+          insertNode(
+            tree,
+            draft.placement.parentId,
+            draft.placement.index,
+            node,
+          ),
+          "create",
+        );
+        return;
+      }
       // Full-request Settings save - only persists a request that exists on disk.
       if (!indexRequests(tree).has(id)) {
         return;
@@ -1185,6 +1374,34 @@ export function WorkspaceProvider({
       setRenamingNodeId(null);
       autoNameIds.current.delete(id);
       if (name.trim() === "") {
+        return;
+      }
+      // A draft is not on disk: rename it in place on its own request (and clear
+      // any name override so the new name shows through). No tree write.
+      if (draftRequests.has(id)) {
+        setDraftRequests((current) => {
+          const entry = current.get(id);
+          if (!entry) {
+            return current;
+          }
+          const next = new Map(current);
+          next.set(id, {
+            ...entry,
+            request: { ...entry.request, name },
+          });
+          return next;
+        });
+        setRequestOverrides((current) => {
+          const existing = current.get(id);
+          if (!existing || existing.name === undefined) {
+            return current;
+          }
+          const rest = { ...existing };
+          delete rest.name;
+          const next = new Map(current);
+          next.set(id, rest);
+          return next;
+        });
         return;
       }
       // Drop any name override so the persisted (renamed) tree value shows through
@@ -1225,7 +1442,7 @@ export function WorkspaceProvider({
       }
       setIsSettingsActive(false);
       setIsEditorActive(false);
-      setSelectedNodeId(id);
+      selectSingle(id);
       setRenamingNodeId(id);
       persistTree(
         insertNode(tree, placement.parentId, placement.index, folder),
@@ -1246,7 +1463,7 @@ export function WorkspaceProvider({
       setIsSettingsActive(false);
       setIsEditorActive(false);
       setActiveRequestId(newId);
-      setSelectedNodeId(newId);
+      selectSingle(newId);
       persistTree(applyDuplicate(tree, id, newId), "duplicate");
     };
 
@@ -1363,7 +1580,25 @@ export function WorkspaceProvider({
 
       let nextTree = tree;
       const foldedOverrideIds: string[] = [];
+      const promotedDraftIds: string[] = [];
       overrideIdsToFold.forEach((id) => {
+        const draft = draftRequests.get(id);
+        if (draft) {
+          // A dirty draft being closed-with-save is promoted into the tree.
+          const patch = requestOverrides.get(id) as RequestPatch | undefined;
+          const node: RequestNode = { ...draft.request, ...(patch ?? {}) };
+          nextTree = insertNode(
+            nextTree,
+            draft.placement.parentId,
+            draft.placement.index,
+            node,
+          );
+          promotedDraftIds.push(id);
+          if (patch) {
+            foldedOverrideIds.push(id);
+          }
+          return;
+        }
         if (!treeRequests.has(id)) {
           return; // not an on-disk request: nothing to write
         }
@@ -1377,6 +1612,13 @@ export function WorkspaceProvider({
         nextTree = editor.commitToTree(nextTree);
       }
 
+      if (promotedDraftIds.length > 0) {
+        setDraftRequests((current) => {
+          const next = new Map(current);
+          promotedDraftIds.forEach((id) => next.delete(id));
+          return next;
+        });
+      }
       if (foldedOverrideIds.length > 0) {
         setRequestOverrides((current) => {
           const nextOverrides = new Map(current);
@@ -1682,6 +1924,28 @@ export function WorkspaceProvider({
       toggleFolder: (id) =>
         setExpandedFolderIds((current) => toggleInSet(current, id)),
       selectNode,
+      selectedIds,
+      selectInTree: (id, mode) => {
+        if (mode === "toggle") {
+          setSelectedIds((current) => toggleInSet(current, id));
+          setSelectAnchorId(id);
+          return;
+        }
+        if (mode === "range" && selectAnchorId !== null) {
+          const ordered = flattenSelectable(tree, expandedFolderIds);
+          setSelectedIds(new Set(rangeBetween(ordered, selectAnchorId, id)));
+          return;
+        }
+        setSelectedIds(new Set([id]));
+        setSelectAnchorId(id);
+      },
+      clearSelection: () => {
+        setSelectedIds(new Set());
+        setSelectAnchorId(null);
+        // Also drop the primary node so placement (new request/folder) falls back
+        // to the workspace root instead of the just-deselected folder.
+        setSelectedNodeId(null);
+      },
       setActiveRequest: (id) => {
         setIsSettingsActive(false);
         setIsEditorActive(false);
@@ -1696,6 +1960,21 @@ export function WorkspaceProvider({
         }),
       moveNode: (dragId, target) => {
         const next = applyMove(tree, dragId, target);
+        if (next === tree) {
+          return;
+        }
+        setTree(next);
+        onTreeChangeRef.current?.(next).then((result) => {
+          if (!result.ok) {
+            setConsoleLines((lines) => [
+              ...lines,
+              `[workspace] failed to persist move: ${result.error}`,
+            ]);
+          }
+        });
+      },
+      moveNodes: (dragIds, target) => {
+        const next = applyMoveNodes(tree, dragIds, target);
         if (next === tree) {
           return;
         }
@@ -1757,6 +2036,8 @@ export function WorkspaceProvider({
     consoleLines,
     expandedFolderIds,
     selectedNodeId,
+    selectedIds,
+    selectAnchorId,
     openRequestIds,
     activeRequestId,
     activeRequestTab,
@@ -1774,6 +2055,7 @@ export function WorkspaceProvider({
     isEditorActive,
     dirtyRequestIds,
     requestOverrides,
+    draftRequests,
     pendingClose,
     pendingDelete,
     isCurlImportOpen,
