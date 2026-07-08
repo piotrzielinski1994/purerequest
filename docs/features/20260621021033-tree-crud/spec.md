@@ -1,9 +1,15 @@
 # Spec: Tree CRUD (create / rename / delete / duplicate from the UI)
 
-**Version:** 0.2.0
+**Version:** 0.3.0
 **Created:** 2026-06-21
 **Status:** Implemented
 
+> v0.3.0 (user feedback, 2026-07-08 - REVERSES v0.2.0's immediate-create for requests):
+> "New request" / `+` now opens a **session draft** tab - an in-memory request that is NOT
+> written to disk and NOT shown in the sidebar until it is edited AND saved; saving promotes it
+> into the tree at its placement. Closing an unedited draft discards it. New FOLDER and cURL
+> import still persist immediately. See ADR 2026-07-08. The v0.2.0 note below is historical.
+>
 > v0.2.0 (user feedback): "New request" now creates a real node on disk immediately and opens
 > its tab. The original draft-then-save model (and the whole in-memory draft system) was removed.
 > Context menu also corrected: create actions live on FOLDER rows + the empty area, not on

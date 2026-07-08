@@ -314,29 +314,28 @@ describe("WorkspaceProvider saveActiveRequest", () => {
     ).toBeInTheDocument();
   });
 
-  // AC-008 (tree-crud) - behavior: new request CREATES a real on-disk node
-  // immediately (no draft); the new tab is a clean (non-dirty) saved request, and
-  // a subsequent edit makes it dirty like any on-disk request.
-  it("should create a clean on-disk request on new request and dirty it on edit", async () => {
+  // behavior: new request opens a SESSION DRAFT (no disk write on create). The
+  // fresh draft is clean; an edit dirties it; saving promotes it to disk (the
+  // first write) and clears the dot.
+  it("should open a clean draft on new request, dirty it on edit, and persist on save", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderProbe({ initialActiveRequestId: "req-json-body", onTreeChange });
 
     await user.click(screen.getByRole("button", { name: /new request/i }));
-    // create persisted immediately.
-    expect(onTreeChange).toHaveBeenCalledTimes(1);
+    // nothing written on create (draft only).
+    expect(onTreeChange).not.toHaveBeenCalled();
     const newId = screen.getByTestId("active-id").textContent ?? "";
-    expect(newId).not.toMatch(/draft-/);
-    // a freshly created request has no pending override -> not dirty.
+    // a freshly created draft has no pending override -> not dirty.
     expect(screen.getByTestId("dirty-ids")).toHaveTextContent("clean");
 
     await user.click(screen.getByRole("button", { name: /edit url/i }));
-    // editing it now makes it dirty (like any on-disk request).
+    // editing it now makes it dirty.
     expect(screen.getByTestId("dirty-ids")).toHaveTextContent(newId);
 
     await user.click(screen.getByRole("button", { name: /save request/i }));
-    // the edit persisted (2nd write) and the request is clean again.
-    expect(onTreeChange).toHaveBeenCalledTimes(2);
+    // save promotes the draft to disk (first write) and it is clean again.
+    expect(onTreeChange).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("dirty-ids")).toHaveTextContent("clean");
   });
 });

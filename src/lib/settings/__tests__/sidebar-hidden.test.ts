@@ -50,6 +50,7 @@ describe("mergeSettings sidebarHidden", () => {
       shortcuts: {},
       openRequestIds: [],
       activeRequestId: null,
+      draftTabs: [],
       theme: { mode: "system", colors: DEFAULT_SETTINGS.theme.colors },
     };
 

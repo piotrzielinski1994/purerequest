@@ -4,9 +4,11 @@ import {
   locateNode,
   findNode,
   dropTarget,
+  rawDropTarget,
   projectDropPosition,
   emptyZoneId,
   parseEmptyZoneId,
+  ROOT_ZONE_ID,
 } from "@/lib/workspace/tree-locate";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
@@ -154,6 +156,24 @@ describe("dropTarget empty-zone", () => {
     expect(
       dropTarget(emptyTree, "r1", emptyZoneId("ghost"), "inside"),
     ).toBeNull();
+  });
+});
+
+describe("root-zone drop", () => {
+  // behavior: dropping on the root zone appends to the end of the workspace root.
+  it("should target the end of the root if the over id is the root zone", () => {
+    expect(rawDropTarget(tree, ROOT_ZONE_ID, "inside")).toEqual({
+      parentId: null,
+      index: 2,
+    });
+  });
+
+  // behavior: root-zone target is independent of the reported position.
+  it("should target the root end for the root zone regardless of position", () => {
+    expect(dropTarget(tree, "c1", ROOT_ZONE_ID, "before")).toEqual({
+      parentId: null,
+      index: 2,
+    });
   });
 });
 

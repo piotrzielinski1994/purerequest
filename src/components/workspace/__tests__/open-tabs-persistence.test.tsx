@@ -95,7 +95,7 @@ describe("WorkspaceProvider open-tab persistence", () => {
     });
   });
 
-  it("should not include freshly-created (in-session) request ids in the persisted open ids", async () => {
+  it("should persist a fresh DRAFT tab's id so it can be restored on restart", async () => {
     const user = userEvent.setup();
     const onTabsChange = vi.fn();
 
@@ -111,10 +111,14 @@ describe("WorkspaceProvider open-tab persistence", () => {
 
     await user.click(screen.getByRole("button", { name: /new request/i }));
 
+    // A new request is a draft (id `new-<n>`) kept in settings, so its open-tab id
+    // IS persisted and becomes the active tab - it restores after a restart.
     await waitFor(() => {
       const [ids, active] = onTabsChange.mock.calls.at(-1)!;
-      expect(ids).toEqual(["req-profile"]);
-      expect(active).toBeNull();
+      expect(ids).toHaveLength(2);
+      expect(ids[0]).toBe("req-profile");
+      expect(ids[1]).toMatch(/^new-/);
+      expect(active).toBe(ids[1]);
     });
   });
 

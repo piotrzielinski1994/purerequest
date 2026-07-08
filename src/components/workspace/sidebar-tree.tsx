@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
   PointerSensor,
   pointerWithin,
+  useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -21,15 +22,50 @@ import { useWorkspace } from "@/components/workspace/workspace-context";
 import { TreeRow } from "@/components/workspace/tree-row";
 import {
   TreeDndProvider,
+  useTreeDnd,
   type DropIndicator,
 } from "@/components/workspace/tree-dnd";
+import { cn } from "@/lib/utils";
 import {
   findNode,
   dropTarget,
   locateNode,
   projectDropPosition,
   parseEmptyZoneId,
+  rawDropTarget,
+  ROOT_ZONE_ID,
 } from "@/lib/workspace/tree-locate";
+import { dragOverlayLabel } from "@/lib/workspace/drag-overlay-label";
+
+// The drop target filling the empty space under the last row. During a drag it
+// accepts a drop that means "move to the end of the workspace root" - the escape
+// hatch when every folder is collapsed and there is no root row to aim between.
+// At rest a click on it clears the selection (it covers the same empty area the
+// tree <ul>'s clear-on-click used to occupy).
+function RootDropZone({
+  isDragActive,
+  onClear,
+}: {
+  isDragActive: boolean;
+  onClear: () => void;
+}) {
+  const { setNodeRef } = useDroppable({ id: ROOT_ZONE_ID });
+  const { indicator } = useTreeDnd();
+  const isOver = indicator?.overId === ROOT_ZONE_ID;
+
+  return (
+    <div
+      ref={setNodeRef}
+      aria-hidden="true"
+      data-testid="root-drop-zone"
+      onClick={onClear}
+      className={cn(
+        "min-h-40",
+        isDragActive && isOver && "bg-accent/40",
+      )}
+    />
+  );
+}
 
 function pointerY(event: DragOverEvent): number | null {
   const activator = event.activatorEvent;
@@ -65,6 +101,9 @@ export function SidebarTree() {
     tree,
     isWorkspaceWritable,
     moveNode,
+    moveNodes,
+    selectedIds,
+    clearSelection,
     expandedFolderIds,
     toggleFolder,
     newRequest,
@@ -73,6 +112,18 @@ export function SidebarTree() {
   const rootTarget = { parentId: null as string | null, index: tree.length };
   const [activeId, setActiveId] = useState<string | null>(null);
   const [indicator, setIndicator] = useState<DropIndicator | null>(null);
+  // Spring-loaded folder expand: a collapsed folder opens only after the pointer
+  // DWELLS over it during a drag, not on first touch. Without the dwell, dnd-kit's
+  // edge auto-scroll drags the pointer across folder after folder near the bottom
+  // and each opens instantly - a runaway cascade that buries the empty drop area.
+  const springLoad = useRef<{ id: string; timer: number } | null>(null);
+  const clearSpringLoad = () => {
+    if (springLoad.current !== null) {
+      window.clearTimeout(springLoad.current.timer);
+      springLoad.current = null;
+    }
+  };
+  useEffect(() => clearSpringLoad, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -88,18 +139,32 @@ export function SidebarTree() {
       setIndicator(null);
       return;
     }
-    // The empty-folder drop zone always means "inside" - no projection needed.
-    if (parseEmptyZoneId(overId) !== null) {
+    // The empty-folder / root drop zone always means a fixed target - no
+    // projection needed, and no folder to spring-load.
+    if (parseEmptyZoneId(overId) !== null || overId === ROOT_ZONE_ID) {
+      clearSpringLoad();
       setIndicator({ overId, position: "inside" });
       return;
     }
     const over = findNode(tree, overId);
     const isOverFolder = over?.kind === "folder";
-    // Expand a hovered folder so its children (or the empty-drop zone) appear
-    // as drop targets. A hovered folder is always (about to be) expanded, so
-    // project it with the expanded-folder geometry (whole row = inside).
+    // Spring-load: arm a dwell timer the first time the pointer enters a
+    // collapsed folder; it expands only if the pointer stays. Moving on to
+    // another row (or off a folder) disarms it, so a fast pass-through during
+    // auto-scroll opens nothing.
     if (isOverFolder && !expandedFolderIds.has(overId)) {
-      toggleFolder(overId);
+      if (springLoad.current?.id !== overId) {
+        clearSpringLoad();
+        springLoad.current = {
+          id: overId,
+          timer: window.setTimeout(() => {
+            toggleFolder(overId);
+            springLoad.current = null;
+          }, 600),
+        };
+      }
+    } else {
+      clearSpringLoad();
     }
     const position = projectPosition(
       event,
@@ -112,9 +177,26 @@ export function SidebarTree() {
   const handleDragEnd = (event: DragEndEvent) => {
     const dragId = String(event.active.id);
     const current = indicator;
+    clearSpringLoad();
     setActiveId(null);
     setIndicator(null);
     if (!current || current.overId === dragId) {
+      return;
+    }
+    // Dragging a row that's part of a multi-selection moves the WHOLE selection;
+    // dragging an unselected row moves just that one (and the over-row can't be a
+    // dragged member). moveNodes wants the RAW drop index (it does its own
+    // multi-node compensation); the single path keeps dropTarget's compensation.
+    const isMultiDrag = selectedIds.has(dragId) && selectedIds.size > 1;
+    if (isMultiDrag) {
+      if (selectedIds.has(current.overId)) {
+        return;
+      }
+      const raw = rawDropTarget(tree, current.overId, current.position);
+      if (!raw) {
+        return;
+      }
+      moveNodes([...selectedIds], raw);
       return;
     }
     const target = dropTarget(tree, dragId, current.overId, current.position);
@@ -133,12 +215,14 @@ export function SidebarTree() {
   };
 
   const activeNode = activeId ? findNode(tree, activeId) : null;
+  const isMultiActive =
+    activeId !== null && selectedIds.has(activeId) && selectedIds.size > 1;
 
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div className="flex min-h-0 flex-1 flex-col">
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1" horizontal>
             <DndContext
               sensors={sensors}
               collisionDetection={pointerWithin}
@@ -146,20 +230,46 @@ export function SidebarTree() {
               onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
               onDragCancel={() => {
+                clearSpringLoad();
                 setActiveId(null);
                 setIndicator(null);
               }}
             >
               <TreeDndProvider value={{ activeId, indicator }}>
-                <ul role="tree" aria-label="Collection">
+                <ul
+                  role="tree"
+                  aria-label="Collection"
+                  // A plain left-click on the empty tree area clears the selection.
+                  onClick={(event) => {
+                    if (event.target === event.currentTarget) {
+                      clearSelection();
+                    }
+                  }}
+                >
                   {tree.map((node) => (
                     <TreeRow key={node.id} node={node} depth={0} />
                   ))}
                 </ul>
+                {tree.length > 0 && (
+                  <RootDropZone
+                    isDragActive={activeId !== null}
+                    onClear={clearSelection}
+                  />
+                )}
                 <DragOverlay>
                   {activeNode ? (
-                    <div className="rounded-sm bg-accent px-2 py-1 text-[13px] shadow">
-                      {activeNode.name}
+                    <div className="relative">
+                      {/* A second offset card behind the chip reads as a stack when dragging many. */}
+                      {isMultiActive ? (
+                        <div className="absolute left-1 top-1 size-full bg-accent shadow" />
+                      ) : null}
+                      <div className="relative bg-accent px-2 py-1 text-[13px] shadow">
+                        {dragOverlayLabel(
+                          activeNode.id,
+                          activeNode.name,
+                          selectedIds,
+                        )}
+                      </div>
                     </div>
                   ) : null}
                 </DragOverlay>

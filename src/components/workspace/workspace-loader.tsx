@@ -58,12 +58,14 @@ export function WorkspaceLoader({
   httpClient?: HttpClient;
   scriptRunner?: ScriptRunner;
 }) {
-  const { settings, saveOpenTabs, saveActiveEnvironment } = useSettings();
+  const { settings, saveOpenTabs, saveDraftTabs, saveActiveEnvironment } =
+    useSettings();
   const workspacePath = settings.workspacePath;
   const [state, setState] = useState<LoadState>(
     workspacePath ? { status: "loading" } : { status: "empty" },
   );
   const [initialOpenRequestIds] = useState(settings.openRequestIds);
+  const [initialDraftTabs] = useState(settings.draftTabs);
 
   useEffect(() => {
     if (!workspacePath) {
@@ -141,7 +143,9 @@ export function WorkspaceLoader({
       tree={state.tree}
       consoleLines={state.consoleLines}
       initialOpenRequestIds={initialOpenRequestIds}
+      initialDraftTabs={initialDraftTabs}
       onTabsChange={saveOpenTabs}
+      onDraftTabsChange={saveDraftTabs}
       onTreeChange={(tree) =>
         fs.writeWorkspace(workspacePath ?? "", serialize(tree, workspaceName))
       }

@@ -6,7 +6,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { FileCog, Plus, Settings, X } from "lucide-react";
+import { Folder, Plus, Settings, X } from "lucide-react";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 import {
@@ -45,7 +45,7 @@ function editorTabLabel(
   tree: TreeNode[],
 ): string {
   const node = findNode(tree, editTarget.id);
-  return node ? `${node.name} · config` : "config";
+  return node ? node.name : "config";
 }
 
 function RequestTab({
@@ -244,7 +244,7 @@ export function ContentHeader() {
                 isEditorActive ? "text-foreground" : "text-muted-foreground",
               )}
             >
-              <FileCog aria-hidden="true" className="size-3.5 shrink-0" />
+              <Folder aria-hidden="true" className="size-3.5 shrink-0" />
               {editorDirty && (
                 <span
                   aria-label="Unsaved changes"

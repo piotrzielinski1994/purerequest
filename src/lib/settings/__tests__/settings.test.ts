@@ -19,6 +19,7 @@ describe("mergeSettings", () => {
       shortcuts: {},
       openRequestIds: [],
       activeRequestId: null,
+      draftTabs: [],
       theme: { mode: "system", colors: DEFAULT_SETTINGS.theme.colors },
     };
 
@@ -61,6 +62,7 @@ describe("mergeSettings", () => {
       shortcuts: {},
       openRequestIds: [],
       activeRequestId: null,
+      draftTabs: [],
       theme: { mode: "system", colors: DEFAULT_SETTINGS.theme.colors },
     });
     expect(merged).not.toHaveProperty("bogus");
@@ -152,6 +154,63 @@ describe("mergeSettings open tabs", () => {
         activeRequestId: [],
       }),
     ).not.toThrow();
+  });
+});
+
+describe("mergeSettings draft tabs", () => {
+  const draft = {
+    id: "new-1",
+    request: {
+      kind: "request",
+      id: "new-1",
+      name: "untitled",
+      method: "GET",
+      url: "https://example.test/x",
+      body: { active: "json", types: { json: "", form: [], multipart: [] } },
+      params: { path: [], query: [] },
+      config: {},
+    },
+    placement: { parentId: null, index: 0 },
+  };
+
+  it("should default draftTabs to an empty list if absent", () => {
+    expect(mergeSettings(DEFAULT_SETTINGS, {}).draftTabs).toEqual([]);
+  });
+
+  it("should keep a well-formed draft tab across a merge (restart round-trip)", () => {
+    const merged = mergeSettings(DEFAULT_SETTINGS, { draftTabs: [draft] });
+
+    expect(merged.draftTabs).toEqual([draft]);
+  });
+
+  it("should keep a draft id as the active id even when it is not an open on-disk request", () => {
+    const merged = mergeSettings(DEFAULT_SETTINGS, {
+      draftTabs: [draft],
+      openRequestIds: ["new-1"],
+      activeRequestId: "new-1",
+    });
+
+    expect(merged.activeRequestId).toBe("new-1");
+  });
+
+  it("should drop malformed draft entries", () => {
+    const merged = mergeSettings(DEFAULT_SETTINGS, {
+      draftTabs: [
+        draft,
+        { id: "bad" },
+        { id: "no-placement", request: draft.request },
+        42,
+        null,
+      ],
+    });
+
+    expect(merged.draftTabs).toEqual([draft]);
+  });
+
+  it("should yield an empty list if draftTabs is not an array", () => {
+    expect(mergeSettings(DEFAULT_SETTINGS, { draftTabs: "nope" }).draftTabs).toEqual(
+      [],
+    );
   });
 });
 

@@ -48,6 +48,22 @@ function useRowDnd(id: string) {
   };
 }
 
+// The selection mode a click implies: Cmd/Ctrl toggles one row, Shift ranges from
+// the anchor, a plain click replaces. (macOS uses metaKey, others ctrlKey.)
+function selectModeOf(event: {
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+}) {
+  if (event.shiftKey) {
+    return "range" as const;
+  }
+  if (event.metaKey || event.ctrlKey) {
+    return "toggle" as const;
+  }
+  return "replace" as const;
+}
+
 function RenameInput({ id, name }: { id: string; name: string }) {
   const { commitRename, cancelRename } = useWorkspace();
   const [value, setValue] = useState(name);
@@ -192,8 +208,9 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }) {
   const {
     tree,
     expandedFolderIds,
-    selectedNodeId,
+    selectedIds,
     selectNode,
+    selectInTree,
     renamingNodeId,
     beginRename,
   } = useWorkspace();
@@ -213,6 +230,7 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }) {
   const isDragActive = activeId !== null && activeId !== node.id;
   const isRenaming = renamingNodeId === node.id;
   const displayName = findNode(tree, node.id)?.name ?? node.name;
+  const isSelected = selectedIds.has(node.id);
 
   return (
     <li className="relative">
@@ -224,15 +242,23 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }) {
           {...listeners}
           role="treeitem"
           aria-expanded={isExpanded}
-          aria-selected={selectedNodeId === node.id}
+          aria-selected={isSelected}
           tabIndex={0}
-          onClick={() => selectNode(node.id)}
+          onClick={(event) => {
+            const mode = selectModeOf(event);
+            selectInTree(node.id, mode);
+            // A plain click also selects + toggles the folder; a modifier click
+            // only adjusts the multi-selection.
+            if (mode === "replace") {
+              selectNode(node.id);
+            }
+          }}
           onDoubleClick={() => beginRename(node.id)}
           style={{ paddingLeft: `${depth * 14 + 6}px` }}
           className={cn(
-            "group flex cursor-pointer touch-none items-center gap-1 py-1 pr-2 text-[13px] hover:bg-accent",
+            "group flex w-max min-w-full cursor-pointer touch-none items-center gap-1 py-1 pr-2 text-[13px] hover:bg-accent",
             isDragging && "opacity-50",
-            selectedNodeId === node.id && "bg-accent",
+            isSelected && "bg-accent",
             dropInside && "ring-1 ring-inset ring-primary",
           )}
         >
@@ -240,7 +266,7 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }) {
           {isRenaming ? (
             <RenameInput id={node.id} name={displayName} />
           ) : (
-            <span className="truncate">{displayName}</span>
+            <span className="whitespace-nowrap">{displayName}</span>
           )}
         </div>
       </RowContextMenu>
@@ -292,8 +318,9 @@ function EmptyDropZone({
 function RequestRow({ node, depth }: { node: RequestNode; depth: number }) {
   const {
     requestsById,
-    selectedNodeId,
+    selectedIds,
     selectNode,
+    selectInTree,
     renamingNodeId,
     beginRename,
   } = useWorkspace();
@@ -310,6 +337,7 @@ function RequestRow({ node, depth }: { node: RequestNode; depth: number }) {
   // auto-named / edited request's row reflects it - the tree node alone would
   // show the stale on-disk name.
   const displayName = requestsById.get(node.id)?.name ?? node.name;
+  const isSelected = selectedIds.has(node.id);
 
   return (
     <li className="relative">
@@ -320,16 +348,24 @@ function RequestRow({ node, depth }: { node: RequestNode; depth: number }) {
           {...attributes}
           {...listeners}
           role="treeitem"
-          aria-selected={selectedNodeId === node.id}
+          aria-selected={isSelected}
           aria-label={`${node.method} ${displayName}`}
           tabIndex={0}
-          onClick={() => selectNode(node.id)}
+          onClick={(event) => {
+            const mode = selectModeOf(event);
+            selectInTree(node.id, mode);
+            // A plain click also opens the request tab; a modifier click only
+            // adjusts the multi-selection.
+            if (mode === "replace") {
+              selectNode(node.id);
+            }
+          }}
           onDoubleClick={() => beginRename(node.id)}
           style={{ paddingLeft: `${depth * 14 + 10}px` }}
           className={cn(
-            "group flex cursor-pointer touch-none items-center gap-2 py-1 pr-2 text-[13px] hover:bg-accent",
+            "group flex w-max min-w-full cursor-pointer touch-none items-center gap-2 py-1 pr-2 text-[13px] hover:bg-accent",
             isDragging && "opacity-50",
-            selectedNodeId === node.id && "bg-accent",
+            isSelected && "bg-accent",
           )}
         >
           <span
@@ -343,7 +379,7 @@ function RequestRow({ node, depth }: { node: RequestNode; depth: number }) {
           {isRenaming ? (
             <RenameInput id={node.id} name={displayName} />
           ) : (
-            <span className="truncate">{displayName}</span>
+            <span className="whitespace-nowrap">{displayName}</span>
           )}
         </div>
       </RowContextMenu>
