@@ -115,7 +115,8 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > `Mod+B`, toggle theme `Mod+Shift+L`, next/prev request `Ctrl+Tab`/`Ctrl+Shift+Tab`, close request `Mod+W`, close other
 > request tabs `Mod+Alt+W`, close all request tabs `Mod+Shift+W`, new request `Mod+T`, open workspace `Mod+O`, send request
 > `Mod+Enter`, copy as cURL `Mod+Shift+C`, import cURL `Mod+Shift+I`, import Bruno collection
-> `Mod+Shift+B`, import Postman collection `Mod+Shift+P`, command palette `Mod+K`
+> `Mod+Shift+B`, import Postman collection `Mod+Shift+P`, import OpenAPI document `Mod+Shift+O`,
+> command palette `Mod+K`
 > (`Mod` = Cmd on macOS, Ctrl
 > elsewhere). The command palette is an overlay listing every wired action with its shortcut;
 > type to filter, arrow to move, Enter (or click) to run, Esc to close. Settings open as a
@@ -184,6 +185,19 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > space; `pm.response` -> the response in a post script; `pm.test(name, fn)` runs `fn` and swallows a
 > thrown assertion), so imported Postman scripts run instead of `ReferenceError`-ing. Additive; an empty
 > collection adds nothing; in `npm run dev` (no native host) the action is a no-op.
+>
+> **Import OpenAPI document** (`Mod+Shift+O` + palette) opens a **single-file picker** (`*.json`/`*.yaml`/
+> `*.yml`) and reads an OpenAPI **3.0/3.1** document (JSON or YAML; the YAML pass is lenient, recovering
+> real-world files with minor spec violations). It scaffolds **one request per operation** (`get`/`post`/
+> `put`/`patch`/`delete`), grouped into **per-tag folders** (an untagged operation sits directly at the
+> root), inserted as a **new top-level folder** named from `info.title`. Each request gets its url
+> (`{{baseUrl}}` + path, OpenAPI `{name}` rewritten to ReqUI `:name`), path/query/header params (values
+> seeded from `example`/`schema.example`/`schema.default`), and an `application/json` request body seeded
+> from an explicit example. **Servers** fold into a `baseUrl` variable (plus one environment per server
+> when there are two or more); the global `security` scheme (http bearer/basic) seeds the root auth; local
+> `$ref` pointers resolve. Swagger 2.0, schema-synthesised bodies, and non-json request bodies are out of
+> scope. Additive; a document with no importable operations adds nothing (and toasts to say so); in
+> `npm run dev` (no native host) the action is a no-op.
 >
 > A **workspace** is a folder on disk holding the collection tree + config. By default it lives
 > in a `collection` subfolder of the app data dir (next to `settings.json`), created on first

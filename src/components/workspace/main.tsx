@@ -27,15 +27,18 @@ import { useToast } from "@/components/ui/toast";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
 import type { BrunoCollectionReader } from "@/lib/bruno/reader";
 import type { PostmanCollectionReader } from "@/lib/postman/reader";
+import type { OpenapiReader } from "@/lib/openapi/reader";
 
 export function Main({
   picker,
   reader,
   postmanReader,
+  openapiReader,
 }: {
   picker?: FolderPicker;
   reader?: BrunoCollectionReader;
   postmanReader?: PostmanCollectionReader;
+  openapiReader?: OpenapiReader;
 }) {
   const {
     settings,
@@ -69,6 +72,7 @@ export function Main({
     openCurlImport,
     importBruno,
     importPostman,
+    importOpenapi,
   } = useWorkspace();
   const { show: showToast } = useToast();
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -127,6 +131,17 @@ export function Main({
     postmanReader.pick().then((picked) => {
       if (picked !== null) {
         importPostman(picked.files, picked.name);
+      }
+    });
+  };
+
+  const importOpenapiDocument = () => {
+    if (!openapiReader) {
+      return;
+    }
+    openapiReader.pick().then((picked) => {
+      if (picked !== null) {
+        importOpenapi(picked.text, picked.name);
       }
     });
   };
@@ -203,6 +218,7 @@ export function Main({
     "import-curl": openCurlImport,
     "import-bruno": importBrunoCollection,
     "import-postman": importPostmanCollection,
+    "import-openapi": importOpenapiDocument,
   };
 
   useActionHotkeys({
