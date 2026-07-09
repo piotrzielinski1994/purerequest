@@ -83,6 +83,7 @@ import {
   collectDotenv,
   type BrunoFileMap,
 } from "@/lib/bruno/bruno-to-tree";
+import { postmanToTree, type PostmanFileMap } from "@/lib/postman/postman-to-tree";
 
 type RequestOverride = Partial<
   Pick<RequestNode, "name" | "url" | "method" | "body" | "params" | "config">
@@ -286,6 +287,7 @@ type WorkspaceContextValue = {
   closeCurlImport: () => void;
   importCurl: (text: string) => CurlParseResult;
   importBruno: (files: BrunoFileMap, name: string) => void;
+  importPostman: (files: PostmanFileMap, name: string) => void;
   focusUrlNonce: number;
 };
 
@@ -1221,6 +1223,25 @@ export function WorkspaceProvider({
       showToastRef.current("Imported Bruno collection");
     };
 
+    const importPostman = (files: PostmanFileMap, name: string) => {
+      const [root] = postmanToTree(files, name);
+      if (!root || root.kind !== "folder" || root.children.length === 0) {
+        return;
+      }
+      nodeCounter.current += 1;
+      const folder = { ...root, id: `new-${nodeCounter.current}` };
+      setExpandedFolderIds((current) => new Set(current).add(folder.id));
+      setIsSettingsActive(false);
+      setIsEditorActive(false);
+      selectSingle(folder.id);
+      persistTree(insertNode(tree, null, tree.length, folder), "import");
+      const collectionEnv = collectDotenv(files);
+      if (collectionEnv.trim() !== "") {
+        saveEnv(mergeDotenv(envText, collectionEnv));
+      }
+      showToastRef.current("Imported Postman collection");
+    };
+
     // Optimistic save: the in-memory tree updates synchronously and we confirm
     // ("Saved") immediately, without awaiting the disk write - so Cmd+S never
     // mules behind the round-trip. The write still runs in the background; only a
@@ -2067,6 +2088,7 @@ export function WorkspaceProvider({
       closeCurlImport,
       importCurl,
       importBruno,
+      importPostman,
       focusUrlNonce,
     };
   }, [

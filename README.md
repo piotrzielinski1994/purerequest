@@ -115,7 +115,7 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > `Mod+B`, toggle theme `Mod+Shift+L`, next/prev request `Ctrl+Tab`/`Ctrl+Shift+Tab`, close request `Mod+W`, close other
 > request tabs `Mod+Alt+W`, close all request tabs `Mod+Shift+W`, new request `Mod+T`, open workspace `Mod+O`, send request
 > `Mod+Enter`, copy as cURL `Mod+Shift+C`, import cURL `Mod+Shift+I`, import Bruno collection
-> `Mod+Shift+B`, command palette `Mod+K`
+> `Mod+Shift+B`, import Postman collection `Mod+Shift+P`, command palette `Mod+K`
 > (`Mod` = Cmd on macOS, Ctrl
 > elsewhere). The command palette is an overlay listing every wired action with its shortcut;
 > type to filter, arrow to move, Enter (or click) to run, Esc to close. Settings open as a
@@ -170,6 +170,20 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > workspace `.env`** (imported keys win on a clash) so its `{{process.env.X}}` tokens resolve.
 > Additive like cURL import - it never replaces the open workspace; an empty collection adds nothing.
 > In `npm run dev` (no native host) the action is a no-op.
+>
+> **Import Postman collection** (`Mod+Shift+P` + palette) opens a **multi-select file picker** (a Postman
+> collection is a single JSON file, unlike Bruno's dir-of-files) and reads the picked Postman collection
+> (`*.postman_collection.json`, schema v2.1 - a single nested-JSON file whose `item` arrays form the
+> tree). It is parsed (method/url/headers/params/body/auth/`event` scripts; disabled rows kept disabled;
+> `formdata` file parts kept as literal text; unsupported auth types fall through to inherit) into a
+> ReqUI subtree and inserted as a **new top-level folder** named from `info.name`. Any
+> `*.postman_environment.json` selected in the same pick fold into that folder's `config.environments`,
+> and a picked `.env` is **merged into the workspace `.env`** (imported keys win) so `{{process.env.X}}`
+> tokens resolve. Postman's `pm.*` script API is aliased onto the same script surface as `bru.*`
+> (`pm.variables`/`pm.environment`/`pm.collectionVariables`/`pm.globals` `.get`/`.set` -> the one var
+> space; `pm.response` -> the response in a post script; `pm.test(name, fn)` runs `fn` and swallows a
+> thrown assertion), so imported Postman scripts run instead of `ReferenceError`-ing. Additive; an empty
+> collection adds nothing; in `npm run dev` (no native host) the action is a no-op.
 >
 > A **workspace** is a folder on disk holding the collection tree + config. By default it lives
 > in a `collection` subfolder of the app data dir (next to `settings.json`), created on first
@@ -304,6 +318,7 @@ src/
   lib/                  utils.ts (cn)
     runtime/            environment.ts (isDevBrowser: gates the dev-browser fakes)
     bruno/              Bruno import: parseBru (.bru) + parseOpenCollection (.yml), brunoToTree (ext-dispatch), reader port
+    postman/            Postman import: parsePostman (v2.1 JSON -> subtree), postmanToTree (file-map + env fold), reader port
     http/               HTTP loop: buildHttpRequest, filterJson, HttpClient port + Tauri/fake adapters
     settings/           per-installation settings: model + port, Tauri-store + in-memory adapters, provider
     workspace/          workspace domain: model, resolveConfig, disk-format, fs port + adapters, demo-seed

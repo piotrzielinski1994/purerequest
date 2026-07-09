@@ -11,6 +11,7 @@ import {
 import type { WorkspaceFs } from "@/lib/workspace/fs";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
 import type { BrunoCollectionReader } from "@/lib/bruno/reader";
+import type { PostmanCollectionReader } from "@/lib/postman/reader";
 import type { HttpClient } from "@/lib/http/model";
 import type { ScriptRunner } from "@/lib/scripts/model";
 import type { TreeNode } from "@/lib/workspace/model";
@@ -49,12 +50,14 @@ export function WorkspaceLoader({
   fs,
   picker,
   reader,
+  postmanReader,
   httpClient,
   scriptRunner,
 }: {
   fs: WorkspaceFs;
   picker?: FolderPicker;
   reader?: BrunoCollectionReader;
+  postmanReader?: PostmanCollectionReader;
   httpClient?: HttpClient;
   scriptRunner?: ScriptRunner;
 }) {
@@ -126,7 +129,11 @@ export function WorkspaceLoader({
         httpClient={httpClient}
         scriptRunner={scriptRunner}
       >
-        <WorkspaceLayout picker={picker} reader={reader} />
+        <WorkspaceLayout
+          picker={picker}
+          reader={reader}
+          postmanReader={postmanReader}
+        />
       </WorkspaceProvider>
     );
   }
@@ -157,7 +164,11 @@ export function WorkspaceLoader({
       onActiveEnvironmentChange={saveActiveEnvironment}
       onEnvChange={(text) => fs.writeEnv(workspacePath ?? "", text)}
     >
-      <WorkspaceLayout picker={picker} reader={reader} />
+      <WorkspaceLayout
+        picker={picker}
+        reader={reader}
+        postmanReader={postmanReader}
+      />
     </WorkspaceProvider>
   );
 }
