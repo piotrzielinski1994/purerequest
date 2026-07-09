@@ -266,6 +266,8 @@ type WorkspaceContextValue = {
   setRequestBody: (id: string, body: string) => void;
   setRequestBodyMode: (id: string, mode: BodyMode) => void;
   setRequestForm: (id: string, rows: KeyValue[]) => void;
+  setRequestGraphqlQuery: (id: string, query: string) => void;
+  setRequestGraphqlVariables: (id: string, variables: string) => void;
   setRequestUrl: (id: string, url: string) => void;
   setRequestMethod: (id: string, method: HttpMethod) => void;
   setRequestPathParams: (id: string, pathParams: KeyValue[]) => void;
@@ -762,6 +764,36 @@ export function WorkspaceProvider({
         },
       });
     };
+    const setRequestGraphqlQuery = (id: string, query: string) => {
+      const node = requestsById.get(id);
+      if (!node) {
+        return;
+      }
+      mergeOverride(id, {
+        body: {
+          ...node.body,
+          types: {
+            ...node.body.types,
+            graphql: { ...node.body.types.graphql, query },
+          },
+        },
+      });
+    };
+    const setRequestGraphqlVariables = (id: string, variables: string) => {
+      const node = requestsById.get(id);
+      if (!node) {
+        return;
+      }
+      mergeOverride(id, {
+        body: {
+          ...node.body,
+          types: {
+            ...node.body.types,
+            graphql: { ...node.body.types.graphql, variables },
+          },
+        },
+      });
+    };
     // Drop a stored path-param value only when its `:name` LEFT the URL (was in the
     // old URL, gone from the new one), so removing `:id` from the address bar prunes
     // it - but a grid-only param (defined in the Path tab, never in the URL) is kept.
@@ -1150,7 +1182,12 @@ export function WorkspaceProvider({
         url,
         body: {
           active: "json",
-          types: { json: body ?? "", form: [], multipart: [] },
+          types: {
+            json: body ?? "",
+            form: [],
+            multipart: [],
+            graphql: { query: "", variables: "" },
+          },
         },
         config: {
           ...(headers.length > 0 ? { headers } : {}),
@@ -2003,6 +2040,8 @@ export function WorkspaceProvider({
       setRequestBody,
       setRequestBodyMode,
       setRequestForm,
+      setRequestGraphqlQuery,
+      setRequestGraphqlVariables,
       setRequestUrl,
       setRequestMethod,
       setRequestPathParams,

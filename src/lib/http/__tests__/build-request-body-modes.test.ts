@@ -42,6 +42,7 @@ const request = (
         json: body ?? "",
         form: active === "form" ? rows : [],
         multipart: active === "multipart" ? rows : [],
+        graphql: { query: "", variables: "" },
       },
     },
   };

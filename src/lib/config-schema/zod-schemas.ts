@@ -105,7 +105,7 @@ export const folderConfigSchema = configScopeSchema.extend({
 const requestBodySchema = z
   .object({
     active: z
-      .enum(["json", "none", "form", "multipart"])
+      .enum(["json", "none", "form", "multipart", "graphql"])
       .describe("Which body type is sent."),
     types: z
       .object({
@@ -120,6 +120,17 @@ const requestBodySchema = z
         multipart: z
           .array(keyValueSchema)
           .describe("Multipart form field rows.")
+          .optional(),
+        graphql: z
+          .object({
+            query: z.string().describe("GraphQL query text.").optional(),
+            variables: z
+              .string()
+              .describe("GraphQL variables as raw JSON text.")
+              .optional(),
+          })
+          .strict()
+          .describe("GraphQL query + variables text.")
           .optional(),
       })
       .strict()

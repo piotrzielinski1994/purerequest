@@ -52,18 +52,21 @@ export function authOf(
 
 export type ScriptConfig = { pre?: string; post?: string };
 
-export type BodyMode = "json" | "none" | "form" | "multipart";
+export type BodyMode = "json" | "none" | "form" | "multipart" | "graphql";
 
 // A request body holds every type's payload side-by-side so switching `active`
 // never discards the others. `none` carries no payload (it's not in `types`).
 // `json` is the raw editor text (written as its natural JSON value at the disk
 // boundary, so a JSON body renders as real nested JSON, not an escaped string).
+// `graphql` holds the raw query + variables text; the send-time encoder folds
+// them into the canonical `{ query, variables }` JSON.
 export type RequestBody = {
   active: BodyMode;
   types: {
     json: string;
     form: KeyValue[];
     multipart: KeyValue[];
+    graphql: { query: string; variables: string };
   };
 };
 
@@ -134,7 +137,15 @@ export type RequestNode = {
 // Empty body/params for a fresh request (and the default both the disk layer and
 // migration fall back to). Keeps every construction site on one source of truth.
 export function emptyBody(): RequestBody {
-  return { active: "json", types: { json: "", form: [], multipart: [] } };
+  return {
+    active: "json",
+    types: {
+      json: "",
+      form: [],
+      multipart: [],
+      graphql: { query: "", variables: "" },
+    },
+  };
 }
 
 export function emptyParams(): RequestParams {

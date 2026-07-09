@@ -42,7 +42,7 @@ const effectiveOf = (over: {
 
 const jsonBody = (json: string): RequestNode["body"] => ({
   active: "json",
-  types: { json, form: [], multipart: [] },
+  types: { json, form: [], multipart: [], graphql: { query: "", variables: "" } },
 });
 
 const authHeaderOf = (headers: { key: string; value: string }[]) =>

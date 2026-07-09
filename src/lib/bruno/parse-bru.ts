@@ -18,6 +18,9 @@ export type ParsedBru = {
   bodyMode?: BodyMode;
   body: string;
   bodyForm: KeyValue[];
+  // Raw variables text from a `body:graphql:vars` block; "" when absent. Only the
+  // graphql body path uses it.
+  graphqlVariables: string;
   auth?: Auth;
   variables: Record<string, string>;
   scripts?: ScriptConfig;
@@ -104,7 +107,14 @@ function dedentText(inner: string): string {
     .trim();
 }
 
-type BodyKind = "json" | "text" | "xml" | "form" | "multipart" | "other";
+type BodyKind =
+  | "json"
+  | "text"
+  | "xml"
+  | "form"
+  | "multipart"
+  | "graphql"
+  | "other";
 
 function bodyKindOf(name: string): BodyKind {
   if (name === "body" || name === "body:json") {
@@ -122,6 +132,9 @@ function bodyKindOf(name: string): BodyKind {
   if (name === "body:multipart-form") {
     return "multipart";
   }
+  if (name === "body:graphql") {
+    return "graphql";
+  }
   return "other";
 }
 
@@ -132,19 +145,25 @@ function selectorToKind(selector: string): BodyKind {
   if (selector === "multipart-form") {
     return "multipart";
   }
-  if (selector === "json" || selector === "text" || selector === "xml") {
+  if (
+    selector === "json" ||
+    selector === "text" ||
+    selector === "xml" ||
+    selector === "graphql"
+  ) {
     return selector;
   }
   return "other";
 }
 
 // Pick the active body block: the method block's `body:` selector wins; else the
-// first usable block. `none` (or no body block) means no body. graphql skipped.
+// first usable block. `none` (or no body block) means no body. The `body:graphql`
+// query block is usable; its `body:graphql:vars` sibling is captured separately.
 function chooseBody(blocks: Block[], selector: string | undefined): Block | null {
   const usable = blocks.filter(
     (block) =>
       (block.name === "body" || block.name.startsWith("body:")) &&
-      block.name !== "body:graphql",
+      block.name !== "body:graphql:vars",
   );
   if (selector === "none") {
     return null;
@@ -215,7 +234,13 @@ export function parseBru(text: string): ParsedBru {
   const chosenBody = chooseBody(blocks, methodRecord.body);
   const bodyKind = chosenBody ? bodyKindOf(chosenBody.name) : null;
   const bodyMode: BodyMode | undefined =
-    bodyKind === "form" ? "form" : bodyKind === "multipart" ? "multipart" : undefined;
+    bodyKind === "form"
+      ? "form"
+      : bodyKind === "multipart"
+        ? "multipart"
+        : bodyKind === "graphql"
+          ? "graphql"
+          : undefined;
   const bodyForm =
     chosenBody && (bodyKind === "form" || bodyKind === "multipart")
       ? parseDict(chosenBody.inner)
@@ -224,6 +249,9 @@ export function parseBru(text: string): ParsedBru {
     chosenBody && bodyKind !== "form" && bodyKind !== "multipart"
       ? dedentText(chosenBody.inner)
       : "";
+  const varsBlock = blocks.find((block) => block.name === "body:graphql:vars");
+  const graphqlVariables =
+    bodyKind === "graphql" && varsBlock ? dedentText(varsBlock.inner) : "";
 
   return {
     ...(name !== undefined ? { name } : {}),
@@ -234,6 +262,7 @@ export function parseBru(text: string): ParsedBru {
     ...(bodyMode ? { bodyMode } : {}),
     body,
     bodyForm,
+    graphqlVariables,
     ...(resolveAuth(blocks, methodRecord.auth)
       ? { auth: resolveAuth(blocks, methodRecord.auth) }
       : {}),

@@ -22,7 +22,7 @@ const postWithBody: RequestNode = {
   name: "create-widget",
   method: "POST",
   url: "https://api.example.com/widgets",
-  body: { active: "json", types: { json: '{"name":"foo"}', form: [], multipart: [] } },
+  body: { active: "json", types: { json: '{"name":"foo"}', form: [], multipart: [], graphql: { query: "", variables: "" } } },
   params: emptyParams(),
   config: {
     headers: [{ key: "X-Trace", value: "abc" }],

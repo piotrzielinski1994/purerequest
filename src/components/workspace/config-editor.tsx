@@ -252,12 +252,17 @@ function parseBody(value: unknown): RequestBody | null {
   if (!formValid || !multipartValid) {
     return null;
   }
+  const gql = (types.graphql ?? {}) as { query?: unknown; variables?: unknown };
   return {
     active: obj.active as BodyMode,
     types: {
       json: diskToBody(types.json),
       form: (types.form as KeyValue[] | undefined) ?? [],
       multipart: (types.multipart as KeyValue[] | undefined) ?? [],
+      graphql: {
+        query: typeof gql.query === "string" ? gql.query : "",
+        variables: typeof gql.variables === "string" ? gql.variables : "",
+      },
     },
   };
 }

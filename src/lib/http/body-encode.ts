@@ -9,6 +9,7 @@ const CONTENT_TYPE: Record<Exclude<BodyMode, "none">, string> = {
   json: "application/json",
   form: "application/x-www-form-urlencoded",
   multipart: `multipart/form-data; boundary=${MULTIPART_BOUNDARY}`,
+  graphql: "application/json",
 };
 
 export type EncodedBody = { body: string | null; contentType: string | null };
@@ -39,6 +40,34 @@ function encodeMultipart(
   return `${parts.join("")}--${MULTIPART_BOUNDARY}--\r\n`;
 }
 
+// Parse the variables text (after {{var}} substitution) into a JSON object. Only
+// a plain object counts: blank, unparseable, arrays and scalars all resolve to
+// undefined so the `variables` key is omitted from the wire (common GraphQL-over-
+// HTTP practice - variables is a map).
+function parseGraphqlVariables(text: string): Record<string, unknown> | undefined {
+  const trimmed = text.trim();
+  if (trimmed === "") {
+    return undefined;
+  }
+  try {
+    const parsed = JSON.parse(trimmed);
+    const isObject =
+      typeof parsed === "object" && parsed !== null && !Array.isArray(parsed);
+    return isObject ? (parsed as Record<string, unknown>) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function encodeGraphql(
+  slot: RequestBody["types"]["graphql"],
+  subst: (input: string) => string,
+): string {
+  const query = subst(slot.query);
+  const variables = parseGraphqlVariables(subst(slot.variables));
+  return JSON.stringify(variables === undefined ? { query } : { query, variables });
+}
+
 // Resolve a request's body + canonical Content-Type from its active type. JSON
 // text and form/multipart rows interpolate via `subst` (same {{var}} substitution
 // as headers/params). `none` sends nothing and carries no content type.
@@ -60,6 +89,12 @@ export function encodeBody(
     return {
       body: encodeMultipart(body.types.multipart, subst),
       contentType: CONTENT_TYPE.multipart,
+    };
+  }
+  if (mode === "graphql") {
+    return {
+      body: encodeGraphql(body.types.graphql, subst),
+      contentType: CONTENT_TYPE.graphql,
     };
   }
   return { body: subst(body.types.json), contentType: CONTENT_TYPE.json };

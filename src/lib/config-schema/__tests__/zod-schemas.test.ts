@@ -29,6 +29,7 @@ type RequestSettingsDoc = {
       json?: unknown;
       form?: KeyValueRow[];
       multipart?: KeyValueRow[];
+      graphql?: { query?: string; variables?: string };
     };
   };
   params?: {

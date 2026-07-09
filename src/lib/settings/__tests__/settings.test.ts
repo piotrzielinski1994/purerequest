@@ -166,7 +166,7 @@ describe("mergeSettings draft tabs", () => {
       name: "untitled",
       method: "GET",
       url: "https://example.test/x",
-      body: { active: "json", types: { json: "", form: [], multipart: [] } },
+      body: { active: "json", types: { json: "", form: [], multipart: [], graphql: { query: "", variables: "" } } },
       params: { path: [], query: [] },
       config: {},
     },

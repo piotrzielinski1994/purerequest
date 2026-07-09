@@ -28,7 +28,7 @@ const bodyOf = (
   slots: Partial<RequestBody["types"]> = {},
 ): RequestBody => ({
   active,
-  types: { json: "", form: [], multipart: [], ...slots },
+  types: { json: "", form: [], multipart: [], graphql: { query: "", variables: "" }, ...slots },
 });
 
 const expectOk = (result: ReturnType<typeof deserialize>) => {

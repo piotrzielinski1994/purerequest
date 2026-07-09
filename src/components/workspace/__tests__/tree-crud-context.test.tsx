@@ -362,7 +362,7 @@ describe("WorkspaceProvider create request (draft)", () => {
       name: "untitled",
       method: "GET",
       url: "",
-      body: { active: "json", types: { json: "", form: [], multipart: [] } },
+      body: { active: "json", types: { json: "", form: [], multipart: [], graphql: { query: "", variables: "" } } },
       params: { path: [], query: [] },
       config: {},
     };
@@ -417,7 +417,7 @@ describe("WorkspaceProvider create request (draft)", () => {
       name: "restored",
       method: "POST",
       url: "https://restored.test/x",
-      body: { active: "json", types: { json: "", form: [], multipart: [] } },
+      body: { active: "json", types: { json: "", form: [], multipart: [], graphql: { query: "", variables: "" } } },
       params: { path: [], query: [] },
       config: {},
     };

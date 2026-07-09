@@ -229,6 +229,67 @@ describe("parseBru - body (AC-003)", () => {
   });
 });
 
+describe("parseBru - graphql body (AC-005)", () => {
+  // AC-005, TC-007 - behavior: a method block `body: graphql` + a body:graphql
+  // block -> bodyMode "graphql", the block content captured as the query.
+  it("should map a body:graphql block to bodyMode graphql with the query captured", () => {
+    const parsed = parseBru(
+      [
+        "post {",
+        "  url: https://x.test/graphql",
+        "  body: graphql",
+        "}",
+        "body:graphql {",
+        "  query { me { id } }",
+        "}",
+      ].join("\n"),
+    );
+
+    expect(parsed.bodyMode).toBe("graphql");
+    expect(parsed.body).toContain("query { me { id } }");
+  });
+
+  // AC-005, TC-007 (brace nesting) - behavior: a multi-line graphql query with
+  // nested braces is captured whole, not truncated at the first inner `}`.
+  it("should capture a nested-brace graphql query in full", () => {
+    const parsed = parseBru(
+      [
+        "post {",
+        "  url: https://x.test/graphql",
+        "  body: graphql",
+        "}",
+        "body:graphql {",
+        "  query GetUser($id: ID!) {",
+        "    user(id: $id) { id name }",
+        "  }",
+        "}",
+      ].join("\n"),
+    );
+
+    expect(parsed.bodyMode).toBe("graphql");
+    expect(parsed.body).toContain("query GetUser($id: ID!)");
+    expect(parsed.body).toContain("user(id: $id) { id name }");
+  });
+
+  // AC-005, TC-008 - behavior: a body:graphql block with no method-block selector
+  // is still chosen (graphql no longer filtered out of the usable body blocks).
+  it("should choose a body:graphql block even without a body selector", () => {
+    const parsed = parseBru(
+      [
+        "post {",
+        "  url: https://x.test/graphql",
+        "}",
+        "body:graphql {",
+        "  query { ping }",
+        "}",
+      ].join("\n"),
+    );
+
+    expect(parsed.bodyMode).toBe("graphql");
+    expect(parsed.body).toContain("query { ping }");
+  });
+});
+
 describe("parseBru - auth (AC-004)", () => {
   // AC-004, TC-001 - behavior: auth:bearer { token } -> bearer auth.
   it("should map auth:bearer to a bearer auth with the token", () => {
@@ -372,9 +433,10 @@ describe("parseBru - params / vars / scripts (AC-005)", () => {
 });
 
 describe("parseBru - lenient parsing (AC-006)", () => {
-  // AC-006, TC-005 - behavior: tests / docs / assert / body:graphql blocks are
-  // skipped (never fatal) and the rest of the request still parses.
-  it("should skip tests, docs, assert and body:graphql blocks while still parsing the request", () => {
+  // AC-006, TC-005 - behavior: tests / docs / assert blocks are skipped (never
+  // fatal) and the rest of the request still parses. body:graphql is NO LONGER
+  // skipped (see AC-005) - it is now captured as the graphql query.
+  it("should skip tests, docs and assert blocks but now capture a body:graphql block", () => {
     const parsed = parseBru(
       [
         "meta {",
@@ -401,6 +463,10 @@ describe("parseBru - lenient parsing (AC-006)", () => {
     expect(parsed.name).toBe("Lenient");
     expect(parsed.method).toBe("GET");
     expect(parsed.url).toBe("https://x.test");
+    // body:graphql is now parsed, not dropped: the block content becomes the body
+    // (the query) and the mode is graphql.
+    expect(parsed.bodyMode).toBe("graphql");
+    expect(parsed.body).toContain("query { me { id } }");
   });
 
   // AC-006, TC-005 - behavior: a garbage string returns a best-effort record

@@ -220,7 +220,7 @@ describe("buildHttpRequest - body per method", () => {
       const node = request({
         id: "r",
         method,
-        body: { active: "json", types: { json: '{"a":1}', form: [], multipart: [] } },
+        body: { active: "json", types: { json: '{"a":1}', form: [], multipart: [], graphql: { query: "", variables: "" } } },
       });
 
       const wire = buildHttpRequest(node, effectiveOf({}));
@@ -235,7 +235,7 @@ describe("buildHttpRequest - body per method", () => {
       const node = request({
         id: "r",
         method,
-        body: { active: "json", types: { json: '{"a":1}', form: [], multipart: [] } },
+        body: { active: "json", types: { json: '{"a":1}', form: [], multipart: [], graphql: { query: "", variables: "" } } },
       });
 
       const wire = buildHttpRequest(node, effectiveOf({}));
