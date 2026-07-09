@@ -10,13 +10,16 @@ import { useWorkspace } from "@/components/workspace/workspace-context";
 import { useSettings } from "@/lib/settings/settings-context";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
 import type { BrunoCollectionReader } from "@/lib/bruno/reader";
+import type { PostmanCollectionReader } from "@/lib/postman/reader";
 
 export function WorkspaceLayout({
   picker,
   reader,
+  postmanReader,
 }: {
   picker?: FolderPicker;
   reader?: BrunoCollectionReader;
+  postmanReader?: PostmanCollectionReader;
 }) {
   const { settings, saveLayout } = useSettings();
   const { activeAccentColor } = useWorkspace();
@@ -30,7 +33,7 @@ export function WorkspaceLayout({
   if (settings.sidebarHidden) {
     return (
       <div className="h-full w-full" style={accentStyle}>
-        <Main picker={picker} reader={reader} />
+        <Main picker={picker} reader={reader} postmanReader={postmanReader} />
       </div>
     );
   }
@@ -53,7 +56,7 @@ export function WorkspaceLayout({
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel id="content" defaultSize="80%">
-        <Main picker={picker} reader={reader} />
+        <Main picker={picker} reader={reader} postmanReader={postmanReader} />
       </ResizablePanel>
     </ResizablePanelGroup>
   );

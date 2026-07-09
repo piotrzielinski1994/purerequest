@@ -20,6 +20,7 @@ export type ShortcutActionId =
   | "copy-as-curl"
   | "import-curl"
   | "import-bruno"
+  | "import-postman"
   | "open-command-palette";
 
 export type ShortcutAction = {
@@ -157,6 +158,12 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     name: "Import Bruno collection",
     description: "Pick a Bruno collection folder to import as a new folder.",
     defaultHotkey: "Mod+Shift+B",
+  },
+  {
+    id: "import-postman",
+    name: "Import Postman collection",
+    description: "Pick a Postman collection JSON file to import as a new folder.",
+    defaultHotkey: "Mod+Shift+P",
   },
   {
     id: "open-command-palette",

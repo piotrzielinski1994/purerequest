@@ -44,6 +44,43 @@ globalThis.bru = {
   getEnvName: () => __call("requi.getEnvName"),
   cwd: () => "",
 };
+// Postman's script API is \`pm\`. Like \`bru\`, alias the reachable surface onto the
+// host: the four variable stores collapse to ReqUI's single var space (get/set ->
+// requi.getVar/setVar), pm.response maps onto res.* (post stage only), and pm.test
+// runs its fn swallowing a thrown assertion (ReqUI doesn't report pass/fail), so
+// imported Postman scripts run instead of \`ReferenceError: pm is not defined\`.
+const __pmStore = {
+  get: (n) => __call("requi.getVar", n),
+  set: (n, v) => __call("requi.setVar", n, v),
+};
+globalThis.pm = {
+  variables: __pmStore,
+  environment: __pmStore,
+  collectionVariables: __pmStore,
+  globals: __pmStore,
+  test: (name, fn) => {
+    try {
+      if (typeof fn === "function") {
+        fn();
+      }
+    } catch (e) {
+      void e;
+    }
+  },
+};
+if (globalThis.__hasRes) {
+  globalThis.pm.response = {
+    get code() {
+      return __call("res.getStatus");
+    },
+    get responseTime() {
+      return __call("res.getResponseTime");
+    },
+    json: () => __call("res.getJson"),
+    text: () => __call("res.getBody"),
+    headers: { get: (n) => __call("res.getHeader", n) },
+  };
+}
 globalThis.console = {
   log: (...a) => __call("console.log", ...a),
   info: (...a) => __call("console.info", ...a),

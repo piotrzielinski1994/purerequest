@@ -187,4 +187,97 @@ describe("createQuickJsScriptRunner", () => {
     expect(fetchOutcome.ok).toBe(false);
     expect(processOutcome.ok).toBe(false);
   });
+
+  // Postman-compat, AC-012 / TC-010 - side-effect-contract: pm.variables get/set
+  // read and write through the host getVar/setVar (ReqUI has one variable space),
+  // so imported Postman scripts run without a `ReferenceError: pm is not defined`.
+  it("should alias pm.variables get and set onto the host getVar and setVar", async () => {
+    const getVar = vi.fn<NonNullable<ScriptApi["requi"]>["getVar"]>(
+      (name) => `val-${name}`,
+    );
+    const setVar = vi.fn<NonNullable<ScriptApi["requi"]>["setVar"]>();
+    const api = makeApi({
+      requi: {
+        getVar,
+        setVar,
+        getProcessEnv: () => undefined,
+        getEnvName: () => null,
+      },
+    });
+    const runner = createQuickJsScriptRunner();
+
+    const outcome = await runner.run(
+      "pm.variables.set('a', pm.variables.get('b'))",
+      api,
+    );
+
+    expect(getVar).toHaveBeenCalledWith("b");
+    expect(setVar).toHaveBeenCalledWith("a", "val-b");
+    expect(outcome).toEqual({ ok: true });
+  });
+
+  // Postman-compat, AC-012 - behavior: pm.environment / pm.collectionVariables /
+  // pm.globals set all reach the host setVar (one variable space).
+  it("should alias pm.environment, pm.collectionVariables and pm.globals set onto the host setVar", async () => {
+    const setVar = vi.fn<NonNullable<ScriptApi["requi"]>["setVar"]>();
+    const api = makeApi({
+      requi: {
+        getVar: () => undefined,
+        setVar,
+        getProcessEnv: () => undefined,
+        getEnvName: () => null,
+      },
+    });
+    const runner = createQuickJsScriptRunner();
+
+    const outcome = await runner.run(
+      [
+        "pm.environment.set('e', '1');",
+        "pm.collectionVariables.set('c', '2');",
+        "pm.globals.set('g', '3');",
+      ].join("\n"),
+      api,
+    );
+
+    expect(setVar).toHaveBeenCalledWith("e", "1");
+    expect(setVar).toHaveBeenCalledWith("c", "2");
+    expect(setVar).toHaveBeenCalledWith("g", "3");
+    expect(outcome).toEqual({ ok: true });
+  });
+
+  // Postman-compat, AC-012 / TC-010 - behavior: in the post stage a pm.test whose
+  // fn reads pm.response.json() runs without throwing (pm.response maps onto res).
+  it("should run a post-stage pm.test reading pm.response.json without throwing", async () => {
+    const api = makeApi({
+      res: {
+        getStatus: () => 200,
+        getBody: () => '{"token":"abc"}',
+        getJson: () => ({ token: "abc" }),
+        getHeader: () => undefined,
+        getHeaders: () => ({}),
+        getResponseTime: () => 12,
+      },
+    });
+    const runner = createQuickJsScriptRunner();
+
+    const outcome = await runner.run(
+      "pm.test('reads json', () => { pm.response.json(); });",
+      api,
+    );
+
+    expect(outcome).toEqual({ ok: true });
+  });
+
+  // Postman-compat, AC-012 / TC-010 - behavior: a pm.test whose fn throws (a
+  // failing assertion) does NOT fail the script; the run still reports ok:true.
+  it("should not fail the script if a pm.test fn throws", async () => {
+    const runner = createQuickJsScriptRunner();
+
+    const outcome = await runner.run(
+      "pm.test('always fails', () => { throw new Error('boom'); });",
+      makeApi(),
+    );
+
+    expect(outcome.ok).toBe(true);
+  });
 });

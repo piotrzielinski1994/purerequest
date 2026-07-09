@@ -33,6 +33,7 @@ const ACTION_IDS: ShortcutActionId[] = [
   "copy-as-curl",
   "import-curl",
   "import-bruno",
+  "import-postman",
   "open-command-palette",
 ];
 
