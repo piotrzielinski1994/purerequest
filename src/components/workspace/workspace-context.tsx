@@ -42,7 +42,11 @@ import { buildHttpRequest } from "@/lib/http/build-request";
 import { extractPathParams } from "@/lib/http/path-params";
 import { syncParamsFromUrl, syncUrlFromParams } from "@/lib/http/query-sync";
 import { createFakeHttpClient } from "@/lib/http/fake-client";
-import type { HttpClient, ResponseState } from "@/lib/http/model";
+import type {
+  HttpClient,
+  HttpRequest,
+  ResponseState,
+} from "@/lib/http/model";
 import type { ScriptRunner } from "@/lib/scripts/model";
 import { createFakeScriptRunner } from "@/lib/scripts/fake-runner";
 import {
@@ -76,7 +80,6 @@ import {
 import { findNode } from "@/lib/workspace/tree-locate";
 import type { TokenTarget } from "@/components/workspace/url-token";
 import { useToast } from "@/components/ui/toast";
-import { toCurl } from "@/lib/curl/to-curl";
 import { parseCurl, type CurlParseResult } from "@/lib/curl/parse-curl";
 import {
   brunoToTree,
@@ -282,7 +285,10 @@ type WorkspaceContextValue = {
   openSettings: () => void;
   closeSettings: () => void;
   newRequest: (target?: MoveTarget) => void;
-  copyAsCurl: () => void;
+  resolveActiveWire: () => HttpRequest | null;
+  isCodeGenOpen: boolean;
+  openCodeGen: () => void;
+  closeCodeGen: () => void;
   isCurlImportOpen: boolean;
   openCurlImport: () => void;
   closeCurlImport: () => void;
@@ -376,6 +382,7 @@ export function WorkspaceProvider({
   const [pendingClose, setPendingClose] = useState<PendingClose>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
   const [isCurlImportOpen, setIsCurlImportOpen] = useState(false);
+  const [isCodeGenOpen, setIsCodeGenOpen] = useState(false);
   const [revealTarget, setRevealTarget] = useState<RevealTarget>(null);
   const revealNonce = useRef(0);
   // "Go to source" from a `:name` path token opens the Params tab's Path sub-tab;
@@ -1154,22 +1161,28 @@ export function WorkspaceProvider({
       );
     };
 
-    const copyAsCurl = () => {
+    const resolveActiveWire = (): HttpRequest | null => {
       if (activeRequestId === null) {
-        return;
+        return null;
       }
       const node = requestsById.get(activeRequestId);
       if (!node) {
-        return;
+        return null;
       }
       const effective = resolveConfig(tree, activeRequestId, {
         environment: effectiveEnvironment ?? undefined,
       });
       const foldedEnv = resolveProcessEnv(tree, activeRequestId, processEnv);
-      const wire = buildHttpRequest(node, effective, foldedEnv);
-      navigator.clipboard?.writeText(toCurl(wire));
-      showToastRef.current("Copied as cURL");
+      return buildHttpRequest(node, effective, foldedEnv);
     };
+
+    const openCodeGen = () => {
+      if (resolveActiveWire() === null) {
+        return;
+      }
+      setIsCodeGenOpen(true);
+    };
+    const closeCodeGen = () => setIsCodeGenOpen(false);
 
     const openCurlImport = () => setIsCurlImportOpen(true);
     const closeCurlImport = () => setIsCurlImportOpen(false);
@@ -1917,7 +1930,7 @@ export function WorkspaceProvider({
       // Exposed value = the ACTIVE request's folded `.env` (nearest folder wins,
       // root base), so token highlighting/preview match what a send resolves. The
       // raw root-base `processEnv` state is read directly where folding happens
-      // (sendRequest/copyAsCurl/setTokenValue), not from this exposed field.
+      // (sendRequest/openCodeGen/setTokenValue), not from this exposed field.
       processEnv:
         activeRequestId !== null
           ? resolveProcessEnv(tree, activeRequestId, processEnv)
@@ -2100,7 +2113,10 @@ export function WorkspaceProvider({
         setIsSettingsActive(false);
       },
       newRequest,
-      copyAsCurl,
+      resolveActiveWire,
+      isCodeGenOpen,
+      openCodeGen,
+      closeCodeGen,
       isCurlImportOpen,
       openCurlImport,
       closeCurlImport,
@@ -2139,6 +2155,7 @@ export function WorkspaceProvider({
     pendingClose,
     pendingDelete,
     isCurlImportOpen,
+    isCodeGenOpen,
     revealTarget,
     paramsReveal,
     renamingNodeId,
