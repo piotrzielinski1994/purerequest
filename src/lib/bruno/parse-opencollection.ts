@@ -49,6 +49,7 @@ const EMPTY: ParsedBru = {
   params: [],
   body: "",
   bodyForm: [],
+  graphqlVariables: "",
   variables: {},
   environments: {},
 };
@@ -241,6 +242,7 @@ export function parseOpenCollection(text: string): ParsedBru {
     ...(bodyMode ? { bodyMode } : {}),
     body,
     bodyForm,
+    graphqlVariables: "",
     ...(auth ? { auth } : {}),
     variables,
     ...(scripts ? { scripts } : {}),

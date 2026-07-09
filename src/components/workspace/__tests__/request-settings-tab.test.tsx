@@ -166,6 +166,7 @@ describe("RequestPane Settings sub-tab", () => {
                   json: '{\n  "grant_type": "client_credentials"\n}',
                   form: [],
                   multipart: [],
+                  graphql: { query: "", variables: "" },
                 },
               },
               params: emptyParams(),

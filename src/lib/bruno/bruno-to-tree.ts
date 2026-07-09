@@ -84,12 +84,17 @@ function configFrom(parsed: ParsedBru): ConfigScope {
 // and the raw `body` text is always kept as the json slot.
 function bodyFrom(parsed: ParsedBru): RequestBody {
   const active = parsed.bodyMode ?? "json";
+  const isGraphql = active === "graphql";
   return {
     active,
     types: {
-      json: parsed.body,
+      json: isGraphql ? "" : parsed.body,
       form: active === "form" ? parsed.bodyForm : [],
       multipart: active === "multipart" ? parsed.bodyForm : [],
+      graphql: {
+        query: isGraphql ? parsed.body : "",
+        variables: isGraphql ? parsed.graphqlVariables : "",
+      },
     },
   };
 }

@@ -23,7 +23,13 @@ const MANIFEST = "requi.workspace.json";
 // the user's border opacity. Anything else on disk is dropped.
 const HEX_COLOR = /^#([0-9a-f]{6}|[0-9a-f]{8})$/i;
 
-const BODY_MODES: BodyMode[] = ["json", "none", "form", "multipart"];
+const BODY_MODES: BodyMode[] = [
+  "json",
+  "none",
+  "form",
+  "multipart",
+  "graphql",
+];
 
 type ParsedRequest = ConfigScope & {
   name?: string;
@@ -78,16 +84,37 @@ function asBodyMode(value: unknown): BodyMode {
     : "json";
 }
 
+// Narrow a disk `graphql` slot to the in-memory { query, variables } pair. A
+// missing slot (legacy doc, or a non-graphql body) is the blank seed; each field
+// falls back to "" so a query-only doc loads with blank variables.
+function asGraphqlSlot(value: unknown): { query: string; variables: string } {
+  if (typeof value !== "object" || value === null) {
+    return { query: "", variables: "" };
+  }
+  const slot = value as { query?: unknown; variables?: unknown };
+  return {
+    query: typeof slot.query === "string" ? slot.query : "",
+    variables: typeof slot.variables === "string" ? slot.variables : "",
+  };
+}
+
 // The `body` field for disk, minimal-diff: omitted when fully default (json
 // active, no payloads). The json slot is written as its natural JSON value (real
 // nested JSON) or a raw string; empty slots drop. Exported so the request-settings
 // JSON editor emits the identical doc shape.
 export function bodyField(body: RequestBody): { body?: unknown } {
+  const hasGraphql =
+    body.types.graphql.query !== "" || body.types.graphql.variables !== "";
+  // json and graphql are the empty-capable defaults: an active mode of either
+  // with no payload carries no information, so it drops to a minimal-diff doc
+  // (reverts to json on reload). `none`/`form`/`multipart` always persist their
+  // mode even when empty (the mode selection itself is meaningful).
   const isDefault =
-    body.active === "json" &&
+    (body.active === "json" || body.active === "graphql") &&
     body.types.json === "" &&
     body.types.form.length === 0 &&
-    body.types.multipart.length === 0;
+    body.types.multipart.length === 0 &&
+    !hasGraphql;
   if (isDefault) {
     return {};
   }
@@ -102,6 +129,7 @@ export function bodyField(body: RequestBody): { body?: unknown } {
         ...(body.types.multipart.length > 0
           ? { multipart: body.types.multipart }
           : {}),
+        ...(hasGraphql ? { graphql: body.types.graphql } : {}),
       },
     },
   };
@@ -148,6 +176,7 @@ function migrateBody(parsed: ParsedRequest): RequestBody {
         json: legacyStoredToBody(types.json),
         form: asKeyValueArray(types.form),
         multipart: asKeyValueArray(types.multipart),
+        graphql: asGraphqlSlot(types.graphql),
       },
     };
   }
@@ -160,6 +189,7 @@ function migrateBody(parsed: ParsedRequest): RequestBody {
       json,
       form: mode === "form" ? rows : [],
       multipart: mode === "multipart" ? rows : [],
+      graphql: { query: "", variables: "" },
     },
   };
 }

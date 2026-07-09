@@ -441,7 +441,7 @@ describe("send loop - edge cases (spec §9)", () => {
       name: "main",
       method: "POST",
       url: "{{baseUrl}}/thing",
-      body: { active: "json", types: { json: '{"a":1}', form: [], multipart: [] } },
+      body: { active: "json", types: { json: '{"a":1}', form: [], multipart: [], graphql: { query: "", variables: "" } } },
       params: emptyParams(),
       config: { scripts: { pre: "/* pre */" } },
     };

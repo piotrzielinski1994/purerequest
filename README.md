@@ -80,10 +80,13 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > The request pane's **Body** tab has a body-type selector: **JSON** (a CodeMirror editor -
 > JetBrains Darcula theme, JSON syntax highlighting, auto-closing brackets, and inline JSON
 > linting that red-underlines malformed JSON), **None** (no body sent), **Form URL Encoded**
-> and **Multipart Form** (a key/value grid; multipart is text parts only). Each mode auto-sets
-> its `Content-Type` (an explicit `Content-Type` you set in the Headers tab always wins);
-> switching modes preserves data - form and multipart share their rows, the JSON text keeps its
-> own slot. The mode + rows persist to the request's `*.req.json` and the Settings tab JSON.
+> and **Multipart Form** (a key/value grid; multipart is text parts only), and **GraphQL** (a
+> resizable split with a GraphQL-highlighted query editor above a JSON variables editor; sent as
+> `application/json` `{ query, variables }`, where `variables` is included only when it parses to
+> a JSON object). Each mode auto-sets its `Content-Type` (an explicit `Content-Type` you set in
+> the Headers tab always wins); switching modes preserves data - form and multipart share their
+> rows, the JSON text and the GraphQL query/variables each keep their own slot. The mode + payload
+> persist to the request's `*.req.json` and the Settings tab JSON.
 >
 > Per-installation UI settings (panel split sizes, whether the console is hidden, whether the
 > window was fullscreen, and the set of open request tabs + the active one) persist to a
@@ -256,11 +259,12 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > doc's top level - there is no `config` wrapper. Legacy files (a nested `config` object, or
 > the earlier body/param shapes) still load and migrate to the flat shape on the next save.
 >
-> `body` is `{ "active": "json"|"none"|"form"|"multipart", "types": { "json": <StoredBody>,
-> "form": [rows], "multipart": [rows] } }` - `active` picks the sent type while every type's
-> payload is kept side-by-side (switching mode never discards the others). The `json` slot is a
-> tagged `StoredBody`: `{ "type": "json", "payload": <parsed JSON> }` (real nested JSON, not an
-> escaped string) or `{ "type": "text", "payload": "<raw>" }`. `params` is
+> `body` is `{ "active": "json"|"none"|"form"|"multipart"|"graphql", "types": { "json": <StoredBody>,
+> "form": [rows], "multipart": [rows], "graphql": { "query", "variables" } } }` - `active` picks
+> the sent type while every type's payload is kept side-by-side (switching mode never discards the
+> others). The `json` slot is a tagged `StoredBody`: `{ "type": "json", "payload": <parsed JSON> }`
+> (real nested JSON, not an escaped string) or `{ "type": "text", "payload": "<raw>" }`. The
+> `graphql` slot holds raw `query` + `variables` text. `params` is
 > `{ "path": [rows], "query": [rows] }` - both `[{ "key", "value", "enabled"? }]` arrays, like
 > `headers` and `variables`. Empty body/param slots are omitted for a minimal diff. Legacy
 > workspaces (v2 bare-string body; v3 `body`+`bodyMode`+`bodyForm`, `config.params`, `pathParams`;

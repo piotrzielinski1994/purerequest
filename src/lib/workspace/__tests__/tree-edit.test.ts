@@ -189,7 +189,7 @@ describe("duplicateRequest", () => {
     original.url = "https://api.test/profile";
     original.body = {
       active: "json",
-      types: { json: '{"a":1}', form: [], multipart: [] },
+      types: { json: '{"a":1}', form: [], multipart: [], graphql: { query: "", variables: "" } },
     };
     const tree: TreeNode[] = [original];
 
@@ -200,7 +200,7 @@ describe("duplicateRequest", () => {
     expect(copy.url).toBe("https://api.test/profile");
     expect(copy.body).toEqual({
       active: "json",
-      types: { json: '{"a":1}', form: [], multipart: [] },
+      types: { json: '{"a":1}', form: [], multipart: [], graphql: { query: "", variables: "" } },
     });
     expect(copy.config).toEqual({
       variables: [{ key: "token", value: "abc" }],

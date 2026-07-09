@@ -18,7 +18,7 @@ const request = (
   name,
   method: "GET",
   url: "",
-  body: { active: "json", types: { json: "", form: [], multipart: [] } },
+  body: { active: "json", types: { json: "", form: [], multipart: [], graphql: { query: "", variables: "" } } },
   params: { path: [], query: [] },
   config,
 });

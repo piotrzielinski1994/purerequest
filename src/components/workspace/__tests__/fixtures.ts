@@ -11,7 +11,7 @@ import { authOf } from "@/lib/workspace/model";
 // and request params carrying just query rows (path empty unless a test sets it).
 const jsonBody = (json: string): RequestBody => ({
   active: "json",
-  types: { json, form: [], multipart: [] },
+  types: { json, form: [], multipart: [], graphql: { query: "", variables: "" } },
 });
 const emptyBody = (): RequestBody => jsonBody("");
 const queryParams = (query: KeyValue[]) => ({ path: [], query });

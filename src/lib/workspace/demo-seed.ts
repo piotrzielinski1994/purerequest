@@ -21,7 +21,7 @@ const WORKSPACE_NAME = "Demo";
 
 const jsonBody = (json: string): RequestBody => ({
   active: "json",
-  types: { json, form: [], multipart: [] },
+  types: { json, form: [], multipart: [], graphql: { query: "", variables: "" } },
 });
 const queryParams = (query: KeyValue[]) => ({ path: [], query });
 

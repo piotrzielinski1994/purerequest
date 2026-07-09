@@ -26,7 +26,7 @@ const request = (id: string, config: ConfigScope = {}): RequestNode => ({
 
 const jsonBody = (json: string): RequestNode["body"] => ({
   active: "json",
-  types: { json, form: [], multipart: [] },
+  types: { json, form: [], multipart: [], graphql: { query: "", variables: "" } },
 });
 
 const folder = (

@@ -5,6 +5,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { BodyEditor } from "@/components/workspace/body-editor";
+import { GraphqlBodyEditor } from "@/components/workspace/graphql-body-editor";
 import { EditableKeyValueTable } from "@/components/workspace/editable-key-value-table";
 import { tokenCandidates } from "@/components/workspace/token-complete";
 import { useWorkspace } from "@/components/workspace/workspace-context";
@@ -15,6 +16,7 @@ const BODY_MODE_LABELS: Record<BodyMode, string> = {
   none: "None",
   form: "Form URL Encoded",
   multipart: "Multipart Form",
+  graphql: "GraphQL",
 };
 
 export function BodyPanel({ request }: { request: RequestNode }) {
@@ -22,6 +24,8 @@ export function BodyPanel({ request }: { request: RequestNode }) {
     setRequestBody,
     setRequestBodyMode,
     setRequestForm,
+    setRequestGraphqlQuery,
+    setRequestGraphqlVariables,
     effectiveConfig,
     processEnv,
     activeEnvironment,
@@ -54,6 +58,7 @@ export function BodyPanel({ request }: { request: RequestNode }) {
             <SelectItem value="none">None</SelectItem>
             <SelectItem value="form">Form URL Encoded</SelectItem>
             <SelectItem value="multipart">Multipart Form</SelectItem>
+            <SelectItem value="graphql">GraphQL</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -77,6 +82,18 @@ export function BodyPanel({ request }: { request: RequestNode }) {
             withToggle
             highlight={highlight}
             onChange={(rows) => setRequestForm(request.id, rows)}
+          />
+        )}
+        {mode === "graphql" && (
+          <GraphqlBodyEditor
+            key={request.id}
+            query={request.body.types.graphql.query}
+            variables={request.body.types.graphql.variables}
+            candidates={candidates}
+            onQueryChange={(query) => setRequestGraphqlQuery(request.id, query)}
+            onVariablesChange={(vars) =>
+              setRequestGraphqlVariables(request.id, vars)
+            }
           />
         )}
       </div>
