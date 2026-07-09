@@ -21,6 +21,7 @@ export type ShortcutActionId =
   | "import-curl"
   | "import-bruno"
   | "import-postman"
+  | "import-openapi"
   | "open-command-palette";
 
 export type ShortcutAction = {
@@ -164,6 +165,12 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     name: "Import Postman collection",
     description: "Pick a Postman collection JSON file to import as a new folder.",
     defaultHotkey: "Mod+Shift+P",
+  },
+  {
+    id: "import-openapi",
+    name: "Import OpenAPI document",
+    description: "Pick an OpenAPI 3.x JSON/YAML document to import as a new folder.",
+    defaultHotkey: "Mod+Shift+O",
   },
   {
     id: "open-command-palette",

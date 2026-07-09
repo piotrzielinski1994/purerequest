@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { WorkspaceLoader } from "@/components/workspace/workspace-loader";
@@ -10,6 +10,7 @@ import { createInMemoryWorkspaceFs } from "@/lib/workspace/in-memory-fs";
 import { serialize, type FileMap } from "@/lib/workspace/disk-format";
 import type { TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import type { OpenapiReader } from "@/lib/openapi/reader";
 
 const sampleTree: TreeNode[] = [
   {
@@ -209,6 +210,41 @@ describe("WorkspaceLoader", () => {
     await screen.findByText("API");
     const trigger = screen.getByRole("combobox", { name: /environment/i });
     expect(trigger).toHaveTextContent(/no environment/i);
+  });
+
+  // regression: the loaded-workspace branch must thread the openapiReader through
+  // to the layout (an earlier miss left it wired only in the empty branch, so the
+  // import action silently no-op'd on a real workspace). Running the import command
+  // with a reader that returns a doc must reach the reader + insert the folder.
+  it("should thread the openapiReader to the loaded workspace so the import runs", async () => {
+    const user = userEvent.setup();
+    const openapiText = JSON.stringify({
+      openapi: "3.0.3",
+      info: { title: "Threaded API", version: "1.0.0" },
+      paths: { "/ping": { get: { summary: "Ping" } } },
+    });
+    const openapiReader: OpenapiReader = {
+      pick: () => Promise.resolve({ name: "picked", text: openapiText }),
+    };
+    const settingsStore = createInMemorySettingsStore({
+      ...DEFAULT_SETTINGS,
+      workspacePath: "/ws/demo",
+    });
+    const fs = createInMemoryWorkspaceFs({
+      "/ws/demo": serialize(sampleTree, "Demo"),
+    });
+    render(
+      <SettingsProvider store={settingsStore}>
+        <WorkspaceLoader fs={fs} openapiReader={openapiReader} />
+      </SettingsProvider>,
+    );
+    await screen.findByText("Billing");
+
+    await user.keyboard("{Control>}k{/Control}");
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByText(/import openapi document/i));
+
+    expect(await screen.findByText("Threaded API")).toBeInTheDocument();
   });
 
   // AC-009, E-7 - behavior: partial load surfaces skipped files in the console

@@ -15,6 +15,10 @@ import {
   createTauriPostmanReader,
   createNoopPostmanReader,
 } from "@/lib/postman/reader";
+import {
+  createTauriOpenapiReader,
+  createNoopOpenapiReader,
+} from "@/lib/openapi/reader";
 import { createTauriHttpClient } from "@/lib/http/tauri-client";
 import { createFakeHttpClient } from "@/lib/http/fake-client";
 import { createQuickJsScriptRunner } from "@/lib/scripts/quickjs-runner";
@@ -28,6 +32,7 @@ import type { WorkspaceFs } from "@/lib/workspace/fs";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
 import type { BrunoCollectionReader } from "@/lib/bruno/reader";
 import type { PostmanCollectionReader } from "@/lib/postman/reader";
+import type { OpenapiReader } from "@/lib/openapi/reader";
 import type { HttpClient } from "@/lib/http/model";
 import { rootRoute } from "@/routes/__root";
 
@@ -36,6 +41,7 @@ type Adapters = {
   picker: FolderPicker;
   reader: BrunoCollectionReader;
   postmanReader: PostmanCollectionReader;
+  openapiReader: OpenapiReader;
   httpClient: HttpClient;
 };
 
@@ -46,6 +52,7 @@ function createAdapters(): Adapters {
       picker: createNoopFolderPicker(),
       reader: createNoopBrunoReader(),
       postmanReader: createNoopPostmanReader(),
+      openapiReader: createNoopOpenapiReader(),
       httpClient: createFakeHttpClient({ ok: true, response: DEMO_RESPONSE }),
     };
   }
@@ -54,6 +61,7 @@ function createAdapters(): Adapters {
     picker: createTauriFolderPicker(),
     reader: createTauriBrunoReader(),
     postmanReader: createTauriPostmanReader(),
+    openapiReader: createTauriOpenapiReader(),
     httpClient: createTauriHttpClient(),
   };
 }
@@ -68,6 +76,7 @@ function HomePage() {
       picker={adapters.picker}
       reader={adapters.reader}
       postmanReader={adapters.postmanReader}
+      openapiReader={adapters.openapiReader}
       httpClient={adapters.httpClient}
       scriptRunner={scriptRunner}
     />

@@ -84,6 +84,7 @@ import {
   type BrunoFileMap,
 } from "@/lib/bruno/bruno-to-tree";
 import { postmanToTree, type PostmanFileMap } from "@/lib/postman/postman-to-tree";
+import { openapiToTree } from "@/lib/openapi/openapi-to-tree";
 
 type RequestOverride = Partial<
   Pick<RequestNode, "name" | "url" | "method" | "body" | "params" | "config">
@@ -288,6 +289,7 @@ type WorkspaceContextValue = {
   importCurl: (text: string) => CurlParseResult;
   importBruno: (files: BrunoFileMap, name: string) => void;
   importPostman: (files: PostmanFileMap, name: string) => void;
+  importOpenapi: (text: string, name: string) => void;
   focusUrlNonce: number;
 };
 
@@ -1242,6 +1244,22 @@ export function WorkspaceProvider({
       showToastRef.current("Imported Postman collection");
     };
 
+    const importOpenapi = (text: string, name: string) => {
+      const [root] = openapiToTree(text, name);
+      if (!root || root.kind !== "folder" || root.children.length === 0) {
+        showToastRef.current("No importable operations in OpenAPI document");
+        return;
+      }
+      nodeCounter.current += 1;
+      const folder = { ...root, id: `new-${nodeCounter.current}` };
+      setExpandedFolderIds((current) => new Set(current).add(folder.id));
+      setIsSettingsActive(false);
+      setIsEditorActive(false);
+      selectSingle(folder.id);
+      persistTree(insertNode(tree, null, tree.length, folder), "import");
+      showToastRef.current("Imported OpenAPI document");
+    };
+
     // Optimistic save: the in-memory tree updates synchronously and we confirm
     // ("Saved") immediately, without awaiting the disk write - so Cmd+S never
     // mules behind the round-trip. The write still runs in the background; only a
@@ -2089,6 +2107,7 @@ export function WorkspaceProvider({
       importCurl,
       importBruno,
       importPostman,
+      importOpenapi,
       focusUrlNonce,
     };
   }, [
