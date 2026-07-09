@@ -86,66 +86,6 @@ async function runPaletteCommand(
 const VALID_CURL =
   "curl -X POST 'https://api.example.com/imported' -H 'A: 1' -d 'x=1'";
 
-describe("Copy as cURL (AC-004, AC-011)", () => {
-  // AC-011, TC-009 - behavior: the palette lists both curl commands.
-  it("should list Copy as cURL and Import cURL in the command palette", async () => {
-    const user = userEvent.setup();
-    renderShell({ initialActiveRequestId: "req-post" });
-    await screen.findByRole("region", { name: /console/i });
-
-    await user.keyboard("{Control>}k{/Control}");
-    const dialog = await screen.findByRole("dialog");
-
-    expect(within(dialog).getByText(/copy as curl/i)).toBeInTheDocument();
-    expect(within(dialog).getByText(/import curl/i)).toBeInTheDocument();
-  });
-
-  // AC-004, TC-009 - side-effect-contract: Copy with an active request writes a
-  // curl string to the clipboard and toasts.
-  it("should write a curl string to the clipboard and toast if Copy as cURL runs with an active request", async () => {
-    const user = userEvent.setup();
-    const writeText = vi
-      .spyOn(navigator.clipboard, "writeText")
-      .mockResolvedValue();
-    renderShell({ initialActiveRequestId: "req-post" });
-    await screen.findByRole("region", { name: /console/i });
-
-    await runPaletteCommand(user, /copy as curl/i);
-
-    await waitFor(() => {
-      expect(writeText).toHaveBeenCalledTimes(1);
-    });
-    const written = writeText.mock.calls[0][0];
-    expect(written).toMatch(/^curl /);
-    expect(written).toContain("-X POST");
-    expect(written).toContain("--data-raw");
-    // a confirmation toast is shown.
-    expect(await screen.findByText(/copied as curl/i)).toBeInTheDocument();
-
-    writeText.mockRestore();
-  });
-
-  // AC-004, TC-009 - side-effect-contract: Copy with no active request is a
-  // no-op (no clipboard write).
-  it("should do nothing if Copy as cURL runs with no active request", async () => {
-    const user = userEvent.setup();
-    const writeText = vi
-      .spyOn(navigator.clipboard, "writeText")
-      .mockResolvedValue();
-    renderShell({});
-    await screen.findByRole("region", { name: /console/i });
-
-    await runPaletteCommand(user, /copy as curl/i);
-
-    // give any async path a chance to fire, then assert it stayed silent.
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(writeText).not.toHaveBeenCalled();
-    expect(screen.queryByText(/copied as curl/i)).not.toBeInTheDocument();
-
-    writeText.mockRestore();
-  });
-});
-
 describe("Import cURL dialog (AC-010)", () => {
   // AC-010, TC-008 - behavior: the import action opens a dialog with a textarea
   // and a disabled Import button while empty.

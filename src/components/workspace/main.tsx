@@ -13,6 +13,7 @@ import {
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
 import { DeleteConfirmDialog } from "@/components/workspace/delete-confirm-dialog";
 import { CurlImportDialog } from "@/components/workspace/curl-import-dialog";
+import { CodeGenDialog } from "@/components/workspace/code-gen-dialog";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import { useSettings } from "@/lib/settings/settings-context";
 import { useActionHotkeys } from "@/lib/shortcuts/use-action-hotkeys";
@@ -68,7 +69,7 @@ export function Main({
     requestDeleteNode,
     sendRequest,
     saveActive,
-    copyAsCurl,
+    openCodeGen,
     openCurlImport,
     importBruno,
     importPostman,
@@ -214,7 +215,7 @@ export function Main({
       }
     },
     "save-active-editor": saveActive,
-    "copy-as-curl": copyAsCurl,
+    "copy-as-code": openCodeGen,
     "import-curl": openCurlImport,
     "import-bruno": importBrunoCollection,
     "import-postman": importPostmanCollection,
@@ -249,6 +250,7 @@ export function Main({
       <CloseConfirmDialog />
       <DeleteConfirmDialog />
       <CurlImportDialog />
+      <CodeGenDialog />
     </>
   );
 

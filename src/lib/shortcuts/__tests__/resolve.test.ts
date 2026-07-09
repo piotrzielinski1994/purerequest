@@ -30,7 +30,7 @@ const ACTION_IDS: ShortcutActionId[] = [
   "open-workspace",
   "send-request",
   "save-active-editor",
-  "copy-as-curl",
+  "copy-as-code",
   "import-curl",
   "import-bruno",
   "import-postman",

@@ -114,7 +114,7 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > open settings `Mod+Shift+S`, close settings `Esc`, toggle console `Mod+J`, toggle sidebar
 > `Mod+B`, toggle theme `Mod+Shift+L`, next/prev request `Ctrl+Tab`/`Ctrl+Shift+Tab`, close request `Mod+W`, close other
 > request tabs `Mod+Alt+W`, close all request tabs `Mod+Shift+W`, new request `Mod+T`, open workspace `Mod+O`, send request
-> `Mod+Enter`, copy as cURL `Mod+Shift+C`, import cURL `Mod+Shift+I`, import Bruno collection
+> `Mod+Enter`, copy as code `Mod+Shift+C`, import cURL `Mod+Shift+I`, import Bruno collection
 > `Mod+Shift+B`, import Postman collection `Mod+Shift+P`, import OpenAPI document `Mod+Shift+O`,
 > command palette `Mod+K`
 > (`Mod` = Cmd on macOS, Ctrl
@@ -151,10 +151,11 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > focused + selected on open). Deleting a request or an empty folder is immediate; deleting a
 > non-empty folder asks to confirm. Every op persists through the same on-disk write path as a move.
 >
-> **cURL bridges** (command palette + shortcuts): **Copy as cURL** (`Mod+Shift+C`) writes the
-> active request to the clipboard as a runnable `curl` command - the *resolved wire* form
-> (`{{vars}}` substituted, query params appended, auth as an `Authorization` header, body
-> encoded + `Content-Type` set), so it pastes-and-runs (and may embed secrets, like the
+> **cURL bridges** (command palette + shortcuts): **Copy as code** (`Mod+Shift+C`) opens a dialog
+> that generates client code for the active request in a chosen language (v1: cURL + JavaScript
+> `fetch`), with a language picker + live preview + Copy. The code is built from the *resolved
+> wire* form (`{{vars}}` substituted, query params appended, auth as an `Authorization` header,
+> body encoded + `Content-Type` set), so it pastes-and-runs (and may embed secrets, like the
 > plaintext workspace). **Import cURL** (`Mod+Shift+I`) opens a paste dialog; the pasted command
 > is parsed (method, url, `-H` headers, `-d`/`--data*` body, `-u` basic auth, `-b` cookie;
 > unknown flags ignored) into a **new** request node placed relative to the tree selection and

@@ -17,7 +17,7 @@ export type ShortcutActionId =
   | "open-workspace"
   | "send-request"
   | "save-active-editor"
-  | "copy-as-curl"
+  | "copy-as-code"
   | "import-curl"
   | "import-bruno"
   | "import-postman"
@@ -143,9 +143,10 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     defaultHotkey: "Mod+S",
   },
   {
-    id: "copy-as-curl",
-    name: "Copy as cURL",
-    description: "Copy the active request to the clipboard as a curl command.",
+    id: "copy-as-code",
+    name: "Copy as code",
+    description:
+      "Copy the active request as generated client code (curl, fetch, ...).",
     defaultHotkey: "Mod+Shift+C",
   },
   {
