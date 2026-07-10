@@ -102,6 +102,28 @@
   ::-webkit-scrollbar-corner {
     background: transparent;
   }
+  /* Tailwind v4 dropped the browser default `cursor: pointer` on buttons, so
+     clickable controls show the arrow cursor. Restore the pointer for enabled
+     interactive elements (buttons, links, and ARIA-role clickables like tabs,
+     options, checkboxes, menu items); a disabled control falls back to the
+     default arrow. Text inputs keep their own caret cursor (not matched here). */
+  button:not(:disabled),
+  a[href],
+  label[for],
+  summary,
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="menuitemcheckbox"]:not([aria-disabled="true"]),
+  [role="checkbox"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: default;
+  }
   html,
   body,
   #root {

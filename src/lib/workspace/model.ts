@@ -114,12 +114,20 @@ export function environmentVars(
   return env ? keyValuesToRecord(env.variables) : {};
 }
 
+export type ResponseTimings = {
+  dnsMs: number;
+  connectMs: number;
+  waitingMs: number;
+  downloadMs: number;
+};
+
 export type RequestResponse = {
   status: number;
   timeMs: number;
   sizeBytes: number;
   body: string;
   headers: KeyValue[];
+  timings?: ResponseTimings;
 };
 
 export type RequestNode = {

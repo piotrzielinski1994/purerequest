@@ -64,8 +64,8 @@ async function clickSend(user: ReturnType<typeof userEvent.setup>) {
 const SMALL_BODY = JSON.stringify({ args: { foo: "bar" } }, null, 2);
 
 describe("ResponsePane - formatted status row", () => {
-  // AC-004 - behavior: the status row shows the formatted size, "512 B" not "512B".
-  it("should show the size formatted with a space and unit if a response lands", async () => {
+  // AC-004 - behavior: the status row shows the formatted size, "512B" (no space).
+  it("should show the size formatted with a unit and no space if a response lands", async () => {
     const user = renderWithResponse({
       status: 200,
       timeMs: 142,
@@ -77,8 +77,8 @@ describe("ResponsePane - formatted status row", () => {
     await clickSend(user);
 
     await screen.findByText("200");
-    expect(screen.getByText("512 B")).toBeInTheDocument();
-    expect(screen.queryByText("512B")).not.toBeInTheDocument();
+    expect(screen.getByText("512B")).toBeInTheDocument();
+    expect(screen.queryByText("512 B")).not.toBeInTheDocument();
   });
 
   // AC-004 - behavior: the status row shows the formatted time, e.g. "142ms".
@@ -98,7 +98,7 @@ describe("ResponsePane - formatted status row", () => {
   });
 
   // AC-004 - behavior: a kilobyte-range size renders as KB, not raw bytes.
-  it("should show the size as 2.0 KB if the response is 2048 bytes", async () => {
+  it("should show the size as 2.0KB if the response is 2048 bytes", async () => {
     const user = renderWithResponse({
       status: 200,
       timeMs: 1523,
@@ -110,7 +110,7 @@ describe("ResponsePane - formatted status row", () => {
     await clickSend(user);
 
     await screen.findByText("200");
-    expect(screen.getByText("2.0 KB")).toBeInTheDocument();
+    expect(screen.getByText("2.0KB")).toBeInTheDocument();
     expect(screen.getByText("1.52s")).toBeInTheDocument();
   });
 });

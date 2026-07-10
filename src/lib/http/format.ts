@@ -5,12 +5,12 @@ export const RESPONSE_RENDER_LIMIT_BYTES = 2 * MB;
 
 export function formatBytes(bytes: number): string {
   if (bytes < KB) {
-    return `${bytes} B`;
+    return `${bytes}B`;
   }
   if (bytes < MB) {
-    return `${(bytes / KB).toFixed(1)} KB`;
+    return `${(bytes / KB).toFixed(1)}KB`;
   }
-  return `${(bytes / MB).toFixed(1)} MB`;
+  return `${(bytes / MB).toFixed(1)}MB`;
 }
 
 export function formatDuration(ms: number): string {
