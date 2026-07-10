@@ -89,8 +89,9 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > (libpcap/BPF), OFF by default and opt-in via `REQUI_PCAP=1` (needs BPF read access; auto-picks
 > the egress interface, override with `REQUI_PCAP_DEVICE=en0`); without it those layers stay
 > "facts only" (socket-derived endpoints, no header bytes). L1 Physical is never observable in
-> software. HTTP/2 HPACK header decoding is deferred; a response with no capture shows an empty
-> state. The response **Filter** input narrows the
+> software. HTTP/2 HEADERS frames decode their HPACK-compressed (RFC 7541) header block to
+> plaintext `name: value` lines, each byte-located in the hex view. A response with no capture
+> shows an empty state. The response **Filter** input narrows the
 > shown body by a JSONPath-ish path (`$.args.foo`, `$.headers[0]`); an empty path shows the
 > full body, a path that matches nothing (or a non-JSON body) shows "No match". URL/method/body
 > edits live in session memory until saved: `Mod+S` (the same Save action, also in the command
@@ -366,6 +367,7 @@ src-tauri/              Rust desktop shell (send_http_request/cancel_http_reques
   src/tap_client.rs     hand-rolled hyper + tokio-rustls send client (owns socket + TLS, taps wire bytes)
   src/pcap_capture.rs   optional libpcap/BPF side-car (REQUI_PCAP=1) capturing L2-L4 packet bytes
   src/dissect.rs        decodes captured bytes into the layered Protocols-tab dissection
+  src/hpack.rs          RFC 7541 HPACK decoder for HTTP/2 header blocks (used by dissect.rs)
 tests/
   e2e/                  Playwright specs (*.e2e.ts) against the dev-browser build
   integration/          Vitest jsdom routing/app-shell tests (*.spec.tsx)
