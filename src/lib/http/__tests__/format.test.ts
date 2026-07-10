@@ -7,24 +7,24 @@ import {
 } from "@/lib/http/format";
 
 describe("formatBytes", () => {
-  // TC-001, AC-004 - behavior: small sizes render as bytes.
+  // TC-001, AC-004 - behavior: small sizes render as bytes (no space before the unit).
   it("should render bytes with a B suffix if under one kilobyte", () => {
-    expect(formatBytes(512)).toBe("512 B");
+    expect(formatBytes(512)).toBe("512B");
   });
 
   // TC-001, AC-004 - behavior: the 1024 boundary crosses into KB.
-  it("should render 1024 bytes as 1.0 KB if at the kilobyte boundary", () => {
-    expect(formatBytes(1024)).toBe("1.0 KB");
+  it("should render 1024 bytes as 1.0KB if at the kilobyte boundary", () => {
+    expect(formatBytes(1024)).toBe("1.0KB");
   });
 
   // TC-001, AC-004 - behavior: kilobytes render with a KB suffix.
-  it("should render 2048 bytes as 2.0 KB if in the kilobyte range", () => {
-    expect(formatBytes(2048)).toBe("2.0 KB");
+  it("should render 2048 bytes as 2.0KB if in the kilobyte range", () => {
+    expect(formatBytes(2048)).toBe("2.0KB");
   });
 
   // TC-001, AC-004 - behavior: megabytes render with an MB suffix.
-  it("should render 2097152 bytes as 2.0 MB if in the megabyte range", () => {
-    expect(formatBytes(2_097_152)).toBe("2.0 MB");
+  it("should render 2097152 bytes as 2.0MB if in the megabyte range", () => {
+    expect(formatBytes(2_097_152)).toBe("2.0MB");
   });
 });
 
