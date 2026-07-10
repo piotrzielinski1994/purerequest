@@ -167,7 +167,7 @@ export type RequestTab =
   | "body"
   | "script"
   | "settings";
-export type ResponseTab = "response" | "headers";
+export type ResponseTab = "response" | "headers" | "timing";
 
 type WorkspaceContextValue = {
   tree: TreeNode[];

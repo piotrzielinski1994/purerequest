@@ -249,6 +249,7 @@ export const DEMO_RESPONSE: HttpResponse = {
   sizeBytes: 36,
   body: '{\n  "ok": true,\n  "demo": true\n}',
   headers: [{ key: "Content-Type", value: "application/json" }],
+  timings: { dnsMs: 12, connectMs: 34, waitingMs: 88, downloadMs: 8 },
 };
 
 // The demo tree serialized to the on-disk format, so the dev-build loader reads

@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { KeyValueTable } from "@/components/workspace/key-value-table";
 import { JsonViewer } from "@/components/workspace/json-viewer";
+import { TimingWaterfall } from "@/components/workspace/timing-waterfall";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   PANE_TABS_LIST,
@@ -84,6 +85,9 @@ function ResponseTabs({ response }: { response: RequestResponse }) {
           <TabsTrigger value="headers" className={PANE_TABS_TRIGGER}>
             Headers
           </TabsTrigger>
+          <TabsTrigger value="timing" className={PANE_TABS_TRIGGER}>
+            Timing
+          </TabsTrigger>
         </TabsList>
         <div className="flex items-center gap-3 px-3 font-mono text-xs">
           <span className="text-green-600 dark:text-green-400">
@@ -105,6 +109,12 @@ function ResponseTabs({ response }: { response: RequestResponse }) {
       </TabsContent>
       <TabsContent value="headers">
         <KeyValueTable rows={response.headers} emptyLabel="No headers" />
+      </TabsContent>
+      <TabsContent
+        value="timing"
+        className="flex min-h-0 flex-col data-[state=inactive]:hidden"
+      >
+        <TimingWaterfall response={response} />
       </TabsContent>
     </Tabs>
   );

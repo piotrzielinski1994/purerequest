@@ -3117,6 +3117,8 @@ dependencies = [
  "tauri-plugin-store",
  "tokio",
  "tokio-util",
+ "tower-layer",
+ "tower-service",
  "wiremock",
 ]
 

@@ -64,10 +64,15 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > (the send shortcut/Enter also cancels): a `cancel_http_request` command fires a Rust
 > `CancellationToken` that aborts the in-flight `reqwest` send, returning the pane to idle (no
 > error shown). The response pane shows loading (`Sending…`), error (the failure reason), or
-> success (status + formatted time/size + body + headers) per request; with no send yet it falls
-> back to the seeded response. Time/size are human-readable (`142ms`/`1.52s`, `512 B`/`2.0 KB`/
-> `2.0 MB`), and a body over ~2 MB is not fed whole into the viewer - it shows a head-truncated
-> preview + a size notice (the filter is hidden) so a huge response can't freeze the UI. The response **Filter** input narrows the
+> success (status + formatted time/size + body + headers + a **Timing** breakdown) per request;
+> with no send yet it falls
+> back to the seeded response. Time/size are human-readable (`142ms`/`1.52s`, `512B`/`2.0KB`/
+> `2.0MB`), and a body over ~2 MB is not fed whole into the viewer - it shows a head-truncated
+> preview + a size notice (the filter is hidden) so a huge response can't freeze the UI. The
+> response **Timing** tab shows a per-send waterfall of four phases - **DNS**, **Connect**
+> (TCP+TLS combined), **Waiting** (TTFB), **Download** - captured on the Rust send path (custom
+> `reqwest` DNS resolver + a `connector_layer`) and partitioned so they sum to the total; a
+> response with no timings (seeded/legacy/error) shows an empty state. The response **Filter** input narrows the
 > shown body by a JSONPath-ish path (`$.args.foo`, `$.headers[0]`); an empty path shows the
 > full body, a path that matches nothing (or a non-JSON body) shows "No match". URL/method/body
 > edits live in session memory until saved: `Mod+S` (the same Save action, also in the command
