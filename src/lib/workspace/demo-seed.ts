@@ -346,6 +346,48 @@ export const DEMO_RESPONSE: HttpResponse = {
                 bitOffset: 1,
                 bitLength: 31,
               },
+              {
+                label: "Header block (HPACK)",
+                value: "4 header(s)",
+                meaning:
+                  "The HPACK-compressed (RFC 7541) header block. Each header is an indexed reference into the static/dynamic tables or a literal name/value (optionally Huffman-coded), decoded here to plaintext.",
+                byteOffset: 9,
+                byteLength: 32,
+                children: [
+                  {
+                    label: "Header",
+                    value: ":method: GET",
+                    meaning:
+                      "An indexed header field: the whole name+value came from a single entry in the static or dynamic table (1 byte on the wire).",
+                    byteOffset: 9,
+                    byteLength: 1,
+                  },
+                  {
+                    label: "Header",
+                    value: ":scheme: https",
+                    meaning:
+                      "An indexed header field: the whole name+value came from a single entry in the static or dynamic table (1 byte on the wire).",
+                    byteOffset: 10,
+                    byteLength: 1,
+                  },
+                  {
+                    label: "Header",
+                    value: ":authority: example.com",
+                    meaning:
+                      "A literal header field with incremental indexing: sent as name+value and also added to the dynamic table for later reuse.",
+                    byteOffset: 11,
+                    byteLength: 14,
+                  },
+                  {
+                    label: "Header",
+                    value: ":path: /widgets",
+                    meaning:
+                      "A literal header field without indexing: sent as name+value for this message only, not added to the dynamic table.",
+                    byteOffset: 25,
+                    byteLength: 16,
+                  },
+                ],
+              },
             ],
           },
         ],

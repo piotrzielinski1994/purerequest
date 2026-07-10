@@ -7,6 +7,7 @@ use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
 
 mod dissect;
+mod hpack;
 mod logging;
 mod pcap_capture;
 mod tap_client;

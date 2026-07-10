@@ -236,7 +236,9 @@ function CollapsibleHeader({
           L{osi}
         </span>
       ) : null}
-      <span className="font-mono text-xs text-foreground">{title}</span>
+      <span className="whitespace-nowrap font-mono text-xs text-foreground">
+        {title}
+      </span>
       {reach ? <ReachBadge reach={reach} /> : null}
       {meta ? (
         <span className="ml-auto truncate text-xs text-muted-foreground">
@@ -248,7 +250,7 @@ function CollapsibleHeader({
 }
 
 function SegmentSection({ segment }: { segment: DissectionSegment }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   return (
     <div>
       <CollapsibleHeader
@@ -263,11 +265,8 @@ function SegmentSection({ segment }: { segment: DissectionSegment }) {
 }
 
 function LayerSection({ layer }: { layer: DissectionLayer }) {
-  // Open the layers with content worth reading; collapse the ones we don't decode here
-  // (uncaptured L2 + hardware L1) by default.
-  const [expanded, setExpanded] = useState(
-    layer.reach === "decoded" || layer.reach === "facts",
-  );
+  // Every layer starts collapsed - the user opens the ones they care about.
+  const [expanded, setExpanded] = useState(false);
   return (
     <div className="border-b border-border">
       <CollapsibleHeader

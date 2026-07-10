@@ -214,6 +214,25 @@ async function openProtocolsTab(user: ReturnType<typeof userEvent.setup>) {
   return screen.getByRole("tabpanel");
 }
 
+// Every layer + segment renders collapsed by default; expanding a layer reveals its nested segment
+// headers, so a second pass is needed to open those too.
+async function expandAll(
+  user: ReturnType<typeof userEvent.setup>,
+  panel: HTMLElement,
+) {
+  for (let pass = 0; pass < 3; pass += 1) {
+    const collapsed = within(panel).queryAllByRole("button", {
+      expanded: false,
+    });
+    if (collapsed.length === 0) {
+      break;
+    }
+    for (const button of collapsed) {
+      await user.click(button);
+    }
+  }
+}
+
 function renderProtocols(dissection?: DissectionShape) {
   return render(
     <WorkspaceProvider
@@ -305,9 +324,13 @@ describe("ResponsePane - Protocols tab", () => {
 
     const panel = await openProtocolsTab(user);
 
+    // Layer headers are always present; their bodies start collapsed.
     expect(within(panel).getByText("Network (IP)")).toBeInTheDocument();
-    expect(within(panel).getByText("93.184.216.34")).toBeInTheDocument();
     expect(within(panel).getByText("Application (HTTP/2)")).toBeInTheDocument();
+
+    await expandAll(user, panel);
+
+    expect(within(panel).getByText("93.184.216.34")).toBeInTheDocument();
     expect(
       within(panel).getByText(/HTTP\/2 frame \(sent\): HEADERS, stream 1/),
     ).toBeInTheDocument();
@@ -325,6 +348,7 @@ describe("ResponsePane - Protocols tab", () => {
     renderProtocols(h2FrameDissection);
 
     const panel = await openProtocolsTab(user);
+    await expandAll(user, panel);
 
     // Click the "Type" field (byteOffset 3, byteLength 1 -> only the 4th hex byte "01" is lit).
     await user.click(within(panel).getByText("Type"));
@@ -335,28 +359,48 @@ describe("ResponsePane - Protocols tab", () => {
     expect(litBytes).toEqual(["01"]);
   });
 
-  // behavior: a layer header collapses/expands its body.
-  it("should collapse and expand a layer section when its header is clicked", async () => {
+  // behavior: every layer section starts collapsed, so no segment body shows until expanded.
+  it("should start every layer section collapsed by default", async () => {
     const user = userEvent.setup();
     renderProtocols(h2FrameDissection);
 
     const panel = await openProtocolsTab(user);
 
-    // HTTP/2 layer body is visible initially.
-    expect(within(panel).getByText("HEADERS (1)")).toBeInTheDocument();
+    // Layer header present, body hidden.
+    expect(within(panel).getByText("Application (HTTP/2)")).toBeInTheDocument();
+    expect(
+      within(panel).queryByText(/HTTP\/2 frame \(sent\): HEADERS, stream 1/),
+    ).toBeNull();
+    // No section renders expanded initially.
+    expect(
+      within(panel).queryAllByRole("button", { expanded: true }),
+    ).toHaveLength(0);
+  });
 
-    // Collapse the HTTP/2 layer via its header (aria-expanded button carrying the name).
+  // behavior: a layer header expands/collapses its body.
+  it("should expand and collapse a layer section when its header is clicked", async () => {
+    const user = userEvent.setup();
+    renderProtocols(h2FrameDissection);
+
+    const panel = await openProtocolsTab(user);
+
+    // Expand the HTTP/2 layer via its header (collapsed aria-expanded button carrying the name).
     const header = within(panel)
-      .getAllByRole("button", { expanded: true })
+      .getAllByRole("button", { expanded: false })
       .find((button) => button.textContent?.includes("HTTP/2"));
     expect(header).toBeDefined();
     await user.click(header as HTMLElement);
 
-    expect(within(panel).queryByText("HEADERS (1)")).toBeNull();
+    // Its nested segment header now shows.
+    expect(
+      within(panel).getByText(/HTTP\/2 frame \(sent\): HEADERS, stream 1/),
+    ).toBeInTheDocument();
 
-    // Expand again -> body returns.
+    // Collapse again -> body hidden.
     await user.click(header as HTMLElement);
-    expect(within(panel).getByText("HEADERS (1)")).toBeInTheDocument();
+    expect(
+      within(panel).queryByText(/HTTP\/2 frame \(sent\): HEADERS, stream 1/),
+    ).toBeNull();
   });
 
   // behavior: with no dissection the tab shows the empty state.

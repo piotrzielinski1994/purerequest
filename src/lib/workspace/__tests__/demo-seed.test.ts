@@ -51,4 +51,32 @@ describe("demo seed", () => {
     expect(response.status).toBe(200);
     expect(typeof response.body).toBe("string");
   });
+
+  // AC-010 - behavior: the demo HTTP/2 HEADERS frame carries a decoded HPACK header block so the
+  // dev-browser Protocols tab shows real decompressed headers, not just a byte length.
+  it("should surface a decoded HPACK header block in the demo HTTP/2 HEADERS frame", () => {
+    const http2 = DEMO_RESPONSE.dissection?.layers.find(
+      (layer) => layer.osi === 7 && layer.name.includes("HTTP/2"),
+    );
+    const headersFrame = http2?.segments.find((segment) =>
+      segment.title.includes("HEADERS"),
+    );
+    const block = headersFrame?.fields.find((field) =>
+      field.label.includes("Header block (HPACK)"),
+    );
+
+    expect(block).toBeDefined();
+    const decodedNames = (block?.children ?? []).map((child) => child.value);
+    expect(decodedNames.some((value) => value.includes(":method: GET"))).toBe(
+      true,
+    );
+    // Every decoded header is byte-located so the hex view can highlight it.
+    expect(
+      (block?.children ?? []).every(
+        (child) =>
+          typeof child.byteOffset === "number" &&
+          typeof child.byteLength === "number",
+      ),
+    ).toBe(true);
+  });
 });

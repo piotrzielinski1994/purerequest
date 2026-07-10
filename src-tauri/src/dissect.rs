@@ -1001,6 +1001,9 @@ fn decode_http2_frame_segments(bytes: &[u8], direction: &str) -> Vec<Segment> {
     const PREFACE: &[u8] = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
     let mut segments = Vec::new();
     let mut offset = 0usize;
+    // HPACK is stateful per direction: the dynamic table built while decoding earlier frames feeds
+    // later indexed references, so one table lives across all frames in this buffer.
+    let mut hpack_table = crate::hpack::DynamicTable::default();
     if bytes.starts_with(PREFACE) {
         let preface_bytes = &bytes[..PREFACE.len()];
         let (hex, truncated) = truncated_hex(preface_bytes);
@@ -1083,6 +1086,14 @@ fn decode_http2_frame_segments(bytes: &[u8], direction: &str) -> Vec<Segment> {
         if frame_type == 4 && flags & 0x1 == 0 {
             fields.extend(decode_settings_payload(frame_bytes, length));
         }
+        // HEADERS (1), PUSH_PROMISE (5), CONTINUATION (9) carry an HPACK-compressed header block.
+        if matches!(frame_type, 1 | 5 | 9) {
+            if let Some(field) =
+                decode_header_block_field(frame_bytes, length, frame_type, flags, &mut hpack_table)
+            {
+                fields.push(field);
+            }
+        }
 
         segments.push(Segment {
             title: format!("HTTP/2 frame ({direction}): {type_name}, stream {stream_id}"),
@@ -1094,6 +1105,87 @@ fn decode_http2_frame_segments(bytes: &[u8], direction: &str) -> Vec<Segment> {
         offset += total;
     }
     segments
+}
+
+// Decode the HPACK header block inside a HEADERS/PUSH_PROMISE/CONTINUATION frame into a parent
+// "Header block (HPACK)" field with one byte-located child per decoded header. Skips the frame's
+// PADDED (pad-length byte) and PRIORITY (5-byte dependency+weight) prefixes so the block starts at
+// the right offset, and offsets each child inside the whole frame segment (past the 9-byte header).
+fn decode_header_block_field(
+    frame_bytes: &[u8],
+    length: usize,
+    frame_type: u8,
+    flags: u8,
+    table: &mut crate::hpack::DynamicTable,
+) -> Option<Field> {
+    const FRAME_HEADER_LEN: usize = 9;
+    let payload_end = (FRAME_HEADER_LEN + length).min(frame_bytes.len());
+    let mut block_start = FRAME_HEADER_LEN;
+    let is_padded = flags & 0x08 != 0;
+    // PUSH_PROMISE (5) has no PRIORITY flag; only HEADERS (1) carries a 0x20 PRIORITY prefix.
+    let has_priority = frame_type == 1 && flags & 0x20 != 0;
+
+    let mut padding = 0usize;
+    if is_padded {
+        padding = *frame_bytes.get(block_start)? as usize;
+        block_start += 1;
+    }
+    if has_priority {
+        block_start += 5;
+    }
+    // PUSH_PROMISE prefixes the block with a 4-byte promised-stream-id.
+    if frame_type == 5 {
+        block_start += 4;
+    }
+    let block_end = payload_end.saturating_sub(padding).max(block_start);
+    let block = frame_bytes.get(block_start..block_end)?;
+    if block.is_empty() {
+        return None;
+    }
+
+    let decoded = crate::hpack::decode_block(block, table);
+    if decoded.is_empty() {
+        return None;
+    }
+    let children = decoded
+        .into_iter()
+        .map(|header| {
+            let value = if header.name.is_empty() {
+                format!("dynamic table size update ({})", header.value)
+            } else {
+                format!("{}: {}", header.name, header.value)
+            };
+            Field::bytes(
+                "Header",
+                value,
+                hpack_repr_meaning(header.kind),
+                block_start + header.byte_offset,
+                header.byte_len,
+            )
+        })
+        .collect::<Vec<_>>();
+
+    Some(
+        Field::bytes(
+            "Header block (HPACK)",
+            format!("{} header(s)", children.len()),
+            "The HPACK-compressed (RFC 7541) header block. Each header is an indexed reference into the static/dynamic tables or a literal name/value (optionally Huffman-coded), decoded here to plaintext.",
+            block_start,
+            block_end.saturating_sub(block_start),
+        )
+        .with_children(children),
+    )
+}
+
+fn hpack_repr_meaning(kind: crate::hpack::HeaderRepr) -> &'static str {
+    use crate::hpack::HeaderRepr;
+    match kind {
+        HeaderRepr::Indexed => "An indexed header field: the whole name+value came from a single entry in the static or dynamic table (1 byte on the wire).",
+        HeaderRepr::LiteralIndexed => "A literal header field with incremental indexing: sent as name+value and also added to the dynamic table for later reuse.",
+        HeaderRepr::LiteralNoIndex => "A literal header field without indexing: sent as name+value for this message only, not added to the dynamic table.",
+        HeaderRepr::LiteralNeverIndexed => "A literal header field never indexed: like without-indexing, but marked so intermediaries must not add it to any table (for sensitive values).",
+        HeaderRepr::SizeUpdate => "A dynamic table size update: not a header, but a signal changing the maximum size of the HPACK dynamic table.",
+    }
 }
 
 // SETTINGS payload = a run of 6-byte entries (16-bit identifier + 32-bit value), all cleartext.
@@ -1451,6 +1543,68 @@ mod tests {
 
         let padded = flags.children.iter().find(|f| f.label == "PADDED").unwrap();
         assert!(padded.value.contains("clear"));
+    }
+
+    // Flatten a frame segment's fields plus one level of children, so a decoded HPACK header can
+    // be found whether it sits directly on the frame or nested under a "Header block (HPACK)"
+    // parent field.
+    fn find_hpack_header<'a>(frame: &'a Segment, needle: &str) -> Option<&'a Field> {
+        frame
+            .fields
+            .iter()
+            .flat_map(|field| std::iter::once(field).chain(field.children.iter()))
+            .find(|field| {
+                let combined = format!("{} {}", field.label, field.value);
+                combined.contains(needle) && combined.contains("GET")
+            })
+    }
+
+    // AC-008 - behavior: a plain HEADERS frame carrying HPACK block `82` decodes `:method: GET` into
+    // a byte-located header field; byteOffset/byteLength point at the representation inside the
+    // frame segment (block starts at the 9-byte frame header, so offset 9, length 1).
+    #[test]
+    fn should_byte_locate_a_decoded_hpack_header_within_the_http2_frame() {
+        let mut capture = capture_with_peer();
+        capture.tls_version = Some("TLSv1_3".to_string());
+        capture.alpn = Some("h2".to_string());
+        // HEADERS frame (type 1), flags END_HEADERS (0x04), stream 1, length 1, block = `82`.
+        capture.app_data_out = vec![0, 0, 1, 1, 0x04, 0, 0, 0, 1, 0x82];
+
+        let dissection = dissect(&capture).expect("layers");
+        let http = layer(&dissection, 7);
+        let frame = &http.segments[0];
+
+        let header = find_hpack_header(frame, ":method")
+            .expect("a decoded :method: GET header field under the HEADERS frame");
+        assert_eq!(header.byte_offset, Some(9), "block starts after the 9-byte frame header");
+        assert_eq!(header.byte_length, Some(1), "the indexed `82` representation is one byte");
+    }
+
+    // AC-007 - behavior: PADDED + PRIORITY prefixes on a HEADERS frame are skipped so the HPACK
+    // block is decoded from the correct offset. Payload = pad-length(1) + priority(5) + block `82` +
+    // padding(2); the `82` sits at frame offset 9 + 1 + 5 = 15 and must still decode to `:method: GET`.
+    #[test]
+    fn should_skip_padded_and_priority_prefixes_before_decoding_the_header_block() {
+        let mut capture = capture_with_peer();
+        capture.tls_version = Some("TLSv1_3".to_string());
+        capture.alpn = Some("h2".to_string());
+        // flags = PADDED (0x08) | PRIORITY (0x20) | END_HEADERS (0x04) = 0x2c, stream 1, length 9.
+        capture.app_data_out = vec![
+            0, 0, 9, 1, 0x2c, 0, 0, 0, 1, // 9-byte frame header
+            0x02, // pad length = 2
+            0, 0, 0, 0, 0, // 5-byte priority (stream dependency + weight)
+            0x82, // HPACK block: indexed `:method: GET`
+            0xaa, 0xbb, // 2 bytes of padding
+        ];
+
+        let dissection = dissect(&capture).expect("layers");
+        let http = layer(&dissection, 7);
+        let frame = &http.segments[0];
+
+        let header = find_hpack_header(frame, ":method")
+            .expect("`:method: GET` decoded from past the PADDED + PRIORITY prefixes");
+        // 9 (frame header) + 1 (pad length) + 5 (priority) = 15.
+        assert_eq!(header.byte_offset, Some(15), "block offset must skip the pad-length + priority prefixes");
     }
 
     #[test]
