@@ -188,3 +188,186 @@ describe("ResponsePane - Timing tab", () => {
     expect(within(panel).queryByText(/NaN/)).toBeNull();
   });
 });
+
+type DissectionShape = NonNullable<RequestNode["response"]>["dissection"];
+
+function dissectionTree(dissection?: DissectionShape): TreeNode[] {
+  const request: RequestNode = {
+    ...tokenRequest,
+    id: "req-protocols",
+    name: "protocols",
+    response: {
+      status: 200,
+      timeMs: 142,
+      sizeBytes: 36,
+      body: '{ "ok": true }',
+      headers: [{ key: "Content-Type", value: "application/json" }],
+      ...(dissection ? { dissection } : {}),
+    } as RequestNode["response"],
+  };
+  return [request];
+}
+
+async function openProtocolsTab(user: ReturnType<typeof userEvent.setup>) {
+  const tablist = screen.getByRole("tablist", { name: /response sections/i });
+  await user.click(within(tablist).getByRole("tab", { name: /protocols/i }));
+  return screen.getByRole("tabpanel");
+}
+
+function renderProtocols(dissection?: DissectionShape) {
+  return render(
+    <WorkspaceProvider
+      tree={dissectionTree(dissection)}
+      initialActiveRequestId="req-protocols"
+    >
+      <ResponsePane />
+    </WorkspaceProvider>,
+  );
+}
+
+const h2FrameDissection: DissectionShape = {
+  layers: [
+    {
+      osi: 3,
+      name: "Network (IP)",
+      summary: "IP addresses (header bytes need packet capture)",
+      reach: "facts",
+      fields: [
+        {
+          label: "Remote address",
+          value: "93.184.216.34",
+          meaning: "The server's IP address, resolved from the host name.",
+        },
+      ],
+      segments: [],
+    },
+    {
+      osi: 7,
+      name: "Application (HTTP/2)",
+      summary: "1 message(s) decoded",
+      reach: "decoded",
+      fields: [
+        {
+          label: "Framing",
+          value: "Binary frames",
+          meaning: "Length-prefixed binary frames.",
+        },
+      ],
+      segments: [
+        {
+          title: "HTTP/2 frame (sent): HEADERS, stream 1",
+          hex: "00 00 00 01 05 00 00 00 01",
+          byteLen: 9,
+          truncated: false,
+          fields: [
+            {
+              label: "Type",
+              value: "HEADERS (1)",
+              meaning: "HEADERS carries the compressed header block.",
+              byteOffset: 3,
+              byteLength: 1,
+            },
+            {
+              label: "Flags",
+              value: "0x05  00000101",
+              meaning: "Per-type boolean flags.",
+              byteOffset: 4,
+              byteLength: 1,
+              children: [
+                {
+                  label: "END_STREAM",
+                  value: "1 (set)",
+                  meaning: "Last frame for the stream.",
+                  byteOffset: 4,
+                  byteLength: 1,
+                  bitOffset: 7,
+                  bitLength: 1,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+describe("ResponsePane - Protocols tab", () => {
+  // behavior: renders each layer, its facts, and its byte-backed segments (title + hex + fields).
+  it("should render layers, facts, and byte-backed segments if a dissection is present", async () => {
+    const user = userEvent.setup();
+    renderProtocols(h2FrameDissection);
+
+    const tablist = screen.getByRole("tablist", { name: /response sections/i });
+    expect(
+      within(tablist).getByRole("tab", { name: /protocols/i }),
+    ).toBeInTheDocument();
+
+    const panel = await openProtocolsTab(user);
+
+    expect(within(panel).getByText("Network (IP)")).toBeInTheDocument();
+    expect(within(panel).getByText("93.184.216.34")).toBeInTheDocument();
+    expect(within(panel).getByText("Application (HTTP/2)")).toBeInTheDocument();
+    expect(
+      within(panel).getByText(/HTTP\/2 frame \(sent\): HEADERS, stream 1/),
+    ).toBeInTheDocument();
+    // The frame's decoded fields render as clickable tree rows.
+    expect(within(panel).getByText("HEADERS (1)")).toBeInTheDocument();
+    expect(within(panel).getByText("Type")).toBeInTheDocument();
+    // The nested flag bit is present with its bit-position label.
+    expect(within(panel).getByText("END_STREAM")).toBeInTheDocument();
+    expect(within(panel).getByText(/bit 7/)).toBeInTheDocument();
+  });
+
+  // behavior: clicking a field row highlights exactly the bytes it covers in the hex view.
+  it("should highlight the field's byte range in the hex view when a field is selected", async () => {
+    const user = userEvent.setup();
+    renderProtocols(h2FrameDissection);
+
+    const panel = await openProtocolsTab(user);
+
+    // Click the "Type" field (byteOffset 3, byteLength 1 -> only the 4th hex byte "01" is lit).
+    await user.click(within(panel).getByText("Type"));
+
+    const litBytes = Array.from(
+      panel.querySelectorAll<HTMLElement>("span.bg-foreground.text-background"),
+    ).map((element) => element.textContent);
+    expect(litBytes).toEqual(["01"]);
+  });
+
+  // behavior: a layer header collapses/expands its body.
+  it("should collapse and expand a layer section when its header is clicked", async () => {
+    const user = userEvent.setup();
+    renderProtocols(h2FrameDissection);
+
+    const panel = await openProtocolsTab(user);
+
+    // HTTP/2 layer body is visible initially.
+    expect(within(panel).getByText("HEADERS (1)")).toBeInTheDocument();
+
+    // Collapse the HTTP/2 layer via its header (aria-expanded button carrying the name).
+    const header = within(panel)
+      .getAllByRole("button", { expanded: true })
+      .find((button) => button.textContent?.includes("HTTP/2"));
+    expect(header).toBeDefined();
+    await user.click(header as HTMLElement);
+
+    expect(within(panel).queryByText("HEADERS (1)")).toBeNull();
+
+    // Expand again -> body returns.
+    await user.click(header as HTMLElement);
+    expect(within(panel).getByText("HEADERS (1)")).toBeInTheDocument();
+  });
+
+  // behavior: with no dissection the tab shows the empty state.
+  it("should show the empty state if the dissection is absent", async () => {
+    const user = userEvent.setup();
+    renderProtocols();
+
+    const panel = await openProtocolsTab(user);
+
+    expect(
+      within(panel).getByText(/no protocol dissection for this response\./i),
+    ).toBeInTheDocument();
+  });
+});

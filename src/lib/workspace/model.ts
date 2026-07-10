@@ -121,6 +121,54 @@ export type ResponseTimings = {
   downloadMs: number;
 };
 
+// A Wireshark-style network-stack dissection of a completed send: ordered layers
+// (Socket -> TLS -> HTTP), each with flat "facts" fields plus byte-backed `segments`
+// (a TLS record, an HTTP/2 frame) whose fields carry the exact byte/bit range they occupy
+// so the UI can highlight them against a raw hex view. Decoded from the captured wire bytes
+// on the Rust tap client. Absent for seeded/legacy/error/dev-browser responses (no capture).
+export type DissectionField = {
+  label: string;
+  value: string;
+  meaning: string;
+  // Byte range within the parent segment's bytes (absent on flat "facts" fields).
+  byteOffset?: number;
+  byteLength?: number;
+  // Sub-byte bit range, measured from the MSB of the field's first byte (a 0x01 mask is
+  // bitOffset 7). Present only for true bit fields (HTTP/2 flags, reserved/stream-id split).
+  bitOffset?: number;
+  bitLength?: number;
+  // Nested fields (e.g. a flags byte with one child per flag bit).
+  children?: DissectionField[];
+};
+
+export type DissectionSegment = {
+  title: string;
+  // Space-separated hex byte pairs (possibly head-truncated - see `truncated`).
+  hex: string;
+  byteLen: number;
+  truncated: boolean;
+  fields: DissectionField[];
+};
+
+// How much of an OSI layer a userspace HTTPS client can observe: "decoded" = real wire
+// bytes decoded here; "facts" = socket-derived facts only (no header bytes); "privileged" =
+// observable but only via a privileged capture driver (what Wireshark uses), a deliberate
+// opt-out for an unprivileged app; "unreachable" = not observable by any software.
+export type DissectionReach = "decoded" | "facts" | "privileged" | "unreachable";
+
+export type DissectionLayer = {
+  osi: number;
+  name: string;
+  summary: string;
+  reach: DissectionReach;
+  fields: DissectionField[];
+  segments: DissectionSegment[];
+};
+
+export type Dissection = {
+  layers: DissectionLayer[];
+};
+
 export type RequestResponse = {
   status: number;
   timeMs: number;
@@ -128,6 +176,7 @@ export type RequestResponse = {
   body: string;
   headers: KeyValue[];
   timings?: ResponseTimings;
+  dissection?: Dissection;
 };
 
 export type RequestNode = {
