@@ -6,7 +6,10 @@ use std::sync::{Arc, LazyLock, Mutex};
 use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
 
+mod dissect;
 mod logging;
+mod pcap_capture;
+mod tap_client;
 
 use serde::{Deserialize, Serialize};
 use tokio_util::sync::CancellationToken;
@@ -118,29 +121,29 @@ impl Drop for CancelGuard {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct KeyValue {
-    key: String,
-    value: String,
+pub(crate) struct KeyValue {
+    pub(crate) key: String,
+    pub(crate) value: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct HttpRequestPayload {
-    method: String,
-    url: String,
-    headers: Vec<KeyValue>,
-    body: Option<String>,
-    timeout_ms: u64,
-    request_id: String,
+pub(crate) struct HttpRequestPayload {
+    pub(crate) method: String,
+    pub(crate) url: String,
+    pub(crate) headers: Vec<KeyValue>,
+    pub(crate) body: Option<String>,
+    pub(crate) timeout_ms: u64,
+    pub(crate) request_id: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct ResponseTimings {
-    dns_ms: u64,
-    connect_ms: u64,
-    waiting_ms: u64,
-    download_ms: u64,
+pub(crate) struct ResponseTimings {
+    pub(crate) dns_ms: u64,
+    pub(crate) connect_ms: u64,
+    pub(crate) waiting_ms: u64,
+    pub(crate) download_ms: u64,
 }
 
 impl ResponseTimings {
@@ -149,7 +152,7 @@ impl ResponseTimings {
     // which includes DNS (the connector drives resolution) - so `connect_ms`
     // subtracts DNS to avoid double-counting it. `waiting_ms` is the remainder from
     // the end of the connect span to response headers (request write + TTFB).
-    fn partition(
+    pub(crate) fn partition(
         dns_ms: u64,
         connect_span_ms: u64,
         to_headers_ms: u64,
@@ -166,19 +169,73 @@ impl ResponseTimings {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct HttpResponsePayload {
-    status: u16,
-    time_ms: u64,
-    size_bytes: usize,
-    body: String,
-    headers: Vec<KeyValue>,
+pub(crate) struct HttpResponsePayload {
+    pub(crate) status: u16,
+    pub(crate) time_ms: u64,
+    pub(crate) size_bytes: usize,
+    pub(crate) body: String,
+    pub(crate) headers: Vec<KeyValue>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    timings: Option<ResponseTimings>,
+    pub(crate) timings: Option<ResponseTimings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) dissection: Option<dissect::Dissection>,
+}
+
+// Runtime flag selecting the send implementation, so the cutover to the hand-rolled tap
+// client is reversible and both paths stay testable. Default ON (tap); `REQUI_TAP_CLIENT=0`
+// forces the legacy reqwest path.
+fn use_tap_client() -> bool {
+    std::env::var("REQUI_TAP_CLIENT")
+        .map(|value| value != "0")
+        .unwrap_or(true)
 }
 
 #[tauri::command]
 async fn send_http_request(request: HttpRequestPayload) -> Result<HttpResponsePayload, String> {
     log::info!("send {} {}", request.method, request.url);
+
+    let token = CancellationToken::new();
+    CANCELS
+        .lock()
+        .unwrap()
+        .insert(request.request_id.clone(), token.clone());
+    let _guard = CancelGuard {
+        request_id: request.request_id.clone(),
+    };
+
+    if use_tap_client() {
+        let method = request.method.clone();
+        let url = request.url.clone();
+        // Best-effort L2-L4 packet capture (OFF unless REQUI_PCAP=1). Runs on its own thread for
+        // the duration of the send; never blocks or affects the send path. Started before the
+        // send so it catches the SYN handshake; filtered to the connection 4-tuple afterwards.
+        let capture_handle = pcap_capture::start_unfiltered(Duration::from_secs(30));
+        let (mut response, tap) = tap_client::send_via_tap(request, token).await?;
+        let packets = match capture_handle {
+            Some(handle) => {
+                let raw = handle.finish();
+                pcap_capture::filter_to_connection(raw, tap.local_addr, tap.peer_addr)
+            }
+            None => pcap_capture::PacketCapture::default(),
+        };
+        response.dissection = dissect::dissect_with_packets(&tap, &packets);
+        log::info!(
+            "recv {} {} ({} in {}ms)",
+            method,
+            url,
+            response.status,
+            response.time_ms
+        );
+        return Ok(response);
+    }
+
+    send_via_reqwest(request, token).await
+}
+
+async fn send_via_reqwest(
+    request: HttpRequestPayload,
+    token: CancellationToken,
+) -> Result<HttpResponsePayload, String> {
     let method = reqwest::Method::from_bytes(request.method.as_bytes())
         .map_err(|err| format!("Invalid method: {err}"))?;
     let probe = TimingProbe::default();
@@ -200,15 +257,6 @@ async fn send_http_request(request: HttpRequestPayload) -> Result<HttpResponsePa
     if let Some(body) = request.body {
         builder = builder.body(body);
     }
-
-    let token = CancellationToken::new();
-    CANCELS
-        .lock()
-        .unwrap()
-        .insert(request.request_id.clone(), token.clone());
-    let _guard = CancelGuard {
-        request_id: request.request_id.clone(),
-    };
 
     let start = Instant::now();
     let response = tokio::select! {
@@ -249,6 +297,9 @@ async fn send_http_request(request: HttpRequestPayload) -> Result<HttpResponsePa
         body,
         headers,
         timings: Some(timings),
+        // The legacy reqwest path owns no socket/TLS session, so it produces no capture to
+        // dissect. Dissection is exclusive to the tap client.
+        dissection: None,
     })
 }
 
@@ -336,6 +387,7 @@ mod tests {
                 value: "application/json".to_string(),
             }],
             timings: None,
+            dissection: None,
         };
 
         let json = serde_json::to_value(&payload).unwrap();
@@ -359,6 +411,200 @@ mod tests {
             timeout_ms: 5000,
             request_id: request_id.to_string(),
         }
+    }
+
+    // Head-to-head latency of the two send clients against the SAME local wiremock server,
+    // so the only variable is client overhead (no external network). Prints min/median/
+    // mean/max per client. Ignored by default (perf, not a pass/fail assertion); run with
+    // `cargo test --release -- --ignored --nocapture bench_tap_vs_reqwest`.
+    #[tokio::test]
+    #[ignore = "perf benchmark; run with --release --ignored --nocapture"]
+    async fn bench_tap_vs_reqwest() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/bench"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("content-type", "application/json")
+                    .set_body_string(r#"{"ok":true,"payload":"benchmark response body"}"#),
+            )
+            .mount(&server)
+            .await;
+        let url = format!("{}/bench", server.uri());
+
+        const WARMUP: usize = 20;
+        const ITERS: usize = 200;
+
+        async fn time_reqwest(url: &str) -> u128 {
+            let start = std::time::Instant::now();
+            send_via_reqwest(
+                super::HttpRequestPayload {
+                    method: "GET".to_string(),
+                    url: url.to_string(),
+                    headers: vec![],
+                    body: None,
+                    timeout_ms: 5000,
+                    request_id: "bench-reqwest".to_string(),
+                },
+                CancellationToken::new(),
+            )
+            .await
+            .expect("reqwest send");
+            start.elapsed().as_micros()
+        }
+
+        async fn time_tap(url: &str) -> u128 {
+            let start = std::time::Instant::now();
+            tap_client::send_via_tap(
+                super::HttpRequestPayload {
+                    method: "GET".to_string(),
+                    url: url.to_string(),
+                    headers: vec![],
+                    body: None,
+                    timeout_ms: 5000,
+                    request_id: "bench-tap".to_string(),
+                },
+                CancellationToken::new(),
+            )
+            .await
+            .expect("tap send");
+            start.elapsed().as_micros()
+        }
+
+        fn stats(label: &str, mut samples: Vec<u128>) {
+            samples.sort_unstable();
+            let n = samples.len();
+            let sum: u128 = samples.iter().sum();
+            let to_ms = |micros: u128| micros as f64 / 1000.0;
+            println!(
+                "{label}: n={n}  min={:.3}ms  median={:.3}ms  mean={:.3}ms  p95={:.3}ms  max={:.3}ms",
+                to_ms(samples[0]),
+                to_ms(samples[n / 2]),
+                to_ms(sum / n as u128),
+                to_ms(samples[(n * 95 / 100).min(n - 1)]),
+                to_ms(samples[n - 1]),
+            );
+        }
+
+        // Interleave warmup, then interleave measured iterations so neither client is
+        // advantaged by a cold or warm connection-pool phase.
+        for _ in 0..WARMUP {
+            time_reqwest(&url).await;
+            time_tap(&url).await;
+        }
+        let mut reqwest_samples = Vec::with_capacity(ITERS);
+        let mut tap_samples = Vec::with_capacity(ITERS);
+        for _ in 0..ITERS {
+            reqwest_samples.push(time_reqwest(&url).await);
+            tap_samples.push(time_tap(&url).await);
+        }
+
+        println!("\n=== send-client latency (local wiremock, {ITERS} iters) ===");
+        stats("reqwest", reqwest_samples);
+        stats("tap    ", tap_samples);
+    }
+
+    // Full send_http_request path WITH live packet capture on loopback: proves the pcap side-car
+    // wires into a real send and upgrades L3/L4 to decoded from real captured bytes. Ignored -
+    // needs REQUI_PCAP=1 + REQUI_PCAP_DEVICE=lo0 + BPF access. Run:
+    //   REQUI_PCAP=1 REQUI_PCAP_DEVICE=lo0 cargo test --lib -- --ignored --nocapture full_path_capture
+    #[tokio::test]
+    #[ignore = "needs REQUI_PCAP=1 + REQUI_PCAP_DEVICE=lo0 + BPF access; live loopback capture"]
+    async fn should_decode_l3_l4_from_captured_packets_on_the_full_send_path() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/cap"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("captured-ok"))
+            .mount(&server)
+            .await;
+
+        // Full command path: send_http_request wires the pcap side-car itself.
+        let response = send_http_request(request_to(
+            &format!("{}/cap", server.uri()),
+            "req-capture",
+        ))
+        .await
+        .expect("send should succeed");
+
+        let dissection = response.dissection.expect("dissection present");
+        let network = dissection
+            .layers
+            .iter()
+            .find(|l| l.osi == 3)
+            .expect("network layer");
+        let transport = dissection
+            .layers
+            .iter()
+            .find(|l| l.osi == 4)
+            .expect("transport layer");
+        println!(
+            "L3 segments={} L4 segments={}",
+            network.segments.len(),
+            transport.segments.len()
+        );
+        assert!(
+            !transport.segments.is_empty(),
+            "expected a decoded TCP segment from captured packets"
+        );
+        assert!(
+            !network.segments.is_empty(),
+            "expected a decoded IP header from captured packets"
+        );
+    }
+
+    // Full send path against a REAL external host over the egress interface (en0, Ethernet
+    // linktype, real network timing) - proves live capture upgrades L2/L3/L4 to decoded outside
+    // loopback. Guards against the `Device::lookup()` -> bogus `ap1` regression that captured 0
+    // packets. Ignored - needs REQUI_PCAP=1 + BPF access + network egress. Run:
+    //   REQUI_PCAP=1 cargo test --lib -- --ignored --nocapture en0_external_capture
+    #[tokio::test]
+    #[ignore = "needs REQUI_PCAP=1 + BPF access + network egress; hits a real external host"]
+    async fn en0_external_capture() {
+        let response = send_http_request(request_to(
+            "https://countries.trevorblades.com/",
+            "req-en0",
+        ))
+        .await
+        .expect("send should succeed");
+
+        let dissection = response.dissection.expect("dissection present");
+        let l3 = dissection.layers.iter().find(|l| l.osi == 3).unwrap();
+        let l4 = dissection.layers.iter().find(|l| l.osi == 4).unwrap();
+        println!(
+            "L3 reach={:?} segs={} | L4 reach={:?} segs={}",
+            l3.reach,
+            l3.segments.len(),
+            l4.reach,
+            l4.segments.len(),
+        );
+        assert!(!l4.segments.is_empty(), "expected a decoded TCP segment over en0");
+        assert!(!l3.segments.is_empty(), "expected a decoded IP header over en0");
+    }
+
+    // TC-011, AC-011 - behavior: the legacy reqwest send path (selected when the flag is
+    // off) still returns a correct 200 + body, so the tap cutover is reversible. Calls
+    // send_via_reqwest directly to avoid mutating the process-wide REQUI_TAP_CLIENT env var
+    // (which would race other async tests). The default send_http_request path (tap) is
+    // covered by the tests below + tap_client::tap_tests.
+    #[tokio::test]
+    async fn should_serve_a_200_over_the_legacy_reqwest_path_when_selected() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/legacy"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("legacy-ok"))
+            .mount(&server)
+            .await;
+
+        let result = send_via_reqwest(
+            request_to(&format!("{}/legacy", server.uri()), "req-legacy"),
+            CancellationToken::new(),
+        )
+        .await
+        .expect("legacy reqwest path should succeed");
+
+        assert_eq!(result.status, 200);
+        assert_eq!(result.body, "legacy-ok");
+        assert!(result.timings.is_some());
     }
 
     // TC-007, AC-006 - behavior: a 200 + JSON body + header parses into the payload.
@@ -574,6 +820,7 @@ mod tests {
                 waiting_ms: 88,
                 download_ms: 8,
             }),
+            dissection: None,
         };
 
         let json = serde_json::to_value(&with_timings).unwrap();
@@ -581,6 +828,7 @@ mod tests {
         assert_eq!(json["timings"]["connectMs"], 34);
         assert_eq!(json["timings"]["waitingMs"], 88);
         assert_eq!(json["timings"]["downloadMs"], 8);
+        assert!(json.get("dissection").is_none());
 
         let without_timings = HttpResponsePayload {
             status: 200,
@@ -589,6 +837,7 @@ mod tests {
             body: "{}".to_string(),
             headers: vec![],
             timings: None,
+            dissection: None,
         };
 
         let json = serde_json::to_value(&without_timings).unwrap();

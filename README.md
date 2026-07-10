@@ -57,22 +57,40 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 
 > The home route renders the workspace layout (sidebar collection tree, request tabs,
 > URL bar, request/response panes, console). The URL bar is editable (URL field + method
-> select); **Send** issues a real HTTP request through a Rust `send_http_request` command
-> (`reqwest`, rustls TLS) - the request's resolved config is applied (`{{var}}` substitution
+> select); **Send** issues a real HTTP request through a Rust `send_http_request` command - the
+> request's resolved config is applied (`{{var}}` substitution
 > in the URL + header/param values, query params merged into the URL, auth header, timeout,
-> and body for non-GET/DELETE methods). While a request is in flight, **Send** becomes **Stop**
+> and body for non-GET/DELETE methods). The send runs on a **hand-rolled `hyper` + `tokio-rustls`
+> client** that owns the socket + TLS session (so the wire can be dissected - see the Protocols
+> tab); it offers ALPN `h2`+`http/1.1`, follows redirects, and transparently decodes gzip/br/
+> deflate. The legacy `reqwest` path is kept behind a runtime flag (`REQUI_TAP_CLIENT=0`) as a
+> fallback. While a request is in flight, **Send** becomes **Stop**
 > (the send shortcut/Enter also cancels): a `cancel_http_request` command fires a Rust
-> `CancellationToken` that aborts the in-flight `reqwest` send, returning the pane to idle (no
+> `CancellationToken` that aborts the in-flight send, returning the pane to idle (no
 > error shown). The response pane shows loading (`Sending…`), error (the failure reason), or
-> success (status + formatted time/size + body + headers + a **Timing** breakdown) per request;
-> with no send yet it falls
+> success (status + formatted time/size + body + headers + **Timing** + **Protocols** breakdowns)
+> per request; with no send yet it falls
 > back to the seeded response. Time/size are human-readable (`142ms`/`1.52s`, `512B`/`2.0KB`/
 > `2.0MB`), and a body over ~2 MB is not fed whole into the viewer - it shows a head-truncated
 > preview + a size notice (the filter is hidden) so a huge response can't freeze the UI. The
 > response **Timing** tab shows a per-send waterfall of four phases - **DNS**, **Connect**
-> (TCP+TLS combined), **Waiting** (TTFB), **Download** - captured on the Rust send path (custom
-> `reqwest` DNS resolver + a `connector_layer`) and partitioned so they sum to the total; a
-> response with no timings (seeded/legacy/error) shows an empty state. The response **Filter** input narrows the
+> (TCP+TLS combined), **Waiting** (TTFB), **Download** - measured on the hand-rolled send path at
+> each phase boundary so they sum to the total; a
+> response with no timings (seeded/legacy/error) shows an empty state. The response **Protocols**
+> tab is a Wireshark-style network-stack dissection of the completed send across the full 7-layer
+> OSI model: layered sections (**L7 Application** HTTP/1.1 text head or HTTP/2 binary frames ->
+> **L6 Presentation (TLS)** negotiated version/cipher/ALPN + decoded record headers -> **L5
+> Session** -> **L4 Transport (TCP)** -> **L3 Network (IP)** -> **L2 Data Link** -> **L1
+> Physical**) decoded from the bytes the tap client captures. Byte-backed segments (a TLS record,
+> an HTTP/2 frame, an IP/TCP header, an Ethernet frame) render a clickable field tree beside a raw
+> hex view - selecting a field highlights the exact bytes it occupies, and sub-byte fields (HTTP/2
+> flag bits, the reserved-bit/31-bit-stream-id split, TCP flags, IP version/IHL) carry their bit
+> position. L3/L4/L2 header bytes come from an optional privileged packet-capture side-car
+> (libpcap/BPF), OFF by default and opt-in via `REQUI_PCAP=1` (needs BPF read access; auto-picks
+> the egress interface, override with `REQUI_PCAP_DEVICE=en0`); without it those layers stay
+> "facts only" (socket-derived endpoints, no header bytes). L1 Physical is never observable in
+> software. HTTP/2 HPACK header decoding is deferred; a response with no capture shows an empty
+> state. The response **Filter** input narrows the
 > shown body by a JSONPath-ish path (`$.args.foo`, `$.headers[0]`); an empty path shows the
 > full body, a path that matches nothing (or a non-JSON body) shows "No match". URL/method/body
 > edits live in session memory until saved: `Mod+S` (the same Save action, also in the command
@@ -345,6 +363,9 @@ src/
   index.css             Tailwind v4 + theme tokens
   test/setup.ts         Vitest + Testing Library setup
 src-tauri/              Rust desktop shell (send_http_request/cancel_http_request, tauri.conf.json)
+  src/tap_client.rs     hand-rolled hyper + tokio-rustls send client (owns socket + TLS, taps wire bytes)
+  src/pcap_capture.rs   optional libpcap/BPF side-car (REQUI_PCAP=1) capturing L2-L4 packet bytes
+  src/dissect.rs        decodes captured bytes into the layered Protocols-tab dissection
 tests/
   e2e/                  Playwright specs (*.e2e.ts) against the dev-browser build
   integration/          Vitest jsdom routing/app-shell tests (*.spec.tsx)

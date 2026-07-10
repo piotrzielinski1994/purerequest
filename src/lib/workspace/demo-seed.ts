@@ -250,6 +250,306 @@ export const DEMO_RESPONSE: HttpResponse = {
   body: '{\n  "ok": true,\n  "demo": true\n}',
   headers: [{ key: "Content-Type", value: "application/json" }],
   timings: { dnsMs: 12, connectMs: 34, waitingMs: 88, downloadMs: 8 },
+  dissection: {
+    layers: [
+      {
+        osi: 7,
+        name: "Application (HTTP/2)",
+        summary: "1 message(s) decoded",
+        reach: "decoded",
+        fields: [
+          {
+            label: "Framing",
+            value: "Binary frames",
+            meaning:
+              "HTTP/2 replaces text lines with length-prefixed binary frames multiplexed over one connection. Each 9-byte frame header carries a 24-bit length, an 8-bit type, an 8-bit flags field, and a reserved bit + 31-bit stream id.",
+          },
+        ],
+        segments: [
+          {
+            title: "HTTP/2 frame (sent): HEADERS, stream 1",
+            hex: "00 00 20 01 05 00 00 00 01",
+            byteLen: 41,
+            truncated: true,
+            fields: [
+              {
+                label: "Length",
+                value: "32 bytes",
+                meaning:
+                  "24-bit length of the frame payload following this 9-byte header.",
+                byteOffset: 0,
+                byteLength: 3,
+              },
+              {
+                label: "Type",
+                value: "HEADERS (1)",
+                meaning:
+                  "HEADERS carries the HPACK-compressed request/response header block.",
+                byteOffset: 3,
+                byteLength: 1,
+              },
+              {
+                label: "Flags",
+                value: "0x05  00000101",
+                meaning:
+                  "An 8-bit field of per-type boolean flags - each bit is a distinct signal.",
+                byteOffset: 4,
+                byteLength: 1,
+                children: [
+                  {
+                    label: "END_STREAM",
+                    value: "1 (set)",
+                    meaning: "This HEADERS frame is the last for the stream.",
+                    byteOffset: 4,
+                    byteLength: 1,
+                    bitOffset: 7,
+                    bitLength: 1,
+                  },
+                  {
+                    label: "END_HEADERS",
+                    value: "1 (set)",
+                    meaning:
+                      "This frame completes the header block (no CONTINUATION follows).",
+                    byteOffset: 4,
+                    byteLength: 1,
+                    bitOffset: 5,
+                    bitLength: 1,
+                  },
+                  {
+                    label: "PADDED",
+                    value: "0 (clear)",
+                    meaning: "The header block is not padded.",
+                    byteOffset: 4,
+                    byteLength: 1,
+                    bitOffset: 4,
+                    bitLength: 1,
+                  },
+                ],
+              },
+              {
+                label: "Reserved (R)",
+                value: "0",
+                meaning:
+                  "A single reserved bit, the high bit of the stream-id word. Must be 0.",
+                byteOffset: 5,
+                byteLength: 4,
+                bitOffset: 0,
+                bitLength: 1,
+              },
+              {
+                label: "Stream Identifier",
+                value: "1",
+                meaning:
+                  "The 31-bit stream this frame belongs to. Odd numbers are client-initiated request streams.",
+                byteOffset: 5,
+                byteLength: 4,
+                bitOffset: 1,
+                bitLength: 31,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        osi: 6,
+        name: "Presentation (TLS)",
+        summary: "Encrypted with TLSv1_3",
+        reach: "decoded",
+        fields: [
+          {
+            label: "TLS Version",
+            value: "TLSv1_3",
+            meaning:
+              "The TLS protocol version negotiated in the handshake. TLS 1.3 is the modern default; 1.2 is the older widely-supported one.",
+          },
+          {
+            label: "Cipher suite",
+            value: "TLS13_AES_128_GCM_SHA256",
+            meaning:
+              "The agreed set of algorithms for key exchange, bulk encryption, and message authentication.",
+          },
+        ],
+        segments: [
+          {
+            title: "TLS record (received): ChangeCipherSpec",
+            hex: "14 03 03 00 01 01",
+            byteLen: 6,
+            truncated: false,
+            fields: [
+              {
+                label: "Content Type",
+                value: "ChangeCipherSpec (20)",
+                meaning:
+                  "The record type. Handshake sets up the session; ApplicationData carries the encrypted payload; Alert signals a warning/fatal error.",
+                byteOffset: 0,
+                byteLength: 1,
+              },
+              {
+                label: "Legacy Version",
+                value: "3.3 (0x0303)",
+                meaning:
+                  "The record-layer version, pinned to 0x0303 (TLS 1.2) in TLS 1.3 for middlebox compatibility.",
+                byteOffset: 1,
+                byteLength: 2,
+              },
+              {
+                label: "Length",
+                value: "1 bytes",
+                meaning:
+                  "Byte length of the record payload that follows this 5-byte header.",
+                byteOffset: 3,
+                byteLength: 2,
+              },
+              {
+                label: "Payload",
+                value: "ChangeCipherSpec (1 byte)",
+                meaning:
+                  "The ChangeCipherSpec message - a single legacy 0x01 byte signalling the switch to encrypted records (kept in TLS 1.3 only for middlebox compatibility; it carries no real meaning).",
+                byteOffset: 5,
+                byteLength: 1,
+              },
+            ],
+          },
+          {
+            title: "TLS record (received): ApplicationData",
+            hex: "17 03 03 00 13",
+            byteLen: 24,
+            truncated: true,
+            fields: [
+              {
+                label: "Content Type",
+                value: "ApplicationData (23)",
+                meaning:
+                  "The record type. ApplicationData carries the encrypted payload; the header is cleartext, the payload is not.",
+                byteOffset: 0,
+                byteLength: 1,
+              },
+              {
+                label: "Legacy Version",
+                value: "3.3 (0x0303)",
+                meaning:
+                  "The record-layer version, pinned to 0x0303 (TLS 1.2) in TLS 1.3 for middlebox compatibility.",
+                byteOffset: 1,
+                byteLength: 2,
+              },
+              {
+                label: "Length",
+                value: "19 bytes",
+                meaning:
+                  "Byte length of the encrypted payload following this 5-byte header.",
+                byteOffset: 3,
+                byteLength: 2,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        osi: 5,
+        name: "Session",
+        summary: "TLS session / ALPN (HTTP is otherwise stateless)",
+        reach: "facts",
+        fields: [
+          {
+            label: "ALPN",
+            value: "h2",
+            meaning:
+              "Application-Layer Protocol Negotiation: the application protocol picked during the TLS handshake (h2 = HTTP/2). It establishes which application dialogue runs over this session.",
+          },
+          {
+            label: "Session",
+            value: "Established",
+            meaning:
+              "HTTP keeps no long-lived session of its own; the TLS session (its keys + negotiated parameters) is what plays the OSI session role here - one connection, one dialogue.",
+          },
+        ],
+        segments: [],
+      },
+      {
+        osi: 4,
+        name: "Transport (TCP)",
+        summary: "TCP endpoints (header bytes need packet capture)",
+        reach: "facts",
+        fields: [
+          {
+            label: "Protocol",
+            value: "TCP",
+            meaning:
+              "A reliable, ordered, connection-oriented byte stream. HTTP always rides on TCP here.",
+          },
+          {
+            label: "Remote port",
+            value: "443",
+            meaning: "The server's TCP port (443 for HTTPS, 80 for HTTP).",
+          },
+          {
+            label: "Header bytes",
+            value: "not available",
+            meaning:
+              "The real TCP header (sequence/ack numbers, window, SYN/ACK/FIN flags, checksum) lives in the kernel. Reading those bytes needs privileged packet capture (pcap/BPF); a userspace client only sees the socket endpoints.",
+          },
+        ],
+        segments: [],
+      },
+      {
+        osi: 3,
+        name: "Network (IP)",
+        summary: "IP addresses (header bytes need packet capture)",
+        reach: "facts",
+        fields: [
+          {
+            label: "IP version",
+            value: "IPv4",
+            meaning:
+              "Which Internet Protocol version carried the packets - IPv4 (32-bit addresses) or IPv6 (128-bit).",
+          },
+          {
+            label: "Remote address",
+            value: "93.184.216.34",
+            meaning: "The server's IP address, resolved from the host name.",
+          },
+          {
+            label: "Header bytes",
+            value: "not available",
+            meaning:
+              "The real IP header (TTL, flags, fragment offset, protocol, checksum) is set by the kernel. Decoding those bytes needs privileged packet capture; a userspace client only sees the addresses.",
+          },
+        ],
+        segments: [],
+      },
+      {
+        osi: 2,
+        name: "Data Link",
+        summary:
+          "Ethernet / Wi-Fi frames - capturable only with a privileged packet-capture driver",
+        reach: "privileged",
+        fields: [
+          {
+            label: "Frames",
+            value: "not captured here",
+            meaning:
+              "MAC addresses and Ethernet/Wi-Fi frame headers live below the IP stack. They ARE observable - this is exactly what Wireshark shows - but only via a privileged packet-capture path (libpcap/npcap plus root, a kernel driver, or BPF access). ReqUI stays a normal unprivileged desktop app and does not install a capture driver or request root, so it doesn't decode this layer. That's a deliberate choice, not a hard limit.",
+          },
+        ],
+        segments: [],
+      },
+      {
+        osi: 1,
+        name: "Physical",
+        summary: "Electrical/optical/radio signalling - hardware, no software sees it",
+        reach: "unreachable",
+        fields: [
+          {
+            label: "Medium",
+            value: "not observable",
+            meaning:
+              "The physical layer is the actual signals on copper, fiber, or radio. No software observes these - not even Wireshark, whose lowest captured unit is the Data Link frame the NIC hands up. The signalling itself is handled entirely by the network hardware.",
+          },
+        ],
+        segments: [],
+      },
+    ],
+  },
 };
 
 // The demo tree serialized to the on-disk format, so the dev-build loader reads

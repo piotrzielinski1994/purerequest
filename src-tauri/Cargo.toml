@@ -33,6 +33,20 @@ tokio = { version = "1", features = ["sync", "macros", "rt-multi-thread", "net"]
 tokio-util = { version = "0.7", features = ["rt"] }
 tower-layer = "0.3"
 tower-service = "0.3"
+hyper = { version = "1", features = ["client", "http1", "http2"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+bytes = "1"
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-pki-types = "1"
+webpki-roots = "1"
+flate2 = "1"
+brotli = "8"
+url = "2"
+pcap = "2"
 
 [dev-dependencies]
 wiremock = "0.6"
+rcgen = "0.13"
+flate2 = "1"

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { KeyValueTable } from "@/components/workspace/key-value-table";
 import { JsonViewer } from "@/components/workspace/json-viewer";
 import { TimingWaterfall } from "@/components/workspace/timing-waterfall";
+import { ProtocolDissection } from "@/components/workspace/protocol-dissection";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   PANE_TABS_LIST,
@@ -88,6 +89,9 @@ function ResponseTabs({ response }: { response: RequestResponse }) {
           <TabsTrigger value="timing" className={PANE_TABS_TRIGGER}>
             Timing
           </TabsTrigger>
+          <TabsTrigger value="protocols" className={PANE_TABS_TRIGGER}>
+            Protocols
+          </TabsTrigger>
         </TabsList>
         <div className="flex items-center gap-3 px-3 font-mono text-xs">
           <span className="text-green-600 dark:text-green-400">
@@ -115,6 +119,12 @@ function ResponseTabs({ response }: { response: RequestResponse }) {
         className="flex min-h-0 flex-col data-[state=inactive]:hidden"
       >
         <TimingWaterfall response={response} />
+      </TabsContent>
+      <TabsContent
+        value="protocols"
+        className="flex min-h-0 flex-col data-[state=inactive]:hidden"
+      >
+        <ProtocolDissection response={response} />
       </TabsContent>
     </Tabs>
   );
