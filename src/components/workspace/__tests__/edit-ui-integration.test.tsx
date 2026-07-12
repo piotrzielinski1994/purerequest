@@ -130,16 +130,13 @@ describe("root .env relocated out of the sidebar", () => {
     await user.click(
       await screen.findByRole("button", { name: /open settings/i }),
     );
+    // Env now lives behind its own Settings sub-tab (Theme is the default). The
+    // root .env is a full-bleed key/value grid (like the folder Env view), seeded
+    // from the dotenv text - no heading/description.
+    await user.click(await screen.findByRole("tab", { name: /^env$/i }));
 
-    expect(
-      await screen.findByRole("heading", { name: /^env$/i }),
-    ).toBeInTheDocument();
-    await waitFor(() => {
-      const docs = [
-        ...document.querySelectorAll<HTMLElement>(".cm-editor"),
-      ].map((el) => el.textContent ?? "");
-      expect(docs.some((doc) => doc.includes("TOKEN=seed"))).toBe(true);
-    });
+    expect(await screen.findByLabelText("key 1")).toHaveValue("TOKEN");
+    expect(screen.getByLabelText("value 1")).toHaveValue("seed");
   });
 });
 

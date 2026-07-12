@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import { useTreeDnd } from "@/components/workspace/tree-dnd";
+import { useTreeNav, openContextMenuOnKey } from "@/components/workspace/tree-nav";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -215,6 +216,8 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }) {
     beginRename,
   } = useWorkspace();
   const { activeId } = useTreeDnd();
+  const { rovingId, contextMenuBinding, registerRow, handleKeyDown } =
+    useTreeNav();
   const {
     attributes,
     listeners,
@@ -237,13 +240,25 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }) {
       {dropBefore && <DropLine />}
       <RowContextMenu node={node}>
         <div
-          ref={setNodeRef}
+          ref={(el) => {
+            setNodeRef(el);
+            registerRow(node.id, el);
+          }}
           {...attributes}
           {...listeners}
           role="treeitem"
           aria-expanded={isExpanded}
           aria-selected={isSelected}
-          tabIndex={0}
+          tabIndex={rovingId === node.id ? 0 : -1}
+          onKeyDown={(event) => {
+            if (isRenaming) {
+              return;
+            }
+            if (openContextMenuOnKey(event, contextMenuBinding)) {
+              return;
+            }
+            handleKeyDown(node.id, event);
+          }}
           onClick={(event) => {
             const mode = selectModeOf(event);
             selectInTree(node.id, mode);
@@ -324,6 +339,8 @@ function RequestRow({ node, depth }: { node: RequestNode; depth: number }) {
     renamingNodeId,
     beginRename,
   } = useWorkspace();
+  const { rovingId, contextMenuBinding, registerRow, handleKeyDown } =
+    useTreeNav();
   const {
     attributes,
     listeners,
@@ -344,13 +361,25 @@ function RequestRow({ node, depth }: { node: RequestNode; depth: number }) {
       {dropBefore && <DropLine />}
       <RowContextMenu node={node}>
         <div
-          ref={setNodeRef}
+          ref={(el) => {
+            setNodeRef(el);
+            registerRow(node.id, el);
+          }}
           {...attributes}
           {...listeners}
           role="treeitem"
           aria-selected={isSelected}
           aria-label={`${node.method} ${displayName}`}
-          tabIndex={0}
+          tabIndex={rovingId === node.id ? 0 : -1}
+          onKeyDown={(event) => {
+            if (isRenaming) {
+              return;
+            }
+            if (openContextMenuOnKey(event, contextMenuBinding)) {
+              return;
+            }
+            handleKeyDown(node.id, event);
+          }}
           onClick={(event) => {
             const mode = selectModeOf(event);
             selectInTree(node.id, mode);

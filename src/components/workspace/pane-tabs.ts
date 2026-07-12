@@ -1,3 +1,9 @@
+// A synthetic tab id for the Settings tab so it lives in the ordered `openRequestIds`
+// list alongside real requests - giving it drag/keyboard reorder, close, and context-
+// menu parity for free. It is NOT a request id: guard request-map lookups against it,
+// and it is dropped from the persisted open-tab ids (reopens fresh each launch).
+export const SETTINGS_TAB_ID = "__settings__";
+
 export const PANE_TABS_LIST =
   "h-full! w-fit gap-0 rounded-none bg-transparent p-0";
 

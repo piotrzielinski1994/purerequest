@@ -96,7 +96,17 @@ export type Settings = {
   theme: ThemeSettings;
   workspacePath?: string;
   activeEnvironment?: string;
+  // Which Settings section is shown (device-local UI state). Absent -> "theme".
+  settingsSection?: SettingsSection;
 };
+
+export type SettingsSection = "theme" | "env" | "shortcuts";
+
+export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
+  "theme",
+  "env",
+  "shortcuts",
+];
 
 const THEME_MODES: ThemeMode[] = ["light", "dark", "system"];
 
@@ -326,5 +336,10 @@ export function mergeSettings(defaults: Settings, partial: unknown): Settings {
       typeof partial.activeEnvironment === "string"
         ? partial.activeEnvironment
         : defaults.activeEnvironment,
+    settingsSection: SETTINGS_SECTIONS.includes(
+      partial.settingsSection as SettingsSection,
+    )
+      ? (partial.settingsSection as SettingsSection)
+      : defaults.settingsSection,
   };
 }

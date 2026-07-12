@@ -67,7 +67,7 @@ describe("app routing", () => {
 
     await user.keyboard("{Control>}{Shift>}s{/Shift}{/Control}");
     expect(
-      await screen.findByRole("heading", { name: /keyboard shortcuts/i }),
+      await screen.findByRole("tablist", { name: /settings sections/i }),
     ).toBeInTheDocument();
     // Still the same shell: the workspace path did not change to a settings route.
     expect(screen.getByRole("region", { name: /console/i })).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe("app routing", () => {
     await user.keyboard("{Escape}");
     expect(await screen.findByText(/no workspace/i)).toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: /keyboard shortcuts/i }),
+      screen.queryByRole("tablist", { name: /settings sections/i }),
     ).not.toBeInTheDocument();
   });
 });

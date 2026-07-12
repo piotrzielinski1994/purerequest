@@ -36,6 +36,20 @@ const ACTION_IDS: ShortcutActionId[] = [
   "import-postman",
   "import-openapi",
   "open-command-palette",
+  "tree-nav-down",
+  "tree-nav-up",
+  "tree-nav-first",
+  "tree-nav-last",
+  "tree-expand",
+  "tree-collapse",
+  "tree-activate",
+  "tree-extend-down",
+  "tree-extend-up",
+  "tree-move-down",
+  "tree-move-up",
+  "tree-outdent",
+  "tree-nest",
+  "open-context-menu",
 ];
 
 describe("SHORTCUT_ACTIONS registry", () => {

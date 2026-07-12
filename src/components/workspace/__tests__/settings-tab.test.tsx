@@ -120,14 +120,14 @@ describe("Settings as an in-app tab", () => {
     // Open settings via the hotkey (Mod+Shift+S resolves to Control+Shift+S under jsdom).
     await user.keyboard("{Control>}{Shift>}s{/Shift}{/Control}");
     expect(
-      await screen.findByRole("heading", { name: /keyboard shortcuts/i }),
+      await screen.findByRole("tablist", { name: /settings sections/i }),
     ).toBeInTheDocument();
 
-    // Close settings via Escape.
+    // Close (deactivate) settings via Escape.
     await user.keyboard("{Escape}");
     await waitFor(() => {
       expect(
-        screen.queryByRole("heading", { name: /keyboard shortcuts/i }),
+        screen.queryByRole("tablist", { name: /settings sections/i }),
       ).not.toBeInTheDocument();
     });
 
@@ -157,7 +157,7 @@ describe("Settings as an in-app tab", () => {
     await user.keyboard("{Control>}{Shift>}s{/Shift}{/Control}");
 
     expect(
-      await screen.findByRole("heading", { name: /keyboard shortcuts/i }),
+      await screen.findByRole("tablist", { name: /settings sections/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("tree", { name: /collection/i }),
@@ -207,8 +207,10 @@ describe("Settings as an in-app tab", () => {
     ).toHaveAttribute("aria-selected", "false");
   });
 
-  // AC-001 — side-effect-contract: cycling deactivates settings (edge case in the plan).
-  it("should deactivate settings and show a request if Ctrl+Tab fires while settings is active", async () => {
+  // AC-001 — behavior: Settings is a real tab in the ordered list, so Ctrl+Tab
+  // cycles onto/off it like any other. From Settings (last), Ctrl+Tab wraps to the
+  // first request tab, deactivating Settings.
+  it("should cycle off the Settings tab and show a request if Ctrl+Tab fires while settings is active", async () => {
     const user = userEvent.setup();
     renderShell("req-profile");
     await screen.findByRole("region", { name: /console/i });
@@ -218,23 +220,27 @@ describe("Settings as an in-app tab", () => {
     await user.click(within(tablist).getByRole("tab", { name: "profile" }));
 
     await user.keyboard("{Control>}{Shift>}s{/Shift}{/Control}");
-    await screen.findByRole("heading", { name: /keyboard shortcuts/i });
+    // Settings is now the active tab (last in the list: profile, token, settings).
+    expect(
+      within(tablist).getByRole("tab", { name: /settings/i }),
+    ).toHaveAttribute("aria-selected", "true");
 
     await user.keyboard("{Control>}{Tab}{/Control}");
 
+    // Wrapped to the first tab (profile); Settings deactivated but still present.
     await waitFor(() => {
       expect(
-        screen.queryByRole("heading", { name: /keyboard shortcuts/i }),
-      ).not.toBeInTheDocument();
+        within(tablist).getByRole("tab", { name: "profile" }),
+      ).toHaveAttribute("aria-selected", "true");
     });
-    expect(within(tablist).getByRole("tab", { name: "token" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    expect(
+      within(tablist).getByRole("tab", { name: /settings/i }),
+    ).toHaveAttribute("aria-selected", "false");
   });
 
-  // AC-001, AC-005, TC-005 — behavior
-  it("should cycle request tabs and not re-show settings if Ctrl+Shift+Tab fires after settings is closed", async () => {
+  // AC-001, AC-009 — behavior: after Esc deactivates Settings (tab stays), the
+  // active tab is a request and Ctrl+Shift+Tab keeps cycling requests.
+  it("should cycle tabs after settings is deactivated with Escape", async () => {
     const user = userEvent.setup();
     renderShell("req-profile");
     await screen.findByRole("region", { name: /console/i });
@@ -244,23 +250,22 @@ describe("Settings as an in-app tab", () => {
     await user.click(within(tablist).getByRole("tab", { name: "profile" }));
 
     await user.keyboard("{Control>}{Shift>}s{/Shift}{/Control}");
-    await screen.findByRole("heading", { name: /keyboard shortcuts/i });
+    await screen.findByRole("tablist", { name: /settings sections/i });
     await user.keyboard("{Escape}");
     await waitFor(() => {
       expect(
-        screen.queryByRole("heading", { name: /keyboard shortcuts/i }),
+        screen.queryByRole("tablist", { name: /settings sections/i }),
       ).not.toBeInTheDocument();
     });
 
-    await user.keyboard("{Control>}{Shift>}{Tab}{/Shift}{/Control}");
-
-    // No history to walk: settings stays closed, and a request tab is active.
+    // A request tab is active again (Esc returned to the last non-settings tab).
+    const active = within(tablist)
+      .getAllByRole("tab")
+      .find((t) => t.getAttribute("aria-selected") === "true");
+    expect(active?.textContent).toMatch(/profile|token/);
+    // The Settings tab is still open (Esc only deactivates).
     expect(
-      screen.queryByRole("heading", { name: /keyboard shortcuts/i }),
-    ).not.toBeInTheDocument();
-    expect(within(tablist).getByRole("tab", { name: "token" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+      within(tablist).getByRole("tab", { name: /settings/i }),
+    ).toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -25,6 +25,11 @@ import {
   useTreeDnd,
   type DropIndicator,
 } from "@/components/workspace/tree-dnd";
+import { TreeNavProvider } from "@/components/workspace/tree-nav";
+import { resolveTreeKey } from "@/lib/workspace/tree-keyboard";
+import { flattenSelectable } from "@/lib/workspace/tree-select";
+import { useShortcutOverrides } from "@/lib/settings/settings-context";
+import { resolveShortcuts } from "@/lib/shortcuts/resolve";
 import { cn } from "@/lib/utils";
 import {
   findNode,
@@ -103,12 +108,90 @@ export function SidebarTree() {
     moveNode,
     moveNodes,
     selectedIds,
+    selectedNodeId,
     clearSelection,
     expandedFolderIds,
     toggleFolder,
+    selectNode,
+    focusNode,
+    selectInTree,
     newRequest,
     newFolder,
   } = useWorkspace();
+  const bindings = resolveShortcuts(useShortcutOverrides());
+  const rowRefs = useRef(new Map<string, HTMLElement>());
+  const pendingFocusId = useRef<string | null>(null);
+
+  const registerRow = useCallback((id: string, el: HTMLElement | null) => {
+    if (el) {
+      rowRefs.current.set(id, el);
+      return;
+    }
+    rowRefs.current.delete(id);
+  }, []);
+
+  const visibleIds = flattenSelectable(tree, expandedFolderIds);
+  const rovingId =
+    selectedNodeId !== null && visibleIds.includes(selectedNodeId)
+      ? selectedNodeId
+      : (visibleIds[0] ?? null);
+
+  const handleKeyDown = useCallback(
+    (focusedId: string, event: React.KeyboardEvent) => {
+      const command = resolveTreeKey({
+        tree,
+        expandedIds: expandedFolderIds,
+        focusedId,
+        event: event.nativeEvent,
+        bindings,
+      });
+      if (command.type === "none") {
+        return;
+      }
+      event.preventDefault();
+      // `expand`/`collapse` only ever fire against a folder in the opposite
+      // state (the resolver guards that), so a single toggle serves all three.
+      const runCommand: Record<typeof command.type, () => void> = {
+        focus: () => focusNode(command.id),
+        activate: () => selectNode(command.id),
+        toggle: () => toggleFolder(command.id),
+        expand: () => toggleFolder(command.id),
+        collapse: () => toggleFolder(command.id),
+        extend: () => selectInTree(command.id, "range"),
+        move: () =>
+          command.type === "move" && moveNode(command.id, command.target),
+      };
+      runCommand[command.type]();
+
+      // Commands that shift the focused row refocus it after the re-render.
+      const movesFocus =
+        command.type === "focus" ||
+        command.type === "extend" ||
+        command.type === "move";
+      if (movesFocus) {
+        pendingFocusId.current = command.id;
+      }
+    },
+    [
+      tree,
+      expandedFolderIds,
+      bindings,
+      focusNode,
+      selectNode,
+      toggleFolder,
+      selectInTree,
+      moveNode,
+    ],
+  );
+
+  useEffect(() => {
+    const id = pendingFocusId.current;
+    if (id === null) {
+      return;
+    }
+    pendingFocusId.current = null;
+    rowRefs.current.get(id)?.focus();
+  });
   const rootTarget = { parentId: null as string | null, index: tree.length };
   const [activeId, setActiveId] = useState<string | null>(null);
   const [indicator, setIndicator] = useState<DropIndicator | null>(null);
@@ -236,26 +319,35 @@ export function SidebarTree() {
               }}
             >
               <TreeDndProvider value={{ activeId, indicator }}>
-                <ul
-                  role="tree"
-                  aria-label="Collection"
-                  // A plain left-click on the empty tree area clears the selection.
-                  onClick={(event) => {
-                    if (event.target === event.currentTarget) {
-                      clearSelection();
-                    }
+                <TreeNavProvider
+                  value={{
+                    rovingId,
+                    contextMenuBinding: bindings["open-context-menu"],
+                    registerRow,
+                    handleKeyDown,
                   }}
                 >
-                  {tree.map((node) => (
-                    <TreeRow key={node.id} node={node} depth={0} />
-                  ))}
-                </ul>
-                {tree.length > 0 && (
-                  <RootDropZone
-                    isDragActive={activeId !== null}
-                    onClear={clearSelection}
-                  />
-                )}
+                  <ul
+                    role="tree"
+                    aria-label="Collection"
+                    // A plain left-click on the empty tree area clears the selection.
+                    onClick={(event) => {
+                      if (event.target === event.currentTarget) {
+                        clearSelection();
+                      }
+                    }}
+                  >
+                    {tree.map((node) => (
+                      <TreeRow key={node.id} node={node} depth={0} />
+                    ))}
+                  </ul>
+                  {tree.length > 0 && (
+                    <RootDropZone
+                      isDragActive={activeId !== null}
+                      onClear={clearSelection}
+                    />
+                  )}
+                </TreeNavProvider>
                 <DragOverlay>
                   {activeNode ? (
                     <div className="relative">

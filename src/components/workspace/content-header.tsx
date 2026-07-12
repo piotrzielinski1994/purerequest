@@ -8,9 +8,14 @@ import {
 } from "@/components/ui/context-menu";
 import { Folder, Plus, Settings, X } from "lucide-react";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
-import type { RequestNode, TreeNode } from "@/lib/workspace/model";
+import { SETTINGS_TAB_ID } from "@/components/workspace/pane-tabs";
+import { openContextMenuOnKey } from "@/components/workspace/tree-nav";
+import { useShortcutOverrides } from "@/lib/settings/settings-context";
+import { resolveShortcuts } from "@/lib/shortcuts/resolve";
+import type { TreeNode } from "@/lib/workspace/model";
 import {
   DndContext,
+  KeyboardSensor,
   PointerSensor,
   closestCenter,
   useSensor,
@@ -21,6 +26,7 @@ import {
   SortableContext,
   arrayMove,
   horizontalListSortingStrategy,
+  sortableKeyboardCoordinates,
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -48,26 +54,38 @@ function editorTabLabel(
   return node ? node.name : "config";
 }
 
-function RequestTab({
+// One sortable tab chip - shared by request tabs and the Settings tab so both
+// drag/reorder, close, and open a context menu identically. The WHOLE chip is the
+// activate hit-area (the wrapper's onClick), not just the inner label, so there
+// are no dead click zones (a pointer drag is distinguished by the dnd-kit
+// activation distance, so a click still activates). The close button stops
+// propagation so it never doubles as an activate.
+function SortableTab({
   id,
-  request,
+  label,
+  icon,
   isActive,
   isDirty,
   canCloseOthers,
+  closeLabel,
   onActivate,
   onClose,
   onCloseOthers,
   onCloseAll,
+  contextMenuBinding,
 }: {
   id: string;
-  request: RequestNode;
+  label: React.ReactNode;
+  icon: React.ReactNode;
   isActive: boolean;
   isDirty: boolean;
   canCloseOthers: boolean;
+  closeLabel: string;
   onActivate: () => void;
   onClose: () => void;
   onCloseOthers: () => void;
   onCloseAll: () => void;
+  contextMenuBinding: string;
 }) {
   const {
     attributes,
@@ -86,45 +104,36 @@ function RequestTab({
           style={{ transform: CSS.Translate.toString(transform), transition }}
           {...attributes}
           {...listeners}
+          role="tab"
+          aria-selected={isActive}
+          onClick={onActivate}
+          onKeyDown={(event) => {
+            listeners?.onKeyDown?.(event);
+            openContextMenuOnKey(event, contextMenuBinding);
+          }}
           className={cn(
-            "flex h-full cursor-grab touch-none items-center gap-1 border-r px-3 text-sm hover:bg-accent active:cursor-grabbing",
+            "flex h-full cursor-grab touch-none items-center gap-1.5 border-r px-3 text-sm hover:bg-accent active:cursor-grabbing",
             isDragging && "opacity-50",
             isActive
-              ? "-mb-px h-[calc(100%+1px)] bg-accent shadow-[inset_0_-2px_0_0_var(--primary)]"
-              : "bg-transparent",
+              ? "-mb-px h-[calc(100%+1px)] bg-accent text-foreground shadow-[inset_0_-2px_0_0_var(--primary)]"
+              : "bg-transparent text-muted-foreground",
           )}
         >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={isActive}
-            onClick={onActivate}
-            className={cn(
-              "flex items-center gap-1.5 truncate",
-              isActive ? "text-foreground" : "text-muted-foreground",
-            )}
-          >
+          {icon}
+          {isDirty && (
             <span
-              aria-hidden="true"
-              className={cn(
-                "shrink-0 font-mono text-[11px]",
-                METHOD_COLOR[request.method],
-              )}
-            >
-              {request.method}
-            </span>
-            {isDirty && (
-              <span
-                aria-label="Unsaved changes"
-                className="size-2 shrink-0 rounded-full bg-foreground"
-              />
-            )}
-            {request.name}
-          </button>
+              aria-label="Unsaved changes"
+              className="size-2 shrink-0 rounded-full bg-foreground"
+            />
+          )}
+          <span className="truncate">{label}</span>
           <button
             type="button"
-            aria-label={`Close ${request.name}`}
-            onClick={onClose}
+            aria-label={closeLabel}
+            onClick={(event) => {
+              event.stopPropagation();
+              onClose();
+            }}
             className="rounded-sm p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <X className="size-3" />
@@ -154,7 +163,6 @@ export function ContentHeader() {
     requestCloseOthers,
     requestCloseAll,
     editorDirty,
-    isSettingsOpen,
     isSettingsActive,
     editTarget,
     isEditorActive,
@@ -162,12 +170,17 @@ export function ContentHeader() {
     closeEditor,
     openConfigEditor,
     openSettings,
-    closeSettings,
     newRequest,
   } = useWorkspace();
+  const contextMenuBinding = resolveShortcuts(useShortcutOverrides())[
+    "open-context-menu"
+  ];
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -200,26 +213,62 @@ export function ContentHeader() {
             strategy={horizontalListSortingStrategy}
           >
             {openRequestIds.map((id) => {
+              const closeHandlers = {
+                canCloseOthers: openRequestIds.length > 1,
+                onClose: () => requestCloseRequest(id),
+                onCloseOthers: () => requestCloseOthers(id),
+                onCloseAll: () => requestCloseAll(),
+                contextMenuBinding,
+              };
+              if (id === SETTINGS_TAB_ID) {
+                return (
+                  <SortableTab
+                    key={id}
+                    id={id}
+                    label="Settings"
+                    icon={
+                      <Settings
+                        aria-hidden="true"
+                        className="size-3.5 shrink-0"
+                      />
+                    }
+                    isActive={isSettingsActive}
+                    isDirty={false}
+                    closeLabel="Close settings"
+                    onActivate={openSettings}
+                    {...closeHandlers}
+                  />
+                );
+              }
               const request = requestsById.get(id);
               if (!request) {
                 return null;
               }
               return (
-                <RequestTab
+                <SortableTab
                   key={id}
                   id={id}
-                  request={request}
+                  label={request.name}
+                  icon={
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "shrink-0 font-mono text-[11px]",
+                        METHOD_COLOR[request.method],
+                      )}
+                    >
+                      {request.method}
+                    </span>
+                  }
                   isActive={
                     id === activeRequestId &&
                     !isSettingsActive &&
                     !isEditorActive
                   }
                   isDirty={dirtyRequestIds.has(id)}
-                  canCloseOthers={openRequestIds.length > 1}
+                  closeLabel={`Close ${request.name}`}
                   onActivate={() => setActiveRequest(id)}
-                  onClose={() => requestCloseRequest(id)}
-                  onCloseOthers={() => requestCloseOthers(id)}
-                  onCloseAll={() => requestCloseAll()}
+                  {...closeHandlers}
                 />
               );
             })}
@@ -257,38 +306,6 @@ export function ContentHeader() {
               type="button"
               aria-label="Close config editor"
               onClick={closeEditor}
-              className="rounded-sm p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              <X className="size-3" />
-            </button>
-          </div>
-        )}
-        {isSettingsOpen && (
-          <div
-            className={cn(
-              "flex h-full items-center gap-1 border-r px-3 text-sm hover:bg-accent",
-              isSettingsActive
-                ? "-mb-px h-[calc(100%+1px)] bg-accent shadow-[inset_0_-2px_0_0_var(--primary)]"
-                : "bg-transparent",
-            )}
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={isSettingsActive}
-              onClick={openSettings}
-              className={cn(
-                "flex items-center gap-1.5 truncate",
-                isSettingsActive ? "text-foreground" : "text-muted-foreground",
-              )}
-            >
-              <Settings aria-hidden="true" className="size-3.5 shrink-0" />
-              Settings
-            </button>
-            <button
-              type="button"
-              aria-label="Close settings"
-              onClick={closeSettings}
               className="rounded-sm p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <X className="size-3" />
