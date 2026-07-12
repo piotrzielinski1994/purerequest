@@ -158,6 +158,16 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > `Cmd/Ctrl+click` toggles a row into the selection, `Shift+click` picks the range from the
 > last-clicked row, and dragging any selected row moves the whole selection in one drop.
 >
+> The collection tree and the request-tab bar are also fully **keyboard-navigable** (WAI-ARIA
+> tree). In the tree: Up/Down move focus+selection between visible rows, Left/Right
+> collapse/expand a folder (Right descends into an open folder, Left ascends to the parent),
+> Home/End jump to the first/last row, Enter/Space open a request or toggle a folder,
+> Shift+Up/Down extend the selection, and **Alt+Up/Down/Left/Right** reorder a node
+> (move among siblings / outdent / nest into the preceding folder). A roving tabindex keeps a
+> single tree stop in the Tab order. Request tabs reorder by keyboard too (focus a tab, Space to
+> grab, Arrow to move, Space to drop). **Shift+F10 / the ContextMenu key** opens the row's or
+> tab's right-click menu from the keyboard.
+>
 > The collection tree is fully writable from the UI. **Right-click a folder** for New request /
 > New folder (created inside it) / Rename / Delete; **right-click a request** for Rename /
 > Duplicate / Delete; **right-click the empty sidebar area** for New request / New folder (at the

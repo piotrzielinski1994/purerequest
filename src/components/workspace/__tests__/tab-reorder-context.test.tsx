@@ -152,9 +152,10 @@ describe("WorkspaceProvider reorderRequests", () => {
   });
 });
 
-describe("ContentHeader settings tab vs reorder", () => {
-  // AC-004, TC-003 — side-effect-contract: settings tab is not part of openRequestIds.
-  it("should keep the Settings tab rendered and out of openRequestIds if request tabs are reordered", async () => {
+describe("ContentHeader settings tab is a reorderable tab", () => {
+  // The Settings tab lives IN openRequestIds under the synthetic id, so it renders
+  // in the same strip and reorders like a request tab.
+  it("should add the Settings tab to openRequestIds and render it in the strip", async () => {
     const user = userEvent.setup();
     render(
       <WorkspaceProvider
@@ -173,32 +174,50 @@ describe("ContentHeader settings tab vs reorder", () => {
     expect(
       within(tablist).getByRole("tab", { name: "Settings" }),
     ).toBeInTheDocument();
-    // Before: request tabs are profile, then token (settings tab is separate).
-    const requestTabNamesBefore = within(tablist)
-      .getAllByRole("tab")
-      .map((tab) => tab.textContent)
-      .filter((name) => name !== "Settings");
-    expect(requestTabNamesBefore).toEqual(["GETprofile", "POSTtoken"]);
+    // The synthetic settings id is now part of the ordered open-tab list, after
+    // the two requests.
+    expect(screen.getByTestId("open-ids")).toHaveTextContent(
+      "req-profile,req-token,__settings__",
+    );
+  });
 
-    await user.click(
-      screen.getByRole("button", { name: /reorder token-first/i }),
+  it("should reorder the Settings tab within the strip like any tab", async () => {
+    const user = userEvent.setup();
+    function MoveSettingsFirst() {
+      const { reorderRequests } = useWorkspace();
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            reorderRequests(["__settings__", "req-profile", "req-token"])
+          }
+        >
+          settings-first
+        </button>
+      );
+    }
+    render(
+      <WorkspaceProvider
+        tree={fixtureTree}
+        initialOpenRequestIds={["req-profile", "req-token"]}
+        initialActiveRequestId="req-profile"
+      >
+        <ReorderProbe />
+        <MoveSettingsFirst />
+        <ContentHeader />
+      </WorkspaceProvider>,
     );
 
-    // The request tabs actually reordered to token, then profile (RED until
-    // reorderRequests exists) ...
-    const requestTabNamesAfter = within(tablist)
-      .getAllByRole("tab")
-      .map((tab) => tab.textContent)
-      .filter((name) => name !== "Settings");
-    expect(requestTabNamesAfter).toEqual(["POSTtoken", "GETprofile"]);
-    // ... the Settings tab survives that request-tab reorder ...
-    expect(
-      within(tablist).getByRole("tab", { name: "Settings" }),
-    ).toBeInTheDocument();
-    // ... and was never part of the reorderable openRequestIds set.
-    expect(screen.getByTestId("open-ids")).not.toHaveTextContent("settings");
+    await user.click(screen.getByRole("button", { name: /open settings/i }));
+    await user.click(screen.getByRole("button", { name: /settings-first/i }));
+
     expect(screen.getByTestId("open-ids")).toHaveTextContent(
-      "req-token,req-profile",
+      "__settings__,req-profile,req-token",
+    );
+    // Settings tab is the first tab in the strip now.
+    const tablist = screen.getByRole("tablist", { name: /open requests/i });
+    expect(within(tablist).getAllByRole("tab")[0]).toHaveAccessibleName(
+      /settings/i,
     );
   });
 });

@@ -13,6 +13,7 @@ import {
   type PanelGroupKey,
   type PanelLayout,
   type Settings,
+  type SettingsSection,
   type SettingsStore,
   type ThemeColors,
   type ThemeMode,
@@ -34,6 +35,7 @@ type SettingsContextValue = {
   ) => void;
   saveDraftTabs: (draftTabs: DraftTab[]) => void;
   saveActiveEnvironment: (name: string | null) => void;
+  saveSettingsSection: (section: SettingsSection) => void;
   saveThemeMode: (mode: ThemeMode) => void;
   saveThemeColors: (colors: ThemeColors) => void;
 };
@@ -146,6 +148,12 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
     [update],
   );
 
+  const saveSettingsSection = useCallback(
+    (section: SettingsSection) =>
+      update((base) => ({ ...base, settingsSection: section })),
+    [update],
+  );
+
   const saveThemeMode = useCallback(
     (mode: ThemeMode) =>
       update((base) => ({ ...base, theme: { ...base.theme, mode } })),
@@ -174,6 +182,7 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
             saveOpenTabs,
             saveDraftTabs,
             saveActiveEnvironment,
+            saveSettingsSection,
             saveThemeMode,
             saveThemeColors,
           },
@@ -189,6 +198,7 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
       saveOpenTabs,
       saveDraftTabs,
       saveActiveEnvironment,
+      saveSettingsSection,
       saveThemeMode,
       saveThemeColors,
     ],
@@ -211,4 +221,12 @@ export function useSettings(): SettingsContextValue {
     throw new Error("useSettings must be used within a SettingsProvider");
   }
   return value;
+}
+
+// The current shortcut overrides, or an empty map when no SettingsProvider is
+// mounted. Lets keyboard-shortcut consumers (sidebar tree, tab bar) resolve
+// effective bindings and fall back to registry defaults outside a provider,
+// instead of hard-crashing - the shortcuts are a progressive enhancement.
+export function useShortcutOverrides(): Settings["shortcuts"] {
+  return useContext(SettingsContext)?.settings.shortcuts ?? {};
 }

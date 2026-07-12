@@ -17,7 +17,11 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <!-- The panes render transparent down to this mount node, so it owns the
+         themed backdrop. The utilities resolve --background/--foreground per mode;
+         they sit above the unlayered #000 flash-guard (which would otherwise win
+         in light mode, since @layer base ranks below unlayered rules). -->
+    <div id="root" class="bg-background text-foreground"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

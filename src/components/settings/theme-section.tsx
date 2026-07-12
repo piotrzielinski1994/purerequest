@@ -47,27 +47,28 @@ function ColorEditor() {
   const effective = applyDefaults(settings.theme.colors, DEFAULT_THEME_COLORS);
 
   return (
-    <div className="h-72 min-h-0">
-      <RawJsonEditor
-        id="theme-colors"
-        saved={JSON.stringify(effective, null, 2)}
-        parse={parseThemeColors}
-        onSave={(parsed) =>
-          saveThemeColors(diffOverrides(parsed, DEFAULT_THEME_COLORS))
-        }
-        commit={(_parsed, tree) => tree}
-        schema={themeColorsJsonSchema}
-      />
-    </div>
+    <RawJsonEditor
+      id="theme-colors"
+      saved={JSON.stringify(effective, null, 2)}
+      parse={parseThemeColors}
+      onSave={(parsed) =>
+        saveThemeColors(diffOverrides(parsed, DEFAULT_THEME_COLORS))
+      }
+      commit={(_parsed, tree) => tree}
+      schema={themeColorsJsonSchema}
+    />
   );
 }
 
+// Fills the section body: fixed top matter (mode + copy), then the color editor
+// grows to consume the rest of the height (no fixed cap - matches the request/
+// folder editors that fill their pane).
 export function ThemeSection() {
   const { settings, saveThemeMode } = useSettings();
   const mode = settings.theme.mode;
 
   return (
-    <section className="flex flex-col gap-1">
+    <section className="flex h-full min-h-0 flex-col gap-1 p-6">
       <h2 className="text-lg font-medium">Theme</h2>
       <p className="text-sm text-muted-foreground">
         Choose the app appearance, or follow your OS preference.
@@ -94,7 +95,7 @@ export function ThemeSection() {
         value to override it, or set it back to the default to clear the
         override. Save with the save shortcut.
       </p>
-      <div className="mt-2 border border-border">
+      <div className="mt-2 min-h-0 flex-1 border border-border">
         <ColorEditor />
       </div>
     </section>

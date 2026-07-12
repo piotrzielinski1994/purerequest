@@ -53,7 +53,7 @@ export function Main({
     openRequestIds,
     activeRequestId,
     selectedNodeId,
-    isSettingsActive,
+    isEditorActive,
     editTarget,
     setActiveRequest,
     requestCloseRequest,
@@ -172,14 +172,13 @@ export function Main({
     "next-request": () => stepRequest(1),
     "prev-request": () => stepRequest(-1),
     "close-request": () => {
-      if (isSettingsActive) {
-        closeSettings();
-        return;
-      }
-      if (editTarget !== null) {
+      if (isEditorActive && editTarget !== null) {
         requestCloseEditor();
         return;
       }
+      // Settings is a real tab now: Mod+W closes it (removes the tab), unlike Esc
+      // which only deactivates. The active tab id (incl. the synthetic settings
+      // id) routes through the same close path.
       if (activeRequestId !== null) {
         requestCloseRequest(activeRequestId);
       }

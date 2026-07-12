@@ -22,7 +22,21 @@ export type ShortcutActionId =
   | "import-bruno"
   | "import-postman"
   | "import-openapi"
-  | "open-command-palette";
+  | "open-command-palette"
+  | "tree-nav-down"
+  | "tree-nav-up"
+  | "tree-nav-first"
+  | "tree-nav-last"
+  | "tree-expand"
+  | "tree-collapse"
+  | "tree-activate"
+  | "tree-extend-down"
+  | "tree-extend-up"
+  | "tree-move-down"
+  | "tree-move-up"
+  | "tree-outdent"
+  | "tree-nest"
+  | "open-context-menu";
 
 export type ShortcutAction = {
   id: ShortcutActionId;
@@ -178,5 +192,93 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     name: "Open command palette",
     description: "Search and run any action from a command list.",
     defaultHotkey: "Mod+K",
+  },
+  {
+    id: "tree-nav-down",
+    name: "Tree: next row",
+    description: "Move focus + selection to the next visible sidebar row.",
+    defaultHotkey: "ArrowDown",
+  },
+  {
+    id: "tree-nav-up",
+    name: "Tree: previous row",
+    description: "Move focus + selection to the previous visible sidebar row.",
+    defaultHotkey: "ArrowUp",
+  },
+  {
+    id: "tree-nav-first",
+    name: "Tree: first row",
+    description: "Move focus + selection to the first visible sidebar row.",
+    defaultHotkey: "Home",
+  },
+  {
+    id: "tree-nav-last",
+    name: "Tree: last row",
+    description: "Move focus + selection to the last visible sidebar row.",
+    defaultHotkey: "End",
+  },
+  {
+    id: "tree-expand",
+    name: "Tree: expand / into folder",
+    description:
+      "Expand a collapsed folder, or move focus to its first child if open.",
+    defaultHotkey: "ArrowRight",
+  },
+  {
+    id: "tree-collapse",
+    name: "Tree: collapse / to parent",
+    description:
+      "Collapse an expanded folder, or move focus to the parent folder.",
+    defaultHotkey: "ArrowLeft",
+  },
+  {
+    id: "tree-activate",
+    name: "Tree: open request / toggle folder",
+    description: "Open the focused request tab, or toggle the focused folder.",
+    defaultHotkey: "Enter",
+  },
+  {
+    id: "tree-extend-down",
+    name: "Tree: extend selection down",
+    description: "Extend the sidebar selection to the next visible row.",
+    defaultHotkey: "Shift+ArrowDown",
+  },
+  {
+    id: "tree-extend-up",
+    name: "Tree: extend selection up",
+    description: "Extend the sidebar selection to the previous visible row.",
+    defaultHotkey: "Shift+ArrowUp",
+  },
+  {
+    id: "tree-move-down",
+    name: "Tree: move node down",
+    description: "Reorder the focused node down among its siblings.",
+    defaultHotkey: "Alt+ArrowDown",
+  },
+  {
+    id: "tree-move-up",
+    name: "Tree: move node up",
+    description: "Reorder the focused node up among its siblings.",
+    defaultHotkey: "Alt+ArrowUp",
+  },
+  {
+    id: "tree-outdent",
+    name: "Tree: outdent node",
+    description: "Move the focused node out to its parent's level.",
+    defaultHotkey: "Alt+ArrowLeft",
+  },
+  {
+    id: "tree-nest",
+    name: "Tree: nest node into folder above",
+    description:
+      "Move the focused node into the immediately-preceding sibling folder.",
+    defaultHotkey: "Alt+ArrowRight",
+  },
+  {
+    id: "open-context-menu",
+    name: "Open context menu",
+    description:
+      "Open the right-click menu of the focused sidebar row or request tab.",
+    defaultHotkey: "Shift+F10",
   },
 ];

@@ -50,25 +50,23 @@ describe("close-request bug fix (Mod+W with settings active)", () => {
 
     expect(within(tablist).getAllByRole("tab")).toHaveLength(3);
 
-    // Open settings so it is the active tab.
+    // Open settings so it is the active tab (now a 4th tab in the strip).
     await user.keyboard("{Control>}{Shift>}s{/Shift}{/Control}");
     expect(
-      await screen.findByRole("heading", { name: /keyboard shortcuts/i }),
-    ).toBeInTheDocument();
+      await within(tablist).findByRole("tab", { name: /settings/i }),
+    ).toHaveAttribute("aria-selected", "true");
+    expect(within(tablist).getAllByRole("tab")).toHaveLength(4);
 
-    // Mod+W must close settings, not a request tab.
+    // Mod+W must close settings (the active tab), not a request tab.
     await user.keyboard("{Control>}w{/Control}");
 
     await waitFor(() => {
       expect(
-        screen.queryByRole("heading", { name: /keyboard shortcuts/i }),
+        within(tablist).queryByRole("tab", { name: /settings/i }),
       ).not.toBeInTheDocument();
     });
     // All three request tabs survive.
     expect(within(tablist).getAllByRole("tab")).toHaveLength(3);
-    expect(
-      within(tablist).queryByRole("tab", { name: /settings/i }),
-    ).not.toBeInTheDocument();
   });
 
   // AC-002, TC-002 — behavior
@@ -121,17 +119,15 @@ describe("close-all-requests (Mod+Shift+W)", () => {
 
     await openSecondTab(user);
     await user.keyboard("{Control>}{Shift>}s{/Shift}{/Control}");
-    await screen.findByRole("heading", { name: /keyboard shortcuts/i });
+    const tablist = screen.getByRole("tablist", { name: /open requests/i });
+    await within(tablist).findByRole("tab", { name: /settings/i });
 
     await user.keyboard("{Control>}{Shift>}w{/Shift}{/Control}");
 
+    // Close-all removes every tab including Settings.
     await waitFor(() => {
-      expect(
-        screen.queryByRole("heading", { name: /keyboard shortcuts/i }),
-      ).not.toBeInTheDocument();
+      expect(within(tablist).queryAllByRole("tab")).toHaveLength(0);
     });
-    const tablist = screen.getByRole("tablist", { name: /open requests/i });
-    expect(within(tablist).queryAllByRole("tab")).toHaveLength(0);
   });
 });
 
@@ -210,13 +206,14 @@ describe("new-request (Mod+T)", () => {
     await screen.findByRole("region", { name: /console/i });
 
     await user.keyboard("{Control>}{Shift>}s{/Shift}{/Control}");
-    await screen.findByRole("heading", { name: /keyboard shortcuts/i });
+    await screen.findByRole("tablist", { name: /settings sections/i });
 
     await user.keyboard("{Control>}t{/Control}");
 
+    // Mod+T opens a new request, deactivating settings -> the URL bar shows.
     await waitFor(() => {
       expect(
-        screen.queryByRole("heading", { name: /keyboard shortcuts/i }),
+        screen.queryByRole("tablist", { name: /settings sections/i }),
       ).not.toBeInTheDocument();
     });
     expect(screen.getByRole("group", { name: /url bar/i })).toBeInTheDocument();

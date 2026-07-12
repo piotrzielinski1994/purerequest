@@ -30,8 +30,30 @@ function renderShell(initialActiveRequestId = "req-profile") {
   );
 }
 
+// The tree-navigation + context-menu actions are handled inside the focused
+// sidebar tree / tab bar (their onKeyDown), not via a global handler, so they
+// are intentionally NOT listed in the command palette - running "Tree: next
+// row" from a palette with no focused row is meaningless.
+const CONTEXT_SCOPED_IDS = new Set<string>([
+  "tree-nav-down",
+  "tree-nav-up",
+  "tree-nav-first",
+  "tree-nav-last",
+  "tree-expand",
+  "tree-collapse",
+  "tree-activate",
+  "tree-extend-down",
+  "tree-extend-up",
+  "tree-move-down",
+  "tree-move-up",
+  "tree-outdent",
+  "tree-nest",
+  "open-context-menu",
+]);
+
 const PALETTE_ACTIONS = SHORTCUT_ACTIONS.filter(
-  (action) => action.id !== "open-command-palette",
+  (action) =>
+    action.id !== "open-command-palette" && !CONTEXT_SCOPED_IDS.has(action.id),
 );
 
 describe("command palette open/close (Mod+K)", () => {

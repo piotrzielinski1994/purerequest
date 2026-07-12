@@ -36,6 +36,7 @@ import {
   renameNode,
 } from "@/lib/workspace/tree-edit";
 import { locateNode } from "@/lib/workspace/tree-locate";
+import { SETTINGS_TAB_ID } from "@/components/workspace/pane-tabs";
 import { untitledName } from "@/lib/workspace/request-name";
 import type { WriteResult } from "@/lib/workspace/fs";
 import { buildHttpRequest } from "@/lib/http/build-request";
@@ -250,6 +251,7 @@ type WorkspaceContextValue = {
   isSettingsActive: boolean;
   toggleFolder: (id: string) => void;
   selectNode: (id: string) => void;
+  focusNode: (id: string) => void;
   selectInTree: (id: string, mode: SelectMode) => void;
   clearSelection: () => void;
   setActiveRequest: (id: string) => void;
@@ -384,6 +386,9 @@ export function WorkspaceProvider({
   const [isCurlImportOpen, setIsCurlImportOpen] = useState(false);
   const [isCodeGenOpen, setIsCodeGenOpen] = useState(false);
   const [revealTarget, setRevealTarget] = useState<RevealTarget>(null);
+  // The tab that was active right before Settings was opened, so Esc
+  // (close-settings) can return to it rather than an arbitrary neighbour.
+  const preSettingsActiveId = useRef<string | null>(null);
   const revealNonce = useRef(0);
   // "Go to source" from a `:name` path token opens the Params tab's Path sub-tab;
   // the nonce re-fires the same jump (consumer keys its render on identity).
@@ -538,8 +543,12 @@ export function WorkspaceProvider({
     useState<RequestTab>("params");
   const [activeResponseTab, setActiveResponseTab] =
     useState<ResponseTab>("response");
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isSettingsActive, setIsSettingsActive] = useState(false);
+  // Settings is a real tab: it lives in `openRequestIds` under a synthetic id, so
+  // it drags/reorders/closes like any request. "open" = present in the list,
+  // "active" = the active tab AND no editor is active (the editor takes content
+  // precedence even when the settings id is still the active tab id).
+  const isSettingsOpen = openRequestIds.includes(SETTINGS_TAB_ID);
+  const isSettingsActive = !isEditorActive && activeRequestId === SETTINGS_TAB_ID;
 
   // The node whose env scope drives the border + the sidebar env list: the open
   // folder config editor's folder while it's the active editor, else the active
@@ -605,7 +614,9 @@ export function WorkspaceProvider({
     // it can't match a persisted open-tab id - drop it. EXCEPT an id that is still
     // a draft: drafts are restored from settings by that same id, so it must stay.
     const persistableIds = openRequestIds.filter(
-      (id) => !id.startsWith("new-") || draftRequests.has(id),
+      (id) =>
+        id !== SETTINGS_TAB_ID &&
+        (!id.startsWith("new-") || draftRequests.has(id)),
     );
     onTabsChangeRef.current?.(
       persistableIds,
@@ -649,6 +660,13 @@ export function WorkspaceProvider({
       setSelectAnchorId(id);
     };
 
+    // Move the single-selection to a row without opening/toggling it - the
+    // keyboard-navigation seam (ArrowUp/Down/Home/End) moves focus + selection
+    // but must not open a request tab or collapse a folder.
+    const focusNode = (id: string) => {
+      selectSingle(id);
+    };
+
     const selectNode = (id: string) => {
       selectSingle(id);
       const request = requestsById.get(id);
@@ -659,7 +677,6 @@ export function WorkspaceProvider({
       setOpenRequestIds((current) =>
         current.includes(id) ? current : [...current, id],
       );
-      setIsSettingsActive(false);
       setIsEditorActive(false);
       setActiveRequestId(id);
     };
@@ -712,14 +729,11 @@ export function WorkspaceProvider({
       setRequestOverrides(new Map());
       setDraftRequests(new Map());
       setResponseStates(new Map());
-      setIsSettingsOpen(false);
-      setIsSettingsActive(false);
     };
 
     const closeOthers = (id: string) => {
       setOpenRequestIds((current) => (current.includes(id) ? [id] : current));
       setActiveRequestId(id);
-      setIsSettingsActive(false);
       setIsEditorActive(false);
       setRequestOverrides((current) => {
         const kept = current.get(id);
@@ -1130,7 +1144,6 @@ export function WorkspaceProvider({
       if (options.autoName) {
         autoNameIds.current.set(id, request.name);
       }
-      setIsSettingsActive(false);
       setIsEditorActive(false);
       setOpenRequestIds((current) => [...current, id]);
       setActiveRequestId(id);
@@ -1224,7 +1237,6 @@ export function WorkspaceProvider({
       nodeCounter.current += 1;
       const folder = { ...root, id: `new-${nodeCounter.current}` };
       setExpandedFolderIds((current) => new Set(current).add(folder.id));
-      setIsSettingsActive(false);
       setIsEditorActive(false);
       selectSingle(folder.id);
       persistTree(insertNode(tree, null, tree.length, folder), "import");
@@ -1246,7 +1258,6 @@ export function WorkspaceProvider({
       nodeCounter.current += 1;
       const folder = { ...root, id: `new-${nodeCounter.current}` };
       setExpandedFolderIds((current) => new Set(current).add(folder.id));
-      setIsSettingsActive(false);
       setIsEditorActive(false);
       selectSingle(folder.id);
       persistTree(insertNode(tree, null, tree.length, folder), "import");
@@ -1266,7 +1277,6 @@ export function WorkspaceProvider({
       nodeCounter.current += 1;
       const folder = { ...root, id: `new-${nodeCounter.current}` };
       setExpandedFolderIds((current) => new Set(current).add(folder.id));
-      setIsSettingsActive(false);
       setIsEditorActive(false);
       selectSingle(folder.id);
       persistTree(insertNode(tree, null, tree.length, folder), "import");
@@ -1529,7 +1539,6 @@ export function WorkspaceProvider({
           new Set(current).add(placement.parentId!),
         );
       }
-      setIsSettingsActive(false);
       setIsEditorActive(false);
       selectSingle(id);
       setRenamingNodeId(id);
@@ -1549,7 +1558,6 @@ export function WorkspaceProvider({
       setOpenRequestIds((current) =>
         current.includes(newId) ? current : [...current, newId],
       );
-      setIsSettingsActive(false);
       setIsEditorActive(false);
       setActiveRequestId(newId);
       selectSingle(newId);
@@ -1834,7 +1842,6 @@ export function WorkspaceProvider({
     // by the request itself opens the request's own tab instead of a folder.
     const revealTokenSource = (target: TokenTarget) => {
       if (target.kind === "path") {
-        setIsSettingsActive(false);
         setIsEditorActive(false);
         setOpenRequestIds((current) =>
           current.includes(target.requestId)
@@ -1855,8 +1862,12 @@ export function WorkspaceProvider({
               ]?.scopeId ?? null
             : null;
         if (owner === null) {
-          setIsSettingsOpen(true);
-          setIsSettingsActive(true);
+          setOpenRequestIds((current) =>
+            current.includes(SETTINGS_TAB_ID)
+              ? current
+              : [...current, SETTINGS_TAB_ID],
+          );
+          setActiveRequestId(SETTINGS_TAB_ID);
           setIsEditorActive(false);
           return;
         }
@@ -1866,7 +1877,6 @@ export function WorkspaceProvider({
           folderId: owner,
           view: "dotenv",
         });
-        setIsSettingsActive(false);
         setEditTarget({ kind: "config", id: owner });
         setIsEditorActive(true);
         return;
@@ -1876,7 +1886,6 @@ export function WorkspaceProvider({
         return;
       }
       if (node.kind === "request") {
-        setIsSettingsActive(false);
         setIsEditorActive(false);
         setOpenRequestIds((current) =>
           current.includes(node.id) ? current : [...current, node.id],
@@ -1892,7 +1901,6 @@ export function WorkspaceProvider({
         view: target.kind === "environment" ? "envs" : "vars",
         env: target.kind === "environment" ? target.env : undefined,
       });
-      setIsSettingsActive(false);
       setEditTarget({ kind: "config", id: node.id });
       setIsEditorActive(true);
     };
@@ -1940,7 +1948,6 @@ export function WorkspaceProvider({
       editTarget,
       isEditorActive,
       openConfigEditor: (id: string) => {
-        setIsSettingsActive(false);
         if (requestsById.has(id)) {
           setEditTarget(null);
           setIsEditorActive(false);
@@ -2013,6 +2020,7 @@ export function WorkspaceProvider({
       toggleFolder: (id) =>
         setExpandedFolderIds((current) => toggleInSet(current, id)),
       selectNode,
+      focusNode,
       selectedIds,
       selectInTree: (id, mode) => {
         if (mode === "toggle") {
@@ -2036,7 +2044,6 @@ export function WorkspaceProvider({
         setSelectedNodeId(null);
       },
       setActiveRequest: (id) => {
-        setIsSettingsActive(false);
         setIsEditorActive(false);
         setActiveRequestId(id);
       },
@@ -2104,13 +2111,32 @@ export function WorkspaceProvider({
       setRequestTab: setActiveRequestTab,
       setResponseTab: setActiveResponseTab,
       openSettings: () => {
-        setIsSettingsOpen(true);
-        setIsSettingsActive(true);
+        // Remember the pre-settings tab so Esc can return to it (only when
+        // opening fresh, not re-activating from another tab).
+        if (activeRequestId !== SETTINGS_TAB_ID) {
+          preSettingsActiveId.current = activeRequestId;
+        }
+        setOpenRequestIds((current) =>
+          current.includes(SETTINGS_TAB_ID)
+            ? current
+            : [...current, SETTINGS_TAB_ID],
+        );
+        setActiveRequestId(SETTINGS_TAB_ID);
         setIsEditorActive(false);
       },
+      // Esc DEACTIVATES settings (returns to the workspace) but leaves the tab
+      // open - it is closed only via its X / Mod+W / close-all, like a request.
       closeSettings: () => {
-        setIsSettingsOpen(false);
-        setIsSettingsActive(false);
+        if (activeRequestId !== SETTINGS_TAB_ID) {
+          return;
+        }
+        const others = openRequestIds.filter((id) => id !== SETTINGS_TAB_ID);
+        const prior = preSettingsActiveId.current;
+        const target =
+          prior !== null && others.includes(prior)
+            ? prior
+            : (others[others.length - 1] ?? null);
+        setActiveRequestId(target);
       },
       newRequest,
       resolveActiveWire,

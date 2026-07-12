@@ -89,6 +89,7 @@ describe("Settings body routes through ScrollArea (AC-003)", () => {
     await user.click(
       await screen.findByRole("button", { name: /open settings/i }),
     );
+    await user.click(await screen.findByRole("tab", { name: /shortcut/i }));
 
     const heading = await screen.findByRole("heading", {
       name: /keyboard shortcuts/i,
@@ -103,6 +104,7 @@ describe("Settings body routes through ScrollArea (AC-003)", () => {
     await user.click(
       await screen.findByRole("button", { name: /open settings/i }),
     );
+    await user.click(await screen.findByRole("tab", { name: /shortcut/i }));
 
     const heading = await screen.findByRole("heading", {
       name: /keyboard shortcuts/i,
