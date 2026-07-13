@@ -32,8 +32,6 @@ export type WorkspaceInternals = {
   // State
   tree: TreeNode[];
   setTree: Dispatch<SetStateAction<TreeNode[]>>;
-  activeEnvironment: string | null;
-  setActiveEnvironmentState: Dispatch<SetStateAction<string | null>>;
   envText: string;
   setEnvText: Dispatch<SetStateAction<string>>;
   processEnv: ProcessEnv;

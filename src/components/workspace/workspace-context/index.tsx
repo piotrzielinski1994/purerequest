@@ -404,8 +404,6 @@ export function WorkspaceProvider({
     const internals: WorkspaceInternals = {
       tree,
       setTree,
-      activeEnvironment,
-      setActiveEnvironmentState,
       envText,
       setEnvText,
       processEnv,
