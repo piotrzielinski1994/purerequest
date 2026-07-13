@@ -26,11 +26,7 @@ import type { HttpClient, ResponseState } from "@/lib/http/model";
 import type { ScriptRunner } from "@/lib/scripts/model";
 import { createFakeScriptRunner } from "@/lib/scripts/fake-runner";
 import type { ConfigScope, KeyValue } from "@/lib/workspace/model";
-import {
-  mergeDotenv,
-  parseDotenv,
-  setDotenvValue,
-} from "@/lib/workspace/environment";
+import { parseDotenv, setDotenvValue } from "@/lib/workspace/environment";
 import { updateFolderDotenv } from "@/lib/workspace/update-folder-dotenv";
 import {
   updateRequest,
@@ -39,14 +35,6 @@ import {
 import { findNode } from "@/lib/workspace/tree-locate";
 import type { TokenTarget } from "@/components/workspace/url-token";
 import { useToast } from "@/components/ui/toast";
-import { parseCurl, type CurlParseResult } from "@/lib/curl/parse-curl";
-import {
-  brunoToTree,
-  collectDotenv,
-  type BrunoFileMap,
-} from "@/lib/bruno/bruno-to-tree";
-import { postmanToTree, type PostmanFileMap } from "@/lib/postman/postman-to-tree";
-import { openapiToTree } from "@/lib/openapi/openapi-to-tree";
 import {
   indexRequests,
   isOverrideFieldDirty,
@@ -70,6 +58,7 @@ import { createTabs } from "@/components/workspace/workspace-context/tabs";
 import { createRequestEdits } from "@/components/workspace/workspace-context/request-edits";
 import { createTreeCrud } from "@/components/workspace/workspace-context/tree-crud";
 import { createSend } from "@/components/workspace/workspace-context/send";
+import { createImports } from "@/components/workspace/workspace-context/imports";
 
 export type {
   ActiveEditor,
@@ -562,84 +551,19 @@ export function WorkspaceProvider({
       closeCodeGen,
     } = createSend(internals, { persistTree, saveEnv });
 
-    const openCurlImport = () => setIsCurlImportOpen(true);
-    const closeCurlImport = () => setIsCurlImportOpen(false);
-
-    const importCurl = (text: string): CurlParseResult => {
-      const result = parseCurl(text);
-      if (!result.ok) {
-        return result;
-      }
-      const { method, url, headers, body, auth } = result.request;
-      createRequestNode({
-        name: url.trim() || "Imported Request",
-        method,
-        url,
-        body: {
-          active: "json",
-          types: {
-            json: body ?? "",
-            form: [],
-            multipart: [],
-            graphql: { query: "", variables: "" },
-          },
-        },
-        config: {
-          ...(headers.length > 0 ? { headers } : {}),
-          ...(auth ? { auth } : {}),
-        },
-      }, { mode: "persist" });
-      setIsCurlImportOpen(false);
-      showToastRef.current("Imported request");
-      return result;
-    };
-
-    const importBruno = (files: BrunoFileMap, name: string) => {
-      const [root] = brunoToTree(files, name);
-      if (!root || root.kind !== "folder" || root.children.length === 0) {
-        return;
-      }
-      nodeCounter.current += 1;
-      const folder = { ...root, id: `new-${nodeCounter.current}` };
-      setExpandedFolderIds((current) => new Set(current).add(folder.id));
-      setIsEditorActive(false);
-      selectSingle(folder.id);
-      persistTree(insertNode(tree, null, tree.length, folder), "import");
-      showToastRef.current("Imported Bruno collection");
-    };
-
-    const importPostman = (files: PostmanFileMap, name: string) => {
-      const [root] = postmanToTree(files, name);
-      if (!root || root.kind !== "folder" || root.children.length === 0) {
-        return;
-      }
-      nodeCounter.current += 1;
-      const folder = { ...root, id: `new-${nodeCounter.current}` };
-      setExpandedFolderIds((current) => new Set(current).add(folder.id));
-      setIsEditorActive(false);
-      selectSingle(folder.id);
-      persistTree(insertNode(tree, null, tree.length, folder), "import");
-      const collectionEnv = collectDotenv(files);
-      if (collectionEnv.trim() !== "") {
-        saveEnv(mergeDotenv(envText, collectionEnv));
-      }
-      showToastRef.current("Imported Postman collection");
-    };
-
-    const importOpenapi = (text: string, name: string) => {
-      const [root] = openapiToTree(text, name);
-      if (!root || root.kind !== "folder" || root.children.length === 0) {
-        showToastRef.current("No importable operations in OpenAPI document");
-        return;
-      }
-      nodeCounter.current += 1;
-      const folder = { ...root, id: `new-${nodeCounter.current}` };
-      setExpandedFolderIds((current) => new Set(current).add(folder.id));
-      setIsEditorActive(false);
-      selectSingle(folder.id);
-      persistTree(insertNode(tree, null, tree.length, folder), "import");
-      showToastRef.current("Imported OpenAPI document");
-    };
+    const {
+      importCurl,
+      importBruno,
+      importPostman,
+      importOpenapi,
+      openCurlImport,
+      closeCurlImport,
+    } = createImports(internals, {
+      persistTree,
+      saveEnv,
+      createRequestNode,
+      selectSingle,
+    });
 
     const { saveNodeConfig, saveFolder, saveFolderConfigDoc, setFolderEnvColor } =
       createConfigSaves(internals, persistTree);
