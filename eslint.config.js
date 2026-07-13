@@ -35,4 +35,15 @@ export default tseslint.config(
       "react-hooks/incompatible-library": "off",
     },
   },
+  {
+    // The workspace context is split into concern factories that take an
+    // `internals` bag (state/setters/refs) and are called inside the provider's
+    // value memo. Each factory only reads a ref's `.current` inside the closures
+    // it returns (event handlers / async send loop), never during render - but
+    // react-hooks/refs can't see through the bag and flags every factory call.
+    files: ["src/components/workspace/workspace-context/**/*.{ts,tsx}"],
+    rules: {
+      "react-hooks/refs": "off",
+    },
+  },
 );
