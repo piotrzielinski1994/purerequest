@@ -1,7 +1,11 @@
+import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import type { MoveTarget } from "@/lib/workspace/move";
-import type { HttpRequest, ResponseState } from "@/lib/http/model";
+import type { HttpClient, HttpRequest, ResponseState } from "@/lib/http/model";
+import type { ScriptRunner } from "@/lib/scripts/model";
+import type { WriteResult } from "@/lib/workspace/fs";
+import type { ProcessEnv } from "@/lib/workspace/environment";
 import type {
   BodyMode,
   ConfigScope,
@@ -9,10 +13,111 @@ import type {
   KeyValue,
 } from "@/lib/workspace/model";
 import type { RequestPatch } from "@/lib/workspace/update-request";
+import type { DraftTab } from "@/lib/settings/settings";
 import type { TokenTarget } from "@/components/workspace/url-token";
 import type { CurlParseResult } from "@/lib/curl/parse-curl";
 import type { BrunoFileMap } from "@/lib/bruno/bruno-to-tree";
 import type { PostmanFileMap } from "@/lib/postman/postman-to-tree";
+
+// A promoted-on-save "new request" tab: the pristine request plus where it lands
+// in the tree when saved.
+export type DraftEntry = { request: RequestNode; placement: MoveTarget };
+
+// The shared state/setters/refs/derived bag the provider builds once per render
+// and threads into each concern factory. Factories are plain functions (not
+// hooks) that close over this - so they run inside the provider's `value` memo
+// with the exact same recompute timing the inline closures had. Refs are passed
+// as the ref objects (not `.current`) so async paths read live values.
+export type WorkspaceInternals = {
+  // State
+  tree: TreeNode[];
+  setTree: Dispatch<SetStateAction<TreeNode[]>>;
+  activeEnvironment: string | null;
+  setActiveEnvironmentState: Dispatch<SetStateAction<string | null>>;
+  envText: string;
+  setEnvText: Dispatch<SetStateAction<string>>;
+  processEnv: ProcessEnv;
+  setProcessEnv: Dispatch<SetStateAction<ProcessEnv>>;
+  editTarget: EditTarget;
+  setEditTarget: Dispatch<SetStateAction<EditTarget>>;
+  isEditorActive: boolean;
+  setIsEditorActive: Dispatch<SetStateAction<boolean>>;
+  pendingClose: PendingClose;
+  setPendingClose: Dispatch<SetStateAction<PendingClose>>;
+  pendingDelete: PendingDelete;
+  setPendingDelete: Dispatch<SetStateAction<PendingDelete>>;
+  isCurlImportOpen: boolean;
+  setIsCurlImportOpen: Dispatch<SetStateAction<boolean>>;
+  isCodeGenOpen: boolean;
+  setIsCodeGenOpen: Dispatch<SetStateAction<boolean>>;
+  revealTarget: RevealTarget;
+  setRevealTarget: Dispatch<SetStateAction<RevealTarget>>;
+  paramsReveal: ParamsReveal;
+  setParamsReveal: Dispatch<SetStateAction<ParamsReveal>>;
+  renamingNodeId: string | null;
+  setRenamingNodeId: Dispatch<SetStateAction<string | null>>;
+  consoleLines: string[];
+  setConsoleLines: Dispatch<SetStateAction<string[]>>;
+  requestOverrides: Map<string, RequestOverride>;
+  setRequestOverrides: Dispatch<SetStateAction<Map<string, RequestOverride>>>;
+  draftRequests: Map<string, DraftEntry>;
+  setDraftRequests: Dispatch<SetStateAction<Map<string, DraftEntry>>>;
+  responseStates: Map<string, ResponseState>;
+  setResponseStates: Dispatch<SetStateAction<Map<string, ResponseState>>>;
+  focusUrlNonce: number;
+  setFocusUrlNonce: Dispatch<SetStateAction<number>>;
+  activeEditor: ActiveEditor | null;
+  setActiveEditor: Dispatch<SetStateAction<ActiveEditor | null>>;
+  expandedFolderIds: Set<string>;
+  setExpandedFolderIds: Dispatch<SetStateAction<Set<string>>>;
+  selectedNodeId: string | null;
+  setSelectedNodeId: Dispatch<SetStateAction<string | null>>;
+  selectedIds: Set<string>;
+  setSelectedIds: Dispatch<SetStateAction<Set<string>>>;
+  selectAnchorId: string | null;
+  setSelectAnchorId: Dispatch<SetStateAction<string | null>>;
+  openRequestIds: string[];
+  setOpenRequestIds: Dispatch<SetStateAction<string[]>>;
+  activeRequestId: string | null;
+  setActiveRequestId: Dispatch<SetStateAction<string | null>>;
+  activeRequestTab: RequestTab;
+  setActiveRequestTab: Dispatch<SetStateAction<RequestTab>>;
+  activeResponseTab: ResponseTab;
+  setActiveResponseTab: Dispatch<SetStateAction<ResponseTab>>;
+  // Refs (passed as objects so async closures read live values)
+  preSettingsActiveId: RefObject<string | null>;
+  revealNonce: RefObject<number>;
+  paramsRevealNonce: RefObject<number>;
+  nodeCounter: RefObject<number>;
+  autoNameIds: RefObject<Map<string, string>>;
+  showToastRef: RefObject<(message: string) => void>;
+  httpClientRef: RefObject<HttpClient>;
+  scriptRunnerRef: RefObject<ScriptRunner>;
+  sendGeneration: RefObject<Map<string, number>>;
+  inFlightRequestId: RefObject<Map<string, string>>;
+  onTabsChangeRef: RefObject<
+    ((openRequestIds: string[], activeRequestId: string | null) => void) | undefined
+  >;
+  onDraftTabsChangeRef: RefObject<((drafts: DraftTab[]) => void) | undefined>;
+  onTreeChangeRef: RefObject<
+    ((tree: TreeNode[]) => Promise<WriteResult>) | undefined
+  >;
+  onActiveEnvironmentChangeRef: RefObject<
+    ((name: string | null) => void) | undefined
+  >;
+  onEnvChangeRef: RefObject<((text: string) => void) | undefined>;
+  // Derived
+  requestsById: Map<string, RequestNode>;
+  dirtyRequestIds: Set<string>;
+  editorDirty: boolean;
+  popupCanSave: boolean;
+  isWorkspaceWritable: boolean;
+  activeScopeId: string | null;
+  scopedEnvNames: string[];
+  effectiveEnvironment: string | null;
+  isSettingsOpen: boolean;
+  isSettingsActive: boolean;
+};
 
 export type RequestOverride = Partial<
   Pick<RequestNode, "name" | "url" | "method" | "body" | "params" | "config">

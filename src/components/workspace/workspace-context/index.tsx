@@ -105,6 +105,9 @@ import {
   type WorkspaceContextValue,
 } from "@/components/workspace/workspace-context/types";
 
+import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
+import { createPersist } from "@/components/workspace/workspace-context/persist";
+
 export type {
   ActiveEditor,
   EditTarget,
@@ -452,6 +455,92 @@ export function WorkspaceProvider({
   const isWorkspaceWritable = onTreeChange !== undefined;
 
   const value = useMemo<WorkspaceContextValue>(() => {
+    // The shared bag threaded into each concern factory. Built fresh per memo run
+    // (same cadence as the inline closures had), so recompute timing is unchanged.
+    const internals: WorkspaceInternals = {
+      tree,
+      setTree,
+      activeEnvironment,
+      setActiveEnvironmentState,
+      envText,
+      setEnvText,
+      processEnv,
+      setProcessEnv,
+      editTarget,
+      setEditTarget,
+      isEditorActive,
+      setIsEditorActive,
+      pendingClose,
+      setPendingClose,
+      pendingDelete,
+      setPendingDelete,
+      isCurlImportOpen,
+      setIsCurlImportOpen,
+      isCodeGenOpen,
+      setIsCodeGenOpen,
+      revealTarget,
+      setRevealTarget,
+      paramsReveal,
+      setParamsReveal,
+      renamingNodeId,
+      setRenamingNodeId,
+      consoleLines,
+      setConsoleLines,
+      requestOverrides,
+      setRequestOverrides,
+      draftRequests,
+      setDraftRequests,
+      responseStates,
+      setResponseStates,
+      focusUrlNonce,
+      setFocusUrlNonce,
+      activeEditor,
+      setActiveEditor,
+      expandedFolderIds,
+      setExpandedFolderIds,
+      selectedNodeId,
+      setSelectedNodeId,
+      selectedIds,
+      setSelectedIds,
+      selectAnchorId,
+      setSelectAnchorId,
+      openRequestIds,
+      setOpenRequestIds,
+      activeRequestId,
+      setActiveRequestId,
+      activeRequestTab,
+      setActiveRequestTab,
+      activeResponseTab,
+      setActiveResponseTab,
+      preSettingsActiveId,
+      revealNonce,
+      paramsRevealNonce,
+      nodeCounter,
+      autoNameIds,
+      showToastRef,
+      httpClientRef,
+      scriptRunnerRef,
+      sendGeneration,
+      inFlightRequestId,
+      onTabsChangeRef,
+      onDraftTabsChangeRef,
+      onTreeChangeRef,
+      onActiveEnvironmentChangeRef,
+      onEnvChangeRef,
+      requestsById,
+      dirtyRequestIds,
+      editorDirty,
+      popupCanSave,
+      isWorkspaceWritable,
+      activeScopeId,
+      scopedEnvNames,
+      effectiveEnvironment,
+      isSettingsOpen,
+      isSettingsActive,
+    };
+
+    const { persistTree, saveEnv } = createPersist(internals);
+
     // Set the primary (CRUD/placement) node AND collapse the multi-selection to
     // just it, so the sidebar highlight (driven off selectedIds) tracks the
     // single active node whenever selection is set outside a modifier-click.
@@ -1112,30 +1201,6 @@ export function WorkspaceProvider({
       showToastRef.current("Imported OpenAPI document");
     };
 
-    // Optimistic save: the in-memory tree updates synchronously and we confirm
-    // ("Saved") immediately, without awaiting the disk write - so Cmd+S never
-    // mules behind the round-trip. The write still runs in the background; only a
-    // REJECTED write surfaces (a "Save failed" toast + console line) so the user
-    // is never silently left with an unpersisted change.
-    const persistTree = (next: TreeNode[], failLabel: string) => {
-      setTree(next);
-      const persist = onTreeChangeRef.current;
-      showToastRef.current("Saved");
-      if (!persist) {
-        return;
-      }
-      persist(next).then((result) => {
-        if (result.ok) {
-          return;
-        }
-        showToastRef.current(`Save failed: ${result.error}`);
-        setConsoleLines((lines) => [
-          ...lines,
-          `[workspace] failed to persist ${failLabel}: ${result.error}`,
-        ]);
-      });
-    };
-
     const saveNodeConfig = (id: string, config: ConfigScope) =>
       persistTree(updateNodeConfig(tree, id, config), "config");
 
@@ -1622,17 +1687,6 @@ export function WorkspaceProvider({
     };
 
     const cancelPendingClose = () => setPendingClose(null);
-
-    const saveEnv = (text: string) => {
-      setEnvText(text);
-      setProcessEnv(parseDotenv(text));
-      const persist = onEnvChangeRef.current;
-      if (!persist) {
-        showToastRef.current("Saved");
-        return;
-      }
-      Promise.resolve(persist(text)).then(() => showToastRef.current("Saved"));
-    };
 
     const setTokenValue = (target: TokenTarget, value: string) => {
       if (target.kind === "dotenv") {
