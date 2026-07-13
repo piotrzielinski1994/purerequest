@@ -64,12 +64,7 @@ import {
   parseDotenv,
   setDotenvValue,
 } from "@/lib/workspace/environment";
-import { updateNodeConfig } from "@/lib/workspace/update-config";
 import { updateFolderDotenv } from "@/lib/workspace/update-folder-dotenv";
-import {
-  updateFolderEnvColor,
-  setFolderEnvironmentColors,
-} from "@/lib/workspace/update-folder-env-color";
 import {
   updateRequest,
   type RequestPatch,
@@ -103,6 +98,7 @@ import {
 import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
 import { createPersist } from "@/components/workspace/workspace-context/persist";
 import { createSelection } from "@/components/workspace/workspace-context/selection";
+import { createConfigSaves } from "@/components/workspace/workspace-context/config-saves";
 
 export type {
   ActiveEditor,
@@ -1175,42 +1171,8 @@ export function WorkspaceProvider({
       showToastRef.current("Imported OpenAPI document");
     };
 
-    const saveNodeConfig = (id: string, config: ConfigScope) =>
-      persistTree(updateNodeConfig(tree, id, config), "config");
-
-    // Folder Settings JSON save: the doc merges env colors into `environments`, so
-    // persist BOTH the folder's config AND its whole env-color map in one write
-    // (the JSON editor is the one place both are edited together).
-    const saveFolderConfigDoc = (
-      id: string,
-      config: ConfigScope,
-      colors: Record<string, string>,
-    ) =>
-      persistTree(
-        setFolderEnvironmentColors(updateNodeConfig(tree, id, config), id, colors),
-        "config",
-      );
-
-    // Folder pane save: persist the folder's config AND its own `.env` in ONE
-    // tree write so the Env tab's two sub-views can't clobber each other.
-    const saveFolder = (id: string, config: ConfigScope, dotenv: string) =>
-      persistTree(
-        updateFolderDotenv(updateNodeConfig(tree, id, config), id, dotenv),
-        "config",
-      );
-
-    // Live color write: persists immediately (outside the folder pane Cmd+S draft)
-    // so the border updates on pick and a color change never clobbers unsaved var
-    // edits buffered in the draft.
-    const setFolderEnvColor = (
-      folderId: string,
-      env: string,
-      color: string | null,
-    ) =>
-      persistTree(
-        updateFolderEnvColor(tree, folderId, env, color),
-        "accent",
-      );
+    const { saveNodeConfig, saveFolder, saveFolderConfigDoc, setFolderEnvColor } =
+      createConfigSaves(internals, persistTree);
 
     const saveActiveRequest = (): boolean => {
       if (activeRequestId === null) {
