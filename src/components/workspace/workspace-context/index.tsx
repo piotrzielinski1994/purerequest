@@ -22,10 +22,6 @@ import {
   moveNodes as applyMoveNodes,
   type MoveTarget,
 } from "@/lib/workspace/move";
-import {
-  flattenSelectable,
-  rangeBetween,
-} from "@/lib/workspace/tree-select";
 import type { DraftTab } from "@/lib/settings/settings";
 import {
   collectRequestIds,
@@ -92,7 +88,6 @@ import { openapiToTree } from "@/lib/openapi/openapi-to-tree";
 import {
   indexRequests,
   isOverrideFieldDirty,
-  toggleInSet,
   type ActiveEditor,
   type EditTarget,
   type ParamsReveal,
@@ -107,6 +102,7 @@ import {
 
 import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
 import { createPersist } from "@/components/workspace/workspace-context/persist";
+import { createSelection } from "@/components/workspace/workspace-context/selection";
 
 export type {
   ActiveEditor,
@@ -540,36 +536,14 @@ export function WorkspaceProvider({
     };
 
     const { persistTree, saveEnv } = createPersist(internals);
-
-    // Set the primary (CRUD/placement) node AND collapse the multi-selection to
-    // just it, so the sidebar highlight (driven off selectedIds) tracks the
-    // single active node whenever selection is set outside a modifier-click.
-    const selectSingle = (id: string) => {
-      setSelectedNodeId(id);
-      setSelectedIds(new Set([id]));
-      setSelectAnchorId(id);
-    };
-
-    // Move the single-selection to a row without opening/toggling it - the
-    // keyboard-navigation seam (ArrowUp/Down/Home/End) moves focus + selection
-    // but must not open a request tab or collapse a folder.
-    const focusNode = (id: string) => {
-      selectSingle(id);
-    };
-
-    const selectNode = (id: string) => {
-      selectSingle(id);
-      const request = requestsById.get(id);
-      if (!request) {
-        setExpandedFolderIds((current) => toggleInSet(current, id));
-        return;
-      }
-      setOpenRequestIds((current) =>
-        current.includes(id) ? current : [...current, id],
-      );
-      setIsEditorActive(false);
-      setActiveRequestId(id);
-    };
+    const {
+      selectSingle,
+      focusNode,
+      selectNode,
+      selectInTree,
+      clearSelection,
+      toggleFolder,
+    } = createSelection(internals);
 
     const closeRequest = (id: string) => {
       setOpenRequestIds((current) => {
@@ -1949,32 +1923,12 @@ export function WorkspaceProvider({
       },
       isSettingsOpen,
       isSettingsActive,
-      toggleFolder: (id) =>
-        setExpandedFolderIds((current) => toggleInSet(current, id)),
+      toggleFolder,
       selectNode,
       focusNode,
       selectedIds,
-      selectInTree: (id, mode) => {
-        if (mode === "toggle") {
-          setSelectedIds((current) => toggleInSet(current, id));
-          setSelectAnchorId(id);
-          return;
-        }
-        if (mode === "range" && selectAnchorId !== null) {
-          const ordered = flattenSelectable(tree, expandedFolderIds);
-          setSelectedIds(new Set(rangeBetween(ordered, selectAnchorId, id)));
-          return;
-        }
-        setSelectedIds(new Set([id]));
-        setSelectAnchorId(id);
-      },
-      clearSelection: () => {
-        setSelectedIds(new Set());
-        setSelectAnchorId(null);
-        // Also drop the primary node so placement (new request/folder) falls back
-        // to the workspace root instead of the just-deselected folder.
-        setSelectedNodeId(null);
-      },
+      selectInTree,
+      clearSelection,
       setActiveRequest: (id) => {
         setIsEditorActive(false);
         setActiveRequestId(id);
