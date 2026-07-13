@@ -56,7 +56,7 @@ import {
   type ReqDraft,
   type VarWrite,
 } from "@/lib/scripts/script-context";
-import { findVarWriteTarget, setNodeVar } from "@/lib/scripts/var-write";
+import { resolveVarWriteTarget, setNodeVar } from "@/lib/scripts/var-write";
 import type {
   BodyMode,
   ConfigScope,
@@ -952,21 +952,56 @@ export function WorkspaceProvider({
         pendingLines.splice(0);
         setConsoleLines([]);
       };
+      // A setVar persists either to a node's config.variables OR, when the var's
+      // nearest definition is a pure {{process.env.KEY}} pointer, to the .env that
+      // provides KEY (root or owning folder) - leaving the pointer row untouched.
+      // Fold both edit kinds over one {tree, envText} accumulator, then persist
+      // whichever channels actually changed.
       const persistVarWrites = (writes: VarWrite[]) => {
         if (writes.length === 0) {
           return;
         }
         const next = writes.reduce(
-          (acc, write) =>
-            setNodeVar(
-              acc,
-              findVarWriteTarget(acc, id, write.name),
-              write.name,
-              write.value,
-            ),
-          tree,
+          (acc, write) => {
+            const target = resolveVarWriteTarget(acc.tree, id, write.name);
+            if (target.kind === "config") {
+              return {
+                ...acc,
+                tree: setNodeVar(acc.tree, target.nodeId, write.name, write.value),
+              };
+            }
+            const owner =
+              resolveProcessEnvProvenance(
+                acc.tree,
+                id,
+                parseDotenv(acc.envText),
+              )[target.key]?.scopeId ?? null;
+            if (owner === null) {
+              return {
+                ...acc,
+                envText: setDotenvValue(acc.envText, target.key, write.value),
+              };
+            }
+            const folder = findNode(acc.tree, owner);
+            const folderDotenv =
+              folder?.kind === "folder" ? folder.dotenv ?? "" : "";
+            return {
+              ...acc,
+              tree: updateFolderDotenv(
+                acc.tree,
+                owner,
+                setDotenvValue(folderDotenv, target.key, write.value),
+              ),
+            };
+          },
+          { tree, envText },
         );
-        persistTree(next, "script");
+        if (next.tree !== tree) {
+          persistTree(next.tree, "script");
+        }
+        if (next.envText !== envText) {
+          saveEnv(next.envText);
+        }
       };
 
       // PRE-request script: may mutate a reqDraft + set runtime/persisted vars.
