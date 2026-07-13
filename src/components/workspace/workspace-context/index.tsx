@@ -99,6 +99,7 @@ import type { WorkspaceInternals } from "@/components/workspace/workspace-contex
 import { createPersist } from "@/components/workspace/workspace-context/persist";
 import { createSelection } from "@/components/workspace/workspace-context/selection";
 import { createConfigSaves } from "@/components/workspace/workspace-context/config-saves";
+import { createTabs } from "@/components/workspace/workspace-context/tabs";
 
 export type {
   ActiveEditor,
@@ -540,74 +541,18 @@ export function WorkspaceProvider({
       clearSelection,
       toggleFolder,
     } = createSelection(internals);
-
-    const closeRequest = (id: string) => {
-      setOpenRequestIds((current) => {
-        const index = current.indexOf(id);
-        if (index === -1) {
-          return current;
-        }
-        const next = current.filter((openId) => openId !== id);
-        setActiveRequestId((active) => {
-          if (active !== id) {
-            return active;
-          }
-          return next[Math.min(index, next.length - 1)] ?? null;
-        });
-        return next;
-      });
-      setRequestOverrides((current) => {
-        if (!current.has(id)) {
-          return current;
-        }
-        const next = new Map(current);
-        next.delete(id);
-        return next;
-      });
-      // Closing a draft tab discards it entirely (never written to disk).
-      setDraftRequests((current) => {
-        if (!current.has(id)) {
-          return current;
-        }
-        const next = new Map(current);
-        next.delete(id);
-        return next;
-      });
-      setResponseStates((current) => {
-        if (!current.has(id)) {
-          return current;
-        }
-        const next = new Map(current);
-        next.delete(id);
-        return next;
-      });
-    };
-
-    const closeAllRequests = () => {
-      setOpenRequestIds([]);
-      setActiveRequestId(null);
-      setRequestOverrides(new Map());
-      setDraftRequests(new Map());
-      setResponseStates(new Map());
-    };
-
-    const closeOthers = (id: string) => {
-      setOpenRequestIds((current) => (current.includes(id) ? [id] : current));
-      setActiveRequestId(id);
-      setIsEditorActive(false);
-      setRequestOverrides((current) => {
-        const kept = current.get(id);
-        return kept === undefined ? new Map() : new Map([[id, kept]]);
-      });
-      setDraftRequests((current) => {
-        const kept = current.get(id);
-        return kept === undefined ? new Map() : new Map([[id, kept]]);
-      });
-      setResponseStates((current) => {
-        const kept = current.get(id);
-        return kept === undefined ? new Map() : new Map([[id, kept]]);
-      });
-    };
+    const {
+      closeRequest,
+      closeAllRequests,
+      closeOthers,
+      reorderRequests,
+      setActiveRequest,
+      requestCloseRequest,
+      requestCloseOthers,
+      requestCloseAll,
+      openSettings,
+      closeSettings,
+    } = createTabs(internals);
 
     const mergeOverride = (id: string, patch: RequestOverride) => {
       setRequestOverrides((current) => {
@@ -1476,37 +1421,6 @@ export function WorkspaceProvider({
 
     const cancelPendingDelete = () => setPendingDelete(null);
 
-    const requestCloseRequest = (id: string) => {
-      if (dirtyRequestIds.has(id)) {
-        setPendingClose({ kind: "one", id });
-        return;
-      }
-      closeRequest(id);
-    };
-
-    const requestCloseAll = () => {
-      const hasDirtyOpen = openRequestIds.some((id) => dirtyRequestIds.has(id));
-      if (hasDirtyOpen) {
-        setPendingClose({ kind: "all" });
-        return;
-      }
-      closeAllRequests();
-    };
-
-    const requestCloseOthers = (id: string) => {
-      if (!openRequestIds.includes(id) || openRequestIds.length <= 1) {
-        return;
-      }
-      const hasDirtyOther = openRequestIds.some(
-        (openId) => openId !== id && dirtyRequestIds.has(openId),
-      );
-      if (hasDirtyOther) {
-        setPendingClose({ kind: "others", id });
-        return;
-      }
-      closeOthers(id);
-    };
-
     const requestCloseEditor = () => {
       if (editorDirty) {
         setPendingClose({ kind: "editor" });
@@ -1891,17 +1805,8 @@ export function WorkspaceProvider({
       selectedIds,
       selectInTree,
       clearSelection,
-      setActiveRequest: (id) => {
-        setIsEditorActive(false);
-        setActiveRequestId(id);
-      },
-      reorderRequests: (nextIds) =>
-        setOpenRequestIds((current) => {
-          const isPermutation =
-            nextIds.length === current.length &&
-            nextIds.every((id) => current.includes(id));
-          return isPermutation ? nextIds : current;
-        }),
+      setActiveRequest,
+      reorderRequests,
       moveNode: (dragId, target) => {
         const next = applyMove(tree, dragId, target);
         if (next === tree) {
@@ -1958,34 +1863,8 @@ export function WorkspaceProvider({
       cancelRequest,
       setRequestTab: setActiveRequestTab,
       setResponseTab: setActiveResponseTab,
-      openSettings: () => {
-        // Remember the pre-settings tab so Esc can return to it (only when
-        // opening fresh, not re-activating from another tab).
-        if (activeRequestId !== SETTINGS_TAB_ID) {
-          preSettingsActiveId.current = activeRequestId;
-        }
-        setOpenRequestIds((current) =>
-          current.includes(SETTINGS_TAB_ID)
-            ? current
-            : [...current, SETTINGS_TAB_ID],
-        );
-        setActiveRequestId(SETTINGS_TAB_ID);
-        setIsEditorActive(false);
-      },
-      // Esc DEACTIVATES settings (returns to the workspace) but leaves the tab
-      // open - it is closed only via its X / Mod+W / close-all, like a request.
-      closeSettings: () => {
-        if (activeRequestId !== SETTINGS_TAB_ID) {
-          return;
-        }
-        const others = openRequestIds.filter((id) => id !== SETTINGS_TAB_ID);
-        const prior = preSettingsActiveId.current;
-        const target =
-          prior !== null && others.includes(prior)
-            ? prior
-            : (others[others.length - 1] ?? null);
-        setActiveRequestId(target);
-      },
+      openSettings,
+      closeSettings,
       newRequest,
       resolveActiveWire,
       isCodeGenOpen,
