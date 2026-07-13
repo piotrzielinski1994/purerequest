@@ -18,7 +18,6 @@ import {
 } from "@/lib/workspace/resolve";
 import type { MoveTarget } from "@/lib/workspace/move";
 import type { DraftTab } from "@/lib/settings/settings";
-import { insertNode } from "@/lib/workspace/tree-edit";
 import { SETTINGS_TAB_ID } from "@/components/workspace/pane-tabs";
 import type { WriteResult } from "@/lib/workspace/fs";
 import { createFakeHttpClient } from "@/lib/http/fake-client";
@@ -28,10 +27,6 @@ import { createFakeScriptRunner } from "@/lib/scripts/fake-runner";
 import type { ConfigScope, KeyValue } from "@/lib/workspace/model";
 import { parseDotenv, setDotenvValue } from "@/lib/workspace/environment";
 import { updateFolderDotenv } from "@/lib/workspace/update-folder-dotenv";
-import {
-  updateRequest,
-  type RequestPatch,
-} from "@/lib/workspace/update-request";
 import { findNode } from "@/lib/workspace/tree-locate";
 import type { TokenTarget } from "@/components/workspace/url-token";
 import { useToast } from "@/components/ui/toast";
@@ -59,6 +54,7 @@ import { createRequestEdits } from "@/components/workspace/workspace-context/req
 import { createTreeCrud } from "@/components/workspace/workspace-context/tree-crud";
 import { createSend } from "@/components/workspace/workspace-context/send";
 import { createImports } from "@/components/workspace/workspace-context/imports";
+import { createEditors } from "@/components/workspace/workspace-context/editors";
 
 export type {
   ActiveEditor,
@@ -568,122 +564,19 @@ export function WorkspaceProvider({
     const { saveNodeConfig, saveFolder, saveFolderConfigDoc, setFolderEnvColor } =
       createConfigSaves(internals, persistTree);
 
-    const requestCloseEditor = () => {
-      if (editorDirty) {
-        setPendingClose({ kind: "editor" });
-        return;
-      }
-      setEditTarget(null);
-      setIsEditorActive(false);
-    };
-
-    const confirmPendingClose = () => {
-      if (pendingClose === null) {
-        return;
-      }
-      if (pendingClose.kind === "all") {
-        closeAllRequests();
-      } else if (pendingClose.kind === "others") {
-        closeOthers(pendingClose.id);
-      } else if (pendingClose.kind === "editor") {
-        setEditTarget(null);
-        setIsEditorActive(false);
-      } else {
-        closeRequest(pendingClose.id);
-      }
-      setPendingClose(null);
-    };
-
-    // Persist everything dirty for the pending close in ONE tree write, then
-    // close. Folds the active config/request editor (commitToTree) and the saved
-    // requests' url/method/body overrides into a single tree so close-all over
-    // several dirty tabs can't clobber. The .env editor (no commitToTree) writes
-    // its own text via save(). No-op when the active editor can't be saved.
-    const savePendingClose = () => {
-      if (pendingClose === null || !popupCanSave) {
-        return;
-      }
-      const editor = activeEditor;
-      const treeRequests = indexRequests(tree);
-      const overrideIdsToFold =
-        pendingClose.kind === "one"
-          ? [pendingClose.id]
-          : pendingClose.kind === "all"
-            ? openRequestIds
-            : pendingClose.kind === "others"
-              ? openRequestIds.filter((id) => id !== pendingClose.id)
-              : [];
-
-      let nextTree = tree;
-      const foldedOverrideIds: string[] = [];
-      const promotedDraftIds: string[] = [];
-      overrideIdsToFold.forEach((id) => {
-        const draft = draftRequests.get(id);
-        if (draft) {
-          // A dirty draft being closed-with-save is promoted into the tree.
-          const patch = requestOverrides.get(id) as RequestPatch | undefined;
-          const node: RequestNode = { ...draft.request, ...(patch ?? {}) };
-          nextTree = insertNode(
-            nextTree,
-            draft.placement.parentId,
-            draft.placement.index,
-            node,
-          );
-          promotedDraftIds.push(id);
-          if (patch) {
-            foldedOverrideIds.push(id);
-          }
-          return;
-        }
-        if (!treeRequests.has(id)) {
-          return; // not an on-disk request: nothing to write
-        }
-        const patch = requestOverrides.get(id) as RequestPatch | undefined;
-        if (patch) {
-          nextTree = updateRequest(nextTree, id, patch);
-          foldedOverrideIds.push(id);
-        }
-      });
-      if (editor?.commitToTree) {
-        nextTree = editor.commitToTree(nextTree);
-      }
-
-      if (promotedDraftIds.length > 0) {
-        setDraftRequests((current) => {
-          const next = new Map(current);
-          promotedDraftIds.forEach((id) => next.delete(id));
-          return next;
-        });
-      }
-      if (foldedOverrideIds.length > 0) {
-        setRequestOverrides((current) => {
-          const nextOverrides = new Map(current);
-          foldedOverrideIds.forEach((id) => nextOverrides.delete(id));
-          return nextOverrides;
-        });
-      }
-      if (nextTree !== tree) {
-        persistTree(nextTree, "edits");
-      }
-      // The .env editor isn't a tree write - persist it on its own.
-      if (editor && !editor.commitToTree) {
-        editor.save();
-      }
-
-      if (pendingClose.kind === "all") {
-        closeAllRequests();
-      } else if (pendingClose.kind === "others") {
-        closeOthers(pendingClose.id);
-      } else if (pendingClose.kind === "editor") {
-        setEditTarget(null);
-        setIsEditorActive(false);
-      } else {
-        closeRequest(pendingClose.id);
-      }
-      setPendingClose(null);
-    };
-
-    const cancelPendingClose = () => setPendingClose(null);
+    const {
+      openConfigEditor,
+      requestCloseEditor,
+      saveActiveEditor,
+      confirmPendingClose,
+      savePendingClose,
+      cancelPendingClose,
+    } = createEditors(internals, {
+      persistTree,
+      closeRequest,
+      closeAllRequests,
+      closeOthers,
+    });
 
     const setTokenValue = (target: TokenTarget, value: string) => {
       if (target.kind === "dotenv") {
@@ -876,20 +769,7 @@ export function WorkspaceProvider({
       envText,
       editTarget,
       isEditorActive,
-      openConfigEditor: (id: string) => {
-        if (requestsById.has(id)) {
-          setEditTarget(null);
-          setIsEditorActive(false);
-          setOpenRequestIds((current) =>
-            current.includes(id) ? current : [...current, id],
-          );
-          setActiveRequestId(id);
-          setActiveRequestTab("settings");
-          return;
-        }
-        setEditTarget({ kind: "config", id });
-        setIsEditorActive(true);
-      },
+      openConfigEditor,
       closeEditor: requestCloseEditor,
       saveNodeConfig,
       saveFolder,
@@ -904,13 +784,7 @@ export function WorkspaceProvider({
       revealTarget,
       paramsReveal,
       registerActiveEditor,
-      saveActiveEditor: () => {
-        if (!activeEditor) {
-          return false;
-        }
-        activeEditor.save();
-        return true;
-      },
+      saveActiveEditor,
       saveActive,
       editorDirty,
       pendingClose,
