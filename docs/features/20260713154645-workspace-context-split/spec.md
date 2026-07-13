@@ -1,7 +1,9 @@
 # Spec: Split `workspace-context.tsx`
 
 **Created:** 2026-07-13
-**Status:** DRAFT - awaiting approval
+**Status:** DONE - all gates green (lint 0 errors, typecheck 0, npm test 1828/1828, build 0).
+Verified by a fresh clean-context agent: AC-001..006 PASS, `value` dep array byte-identical
+to main, no consumer/test import edits, send-loop ref reads confirmed live. index.tsx 2286 -> 764.
 **Kind:** Refactor (behavior-preserving). No user-visible change.
 
 ## Overview

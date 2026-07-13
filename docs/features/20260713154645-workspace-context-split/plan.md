@@ -191,13 +191,27 @@ Test `workspace-context/__tests__/surface.test.tsx`.
 
 Verification before implementation: green baseline confirmed (`npm test` → 1827 passed / 211 files).
 
-## AC → Test mapping (filled in Phase 4)
+## AC → Test mapping (Phase 4, verifier-confirmed)
 
-| AC | Proof |
-| -- | ----- |
-| AC-001 | surface.test.tsx + no consumer import edits (git diff) |
-| AC-002 | surface.test.tsx member-set assertion + full suite |
-| AC-003 | full suite green, no `*.test.tsx` edited except surface.test.tsx |
-| AC-004 | file map realized; `index.tsx` line count << 2286 |
-| AC-005 | `value` dep array diff = empty |
-| AC-006 | lint/typecheck/test/build exit 0 |
+| AC | Proof | Verdict |
+| -- | ----- | ------- |
+| AC-001 | surface.test.tsx + `git diff main --stat`: only eslint.config.js + deleted monolith outside folder; 0 consumer/test import edits; index re-exports all 11 types | PASS |
+| AC-002 | `WorkspaceContextValue` byte-identical to main (102 members, diff empty); surface.test.tsx pins the member set (bidirectional, non-tautological) | PASS |
+| AC-003 | no `*.test.tsx` edited/deleted; only new surface.test.tsx | PASS |
+| AC-004 | 10 factory modules + types.ts; index.tsx 764 lines (was 2286) | PASS |
+| AC-005 | `value` dep array diff vs main = empty (50 entries) | PASS |
+| AC-006 | lint exit 0 (0 errors, 0 new warnings after dead-capture fix), typecheck 0, npm test exit 0 (1828/1828), build 0 | PASS |
+
+Verifier note: initial run hit a flaky `npm test` exit 1 from a Radix hover-card teardown
+`setTimeout` in `url-bar-token-hover.test.tsx` (NOT in the diff); re-run deterministically
+exits 0 with 1828/1828. The new exhaustive-deps warning it flagged (dead `activeEnvironment`
+capture) was removed in the final commit.
+
+## Decision Log (implementation)
+
+| Date | Decision | Rationale |
+| ---- | -------- | --------- |
+| 2026-07-13 | `workspace-context.tsx` -> `workspace-context/index.tsx` via `git mv`; types + pure helpers -> types.ts; full `WorkspaceInternals` bag type defined once up front | Preserves import path (zero churn); one type edit instead of 11 incremental ones |
+| 2026-07-13 | Scoped `react-hooks/refs: off` for the folder (eslint.config.js) | v7 false positive: factories take a bag holding refs but only deref inside returned closures; mirrors existing routes/demo-table carve-outs |
+| 2026-07-13 | editors.ts folds the duplicated pending-close switch into one `applyClose` helper | confirmPendingClose + savePendingClose ran the identical close switch; behavior identical, less duplication |
+| 2026-07-13 | Dropped dead `activeEnvironment`/`setActiveEnvironmentState` from the internals bag | No factory reads them; the raw capture added a new exhaustive-deps warning absent on main |
