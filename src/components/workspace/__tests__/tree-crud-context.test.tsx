@@ -14,7 +14,7 @@ import { fixtureTree } from "./fixtures";
 
 // The tree-crud surface on the context, narrowed onto the existing value for the
 // probe below.
-type PendingDelete = { id: string } | null;
+type PendingDelete = { ids: string[] } | null;
 
 type CrudSurface = ReturnType<typeof useWorkspace> & {
   renamingNodeId: string | null;
@@ -61,6 +61,8 @@ function CrudProbe() {
     requestDeleteNode,
     confirmPendingDelete,
     cancelPendingDelete,
+    selectInTree,
+    selectedIds,
   } = ctx;
 
   const treeNodes = collect(tree);
@@ -85,7 +87,10 @@ function CrudProbe() {
       </span>
       <span data-testid="renaming-id">{renamingNodeId ?? "none"}</span>
       <span data-testid="pending-delete">
-        {pendingDelete ? pendingDelete.id : "none"}
+        {pendingDelete ? pendingDelete.ids.join(",") : "none"}
+      </span>
+      <span data-testid="selected-ids">
+        {[...selectedIds].sort().join(",") || "none"}
       </span>
       <span data-testid="has-actions">
         {[
@@ -204,6 +209,18 @@ function CrudProbe() {
       </button>
       <button type="button" onClick={() => cancelPendingDelete()}>
         cancel delete
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          selectInTree("folder-users", "replace");
+          selectInTree("folder-empty", "toggle");
+        }}
+      >
+        multi-select two folders
+      </button>
+      <button type="button" onClick={() => requestDeleteNode("folder-users")}>
+        delete users folder
       </button>
     </div>
   );
@@ -708,6 +725,67 @@ describe("WorkspaceProvider delete non-empty folder (AC-006, TC-009/010)", () =>
     expect(screen.getByTestId("pending-delete")).toHaveTextContent("none");
     expect(onTreeChange).not.toHaveBeenCalled();
     expect(screen.getByTestId("tree-ids").textContent).toContain("folder-auth");
+  });
+});
+
+describe("WorkspaceProvider multi-select delete", () => {
+  // side-effect-contract: with several folders multi-selected, deleting one of
+  // them targets the WHOLE selection - the confirm dialog lists every selected id
+  // and confirm removes them all (not just the clicked one).
+  it("should mark the whole selection for delete when a selected node is deleted", async () => {
+    const user = userEvent.setup();
+    const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
+    renderProbe({ onTreeChange });
+
+    await user.click(
+      screen.getByRole("button", { name: /multi-select two folders/i }),
+    );
+    expect(screen.getByTestId("selected-ids")).toHaveTextContent(
+      "folder-empty,folder-users",
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /delete users folder/i }),
+    );
+
+    // dialog carries BOTH selected folders (folder-users is non-empty, so a dialog
+    // is shown rather than an immediate delete).
+    const pending = screen.getByTestId("pending-delete").textContent ?? "";
+    expect(pending).toContain("folder-users");
+    expect(pending).toContain("folder-empty");
+    expect(onTreeChange).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: /confirm delete/i }));
+
+    expect(onTreeChange).toHaveBeenCalledTimes(1);
+    const treeIds = screen.getByTestId("tree-ids").textContent ?? "";
+    expect(treeIds).not.toContain("folder-users");
+    expect(treeIds).not.toContain("folder-empty");
+    // an unselected sibling folder survives.
+    expect(treeIds).toContain("folder-auth");
+  });
+
+  // side-effect-contract: deleting a node that is NOT part of the current
+  // selection targets only that node (the selection is irrelevant).
+  it("should delete only the clicked node when it is not in the selection", async () => {
+    const user = userEvent.setup();
+    const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
+    renderProbe({ onTreeChange });
+
+    // select an unrelated node, then delete a different (empty) folder.
+    await user.click(
+      screen.getByRole("button", { name: /select users folder/i }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /delete empty folder/i }),
+    );
+
+    // empty folder deletes immediately (no dialog), users folder survives.
+    expect(screen.getByTestId("pending-delete")).toHaveTextContent("none");
+    expect(onTreeChange).toHaveBeenCalledTimes(1);
+    const treeIds = screen.getByTestId("tree-ids").textContent ?? "";
+    expect(treeIds).not.toContain("folder-empty");
+    expect(treeIds).toContain("folder-users");
   });
 });
 

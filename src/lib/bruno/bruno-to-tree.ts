@@ -186,6 +186,7 @@ function buildLevel(
     const dir = `${prefix}${segment}`;
     const parsed = folderConfigFor(files, dir);
     const environments = collectEnvironments(files, `${dir}/`);
+    const dotenv = files[`${dir}/.env`];
     const folder: FolderNode = {
       kind: "folder",
       id: nextId(),
@@ -194,6 +195,7 @@ function buildLevel(
         ...(parsed ? configFrom(parsed) : {}),
         ...(environments.length > 0 ? { environments } : {}),
       },
+      ...(dotenv !== undefined ? { dotenv } : {}),
       children: buildLevel(files, `${dir}/`, nextId),
     };
     return folder;
@@ -257,11 +259,13 @@ export function brunoToTree(
     ...(environments.length > 0 ? { environments } : {}),
   };
 
+  const rootDotenv = files[".env"];
   const root: FolderNode = {
     kind: "folder",
     id: nextId(),
     name: collectionMeta.name ?? rootParsed?.name ?? fallbackName,
     config,
+    ...(rootDotenv !== undefined ? { dotenv: rootDotenv } : {}),
     children: buildLevel(files, "", nextId),
   };
   return [root];

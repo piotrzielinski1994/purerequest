@@ -30,6 +30,7 @@ import {
 import type { DraftTab } from "@/lib/settings/settings";
 import {
   collectRequestIds,
+  containsId,
   duplicateRequest as applyDuplicate,
   insertNode,
   removeNode,
@@ -153,7 +154,7 @@ export type PendingClose =
   | { kind: "editor" }
   | null;
 
-export type PendingDelete = { id: string } | null;
+export type PendingDelete = { ids: string[] } | null;
 
 // How a click adjusts the sidebar multi-selection: a plain click replaces it, a
 // Cmd/Ctrl click toggles one row, a Shift click selects the range from the
@@ -1275,13 +1276,6 @@ export function WorkspaceProvider({
       setIsEditorActive(false);
       selectSingle(folder.id);
       persistTree(insertNode(tree, null, tree.length, folder), "import");
-      // A collection's .env feeds {{process.env.X}} - merge every .env found
-      // (at any depth) into the workspace .env so imported requests resolve
-      // their process-env tokens.
-      const collectionEnv = collectDotenv(files);
-      if (collectionEnv.trim() !== "") {
-        saveEnv(mergeDotenv(envText, collectionEnv));
-      }
       showToastRef.current("Imported Bruno collection");
     };
 
@@ -1599,35 +1593,83 @@ export function WorkspaceProvider({
       persistTree(applyDuplicate(tree, id, newId), "duplicate");
     };
 
-    const deleteNode = (id: string) => {
-      const node = findNode(tree, id);
-      if (!node) {
+    // The delete target set for a clicked row: the whole multi-selection when the
+    // clicked node is part of it, else just that node. Reduced to ids that exist
+    // and pruned of any id nested under another target (its ancestor's removal
+    // already takes it), returned in tree document order.
+    const deleteTargetsFor = (id: string): string[] => {
+      const base =
+        selectedIds.has(id) && selectedIds.size > 1 ? [...selectedIds] : [id];
+      const present = base.filter((each) => findNode(tree, each) !== null);
+      const roots = present.filter((each) => {
+        const ancestorAlsoTarget = present.some((other) => {
+          if (other === each) {
+            return false;
+          }
+          const otherNode = findNode(tree, other);
+          return otherNode !== null && containsId(otherNode, each);
+        });
+        return !ancestorAlsoTarget;
+      });
+      const rootSet = new Set(roots);
+      const ordered: string[] = [];
+      const walk = (nodes: TreeNode[]) => {
+        nodes.forEach((node) => {
+          if (rootSet.has(node.id)) {
+            ordered.push(node.id);
+            return;
+          }
+          if (node.kind === "folder") {
+            walk(node.children);
+          }
+        });
+      };
+      walk(tree);
+      return ordered;
+    };
+
+    const deleteNodes = (ids: string[]) => {
+      const nodes = ids
+        .map((id) => findNode(tree, id))
+        .filter((node): node is TreeNode => node !== null);
+      if (nodes.length === 0) {
         return;
       }
-      if (renamingNodeId === id) {
+      if (ids.includes(renamingNodeId ?? "")) {
         setRenamingNodeId(null);
       }
-      collectRequestIds(node).forEach((requestId) => closeRequest(requestId));
-      persistTree(removeNode(tree, id), "delete");
+      nodes
+        .flatMap((node) => collectRequestIds(node))
+        .forEach((requestId) => closeRequest(requestId));
+      const next = ids.reduce((acc, id) => removeNode(acc, id), tree);
+      persistTree(next, "delete");
     };
 
     const requestDeleteNode = (id: string) => {
-      const node = findNode(tree, id);
-      if (!node) {
+      const ids = deleteTargetsFor(id);
+      if (ids.length === 0) {
         return;
       }
-      if (node.kind === "folder" && node.children.length > 0) {
-        setPendingDelete({ id });
+      // A dialog guards a destructive delete: more than one target, or a single
+      // non-empty folder. A lone request or empty folder deletes immediately.
+      const needsConfirm =
+        ids.length > 1 ||
+        ids.some((each) => {
+          const node = findNode(tree, each);
+          return node?.kind === "folder" && node.children.length > 0;
+        });
+      if (needsConfirm) {
+        setPendingDelete({ ids });
         return;
       }
-      deleteNode(id);
+      deleteNodes(ids);
     };
 
     const confirmPendingDelete = () => {
       if (pendingDelete === null) {
         return;
       }
-      deleteNode(pendingDelete.id);
+      deleteNodes(pendingDelete.ids);
       setPendingDelete(null);
     };
 
@@ -1794,12 +1836,13 @@ export function WorkspaceProvider({
 
     const setTokenValue = (target: TokenTarget, value: string) => {
       if (target.kind === "dotenv") {
-        // Write to the `.env` that PROVIDED this key for the active request: the
-        // nearest folder defining it, else the workspace-root `.env`. Editing the
-        // root when a nearer folder shadows it would be silently overridden.
+        // Write to the `.env` that PROVIDED this key for the active SCOPE (a folder
+        // pane resolves its own chain; a request its folder chain): the nearest
+        // folder defining it, else the workspace-root `.env`. Editing the root when
+        // a nearer folder shadows it would be silently overridden.
         const owner =
-          activeRequestId !== null
-            ? resolveProcessEnvProvenance(tree, activeRequestId, processEnv)[
+          activeScopeId !== null
+            ? resolveProcessEnvProvenance(tree, activeScopeId, processEnv)[
                 target.key
               ]?.scopeId ?? null
             : null;
@@ -1891,8 +1934,8 @@ export function WorkspaceProvider({
       }
       if (target.kind === "dotenv") {
         const owner =
-          activeRequestId !== null
-            ? resolveProcessEnvProvenance(tree, activeRequestId, processEnv)[
+          activeScopeId !== null
+            ? resolveProcessEnvProvenance(tree, activeScopeId, processEnv)[
                 target.key
               ]?.scopeId ?? null
             : null;

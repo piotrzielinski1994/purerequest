@@ -192,10 +192,12 @@ describe("Import Bruno collection (AC-009, AC-010)", () => {
     expect(await screen.findByText("YAML API")).toBeInTheDocument();
   });
 
-  // side-effect-contract: a collection's own .env is merged into the workspace
-  // .env on import, so {{process.env.X}} tokens resolve (onEnvChange fires).
-  it("should merge the collection .env into the workspace env on import", async () => {
+  // side-effect-contract: a collection's own .env attaches to the imported
+  // folder node's dotenv (serializes to <folder>/.env), NOT the workspace root
+  // .env - and the root .env is left untouched.
+  it("should attach the collection .env to the imported folder, not the workspace env", async () => {
     const user = userEvent.setup();
+    const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     const onEnvChange = vi.fn<(text: string) => void>();
     const filesWithEnv: BrunoFileMap = {
       "bruno.json": '{ "name": "Env API" }',
@@ -213,7 +215,7 @@ describe("Import Bruno collection (AC-009, AC-010)", () => {
           <WorkspaceProvider
             tree={baseTree}
             consoleLines={["[12:00:00] Ready."]}
-            onTreeChange={vi.fn<OnTreeChange>().mockResolvedValue({ ok: true })}
+            onTreeChange={onTreeChange}
             envText="HOST=local"
             onEnvChange={onEnvChange}
           >
@@ -229,13 +231,19 @@ describe("Import Bruno collection (AC-009, AC-010)", () => {
     await runPaletteCommand(user, /import bruno collection/i);
 
     await waitFor(() => {
-      expect(onEnvChange).toHaveBeenCalled();
+      expect(onTreeChange).toHaveBeenCalled();
     });
-    const written = onEnvChange.mock.calls.at(-1)![0];
-    // existing key kept, imported keys merged in.
-    expect(written).toContain("HOST=local");
-    expect(written).toContain("CULTURE=en-CA");
-    expect(written).toContain("BEARER_TOKEN=abc");
+    const persisted = onTreeChange.mock.calls.at(-1)![0];
+    const importedFolder = persisted.find(
+      (node) => node.kind === "folder" && node.name === "Env API",
+    );
+    expect(importedFolder).toBeDefined();
+    // the imported folder carries the collection .env on its own dotenv.
+    const dotenv = (importedFolder as { dotenv?: string }).dotenv ?? "";
+    expect(dotenv).toContain("CULTURE=en-CA");
+    expect(dotenv).toContain("BEARER_TOKEN=abc");
+    // the workspace root .env is never touched by the import.
+    expect(onEnvChange).not.toHaveBeenCalled();
   });
 
   // AC-009, edge §8 - side-effect-contract: a collection with no requests and no

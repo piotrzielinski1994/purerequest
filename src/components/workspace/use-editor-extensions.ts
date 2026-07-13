@@ -18,6 +18,9 @@ export type EditorExtensionSets = {
   configExtensions: Extension[];
   // Read-only response viewer: JSON, no editing.
   viewerExtensions: Extension[];
+  // Response body viewer: read-only but keyboard-navigable (caret + arrow nav)
+  // with a fold gutter and Mod+-/Mod+= collapse/expand at the cursor.
+  responseViewerExtensions: Extension[];
   // Read-only console object viewer: JSON viewer + fold gutter.
   consoleViewerExtensions: Extension[];
   // `.env` editor: plain text - just the theme chrome + highlight.
@@ -66,6 +69,12 @@ export function useEditorExtensions(): EditorExtensionSets {
         withFold: true,
       }),
       viewerExtensions: makeViewerExtensions({ colors, isDark }),
+      responseViewerExtensions: makeViewerExtensions({
+        colors,
+        isDark,
+        withFold: true,
+        withCursor: true,
+      }),
       consoleViewerExtensions: makeViewerExtensions({
         colors,
         isDark,
