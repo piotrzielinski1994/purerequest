@@ -15,8 +15,22 @@ export function DeleteConfirmDialog() {
   const { pendingDelete, tree, confirmPendingDelete, cancelPendingDelete } =
     useWorkspace();
 
-  const node = pendingDelete !== null ? findNode(tree, pendingDelete.id) : null;
-  const count = node ? countDescendants(node) : 0;
+  const nodes =
+    pendingDelete !== null
+      ? pendingDelete.ids
+          .map((id) => findNode(tree, id))
+          .filter((node): node is NonNullable<typeof node> => node !== null)
+      : [];
+  // A single target names itself; a multi-selection is summarized by count.
+  const title =
+    nodes.length === 1
+      ? `Delete "${nodes[0].name}"?`
+      : `Delete ${nodes.length} items?`;
+  // Descendants across every target plus the targets themselves (each target is
+  // itself a removed item), so the count matches what actually disappears.
+  const count =
+    nodes.reduce((total, node) => total + countDescendants(node), 0) +
+    nodes.length;
 
   return (
     <Dialog
@@ -29,10 +43,10 @@ export function DeleteConfirmDialog() {
     >
       <DialogContent showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>Delete "{node?.name ?? ""}"?</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Removes the folder and {count} {count === 1 ? "item" : "items"}.
-            This cannot be undone.
+            Removes {count} {count === 1 ? "item" : "items"}. This cannot be
+            undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

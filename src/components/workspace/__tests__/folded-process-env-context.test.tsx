@@ -48,9 +48,23 @@ const tree: TreeNode[] = [
 ];
 
 function SendProbe() {
-  const { sendRequest, setTokenValue } = useWorkspace();
+  const {
+    sendRequest,
+    setTokenValue,
+    openConfigEditor,
+    revealTokenSource,
+    revealTarget,
+    editTarget,
+    activeRequestId,
+  } = useWorkspace();
   return (
     <div>
+      <span data-testid="reveal-folder">
+        {revealTarget?.folderId ?? "none"}
+      </span>
+      <span data-testid="reveal-view">{revealTarget?.view ?? "none"}</span>
+      <span data-testid="edit-target">{editTarget?.id ?? "none"}</span>
+      <span data-testid="active-request">{activeRequestId ?? "none"}</span>
       <button type="button" onClick={() => sendRequest("api/get")}>
         send api
       </button>
@@ -63,6 +77,21 @@ function SendProbe() {
       >
         edit token in api request
       </button>
+      <button type="button" onClick={() => openConfigEditor("api")}>
+        open api folder
+      </button>
+      <button
+        type="button"
+        onClick={() => setTokenValue({ kind: "dotenv", key: "TOKEN" }, "api3")}
+      >
+        edit token in api folder
+      </button>
+      <button
+        type="button"
+        onClick={() => revealTokenSource({ kind: "dotenv", key: "TOKEN" })}
+      >
+        reveal token source
+      </button>
     </div>
   );
 }
@@ -72,6 +101,7 @@ function renderProbe(
   onTreeChange: OnTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({
     ok: true,
   }),
+  initialActiveRequestId = "api/get",
 ) {
   return render(
     <ToastProvider>
@@ -80,7 +110,8 @@ function renderProbe(
         httpClient={client}
         processEnv={{ TOKEN: "root" }}
         envText="TOKEN=root"
-        initialActiveRequestId="api/get"
+        initialActiveRequestId={initialActiveRequestId}
+        initialOpenRequestIds={[initialActiveRequestId]}
         onTreeChange={onTreeChange}
       >
         <SendProbe />
@@ -138,5 +169,52 @@ describe("inline token edit targets the owning .env (AC-010)", () => {
       (n): n is FolderNode => n.kind === "folder" && n.id === "api",
     );
     expect(apiFolder?.dotenv ?? "").toContain("TOKEN=api2");
+  });
+
+  // side-effect-contract: editing a process.env token while the api FOLDER pane
+  // is the active editor (no active request) writes to that folder's .env, not
+  // the root .env - the owner resolves from the active scope, not activeRequestId.
+  it("should write to the folder dotenv when the folder pane is the active editor", async () => {
+    const user = userEvent.setup();
+    const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
+    renderProbe(createFakeHttpClient(), onTreeChange, "root-get");
+
+    await user.click(screen.getByRole("button", { name: /open api folder/i }));
+    await user.click(
+      screen.getByRole("button", { name: /edit token in api folder/i }),
+    );
+
+    await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
+    const calls = onTreeChange.mock.calls;
+    const lastTree = calls[calls.length - 1][0] as TreeNode[];
+    const apiFolder = lastTree.find(
+      (n): n is FolderNode => n.kind === "folder" && n.id === "api",
+    );
+    expect(apiFolder?.dotenv ?? "").toContain("TOKEN=api3");
+  });
+});
+
+describe("reveal token source targets the owning folder (folder pane)", () => {
+  // side-effect-contract: the token popup "Edit"/go-to-source, fired while the
+  // api folder pane is active, reveals THAT folder's Env > .env - not Settings
+  // (root .env). Owner must resolve from the active scope, not activeRequestId.
+  it("should reveal the owning folder dotenv when the folder pane is active", async () => {
+    const user = userEvent.setup();
+    renderProbe(createFakeHttpClient(), undefined, "root-get");
+
+    await user.click(screen.getByRole("button", { name: /open api folder/i }));
+    await user.click(
+      screen.getByRole("button", { name: /reveal token source/i }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("reveal-folder")).toHaveTextContent("api"),
+    );
+    expect(screen.getByTestId("reveal-view")).toHaveTextContent("dotenv");
+    expect(screen.getByTestId("edit-target")).toHaveTextContent("api");
+    // never bounced to the Settings tab.
+    expect(screen.getByTestId("active-request")).not.toHaveTextContent(
+      "__settings__",
+    );
   });
 });

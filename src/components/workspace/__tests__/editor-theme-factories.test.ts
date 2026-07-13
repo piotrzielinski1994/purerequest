@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { EditorView } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { forceLinting, diagnosticCount } from "@codemirror/lint";
 
@@ -264,6 +264,56 @@ describe("makeEditorExtensions / makeViewerExtensions", () => {
     );
 
     expect(withFold).toBeGreaterThan(base);
+  });
+
+  // behavior: withCursor makes the viewer read-only-but-navigable - the state is
+  // read-only (edits blocked) yet the caret is enabled (editable), so arrow keys
+  // move a cursor through the response.
+  it("should make the viewer read-only yet caret-navigable when withCursor is set", () => {
+    const colors = sentinelEditorColors();
+    const state = EditorState.create({
+      doc: '{ "a": 1 }',
+      extensions: makeViewerExtensions({
+        colors,
+        isDark: true,
+        withCursor: true,
+      }) as never,
+    });
+
+    expect(state.readOnly).toBe(true);
+    expect(state.facet(EditorView.editable)).toBe(true);
+  });
+
+  // behavior: without withCursor the viewer is plain non-editable (no caret) -
+  // the historical response/console viewer behavior is unchanged.
+  it("should keep the viewer non-editable when withCursor is not set", () => {
+    const colors = sentinelEditorColors();
+    const state = EditorState.create({
+      doc: '{ "a": 1 }',
+      extensions: makeViewerExtensions({ colors, isDark: true }) as never,
+    });
+
+    expect(state.facet(EditorView.editable)).toBe(false);
+  });
+
+  // behavior: withCursor also binds the fold/unfold-at-cursor shortcuts (Mod+-,
+  // Mod+=) so the keyboard can collapse/expand the block under the caret.
+  it("should bind fold/unfold keyboard shortcuts when withCursor is set", () => {
+    const colors = sentinelEditorColors();
+    const state = EditorState.create({
+      extensions: makeViewerExtensions({
+        colors,
+        isDark: true,
+        withCursor: true,
+      }) as never,
+    });
+    const keys = state
+      .facet(keymap)
+      .flat()
+      .map((binding) => binding.key);
+
+    expect(keys).toContain("Mod--");
+    expect(keys).toContain("Mod-=");
   });
 
   // behavior: the viewer carries the highlight colors (it reads like the editor).

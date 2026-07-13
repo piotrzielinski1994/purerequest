@@ -6,10 +6,13 @@ import {
   foldGutter,
   codeFolding,
   foldKeymap,
+  foldCode,
+  unfoldCode,
 } from "@codemirror/language";
 import { closeBrackets } from "@codemirror/autocomplete";
+import { defaultKeymap } from "@codemirror/commands";
 import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
-import type { Extension } from "@codemirror/state";
+import { EditorState, type Extension } from "@codemirror/state";
 import { tags as t } from "@lezer/highlight";
 import type { EditorTokenName } from "@/lib/settings/settings";
 
@@ -162,19 +165,42 @@ export function makeEditorExtensions(opts: EditorExtensionOpts): Extension[] {
   ];
 }
 
+// Collapse/expand the block under the caret from the keyboard. Mod+- folds,
+// Mod+= (the unshifted "+") unfolds - matching the "cmd+-/cmd++" the user asked
+// for while avoiding the shift-dependent "+" that varies by layout.
+const foldAtCursorKeymap = keymap.of([
+  { key: "Mod--", run: foldCode },
+  { key: "Mod-=", run: unfoldCode },
+]);
+
 type ViewerExtensionOpts = {
   colors: EditorColors;
   isDark: boolean;
   withFold?: boolean;
+  // Read-only-but-navigable: keep the state read-only (edits blocked) yet enable
+  // the caret so arrow keys move through the response, and bind the fold/unfold
+  // keyboard shortcuts. Off = the historical plain non-editable viewer (no caret).
+  withCursor?: boolean;
 };
 
 // Read-only JSON viewer extensions (no editing, no linter) - same colors as the
-// editor so the response/console reads like the request body.
+// editor so the response/console reads like the request body. `withCursor` turns
+// the surface from "not editable at all" into "read-only but keyboard-navigable":
+// EditorState.readOnly blocks edits while EditorView.editable keeps the caret, and
+// the default cursor-movement + fold keymaps let the keyboard drive it.
 export function makeViewerExtensions(opts: ViewerExtensionOpts): Extension[] {
   const { colors, isDark } = opts;
+  const readOnlyMode = opts.withCursor
+    ? [
+        EditorState.readOnly.of(true),
+        keymap.of(defaultKeymap),
+        keymap.of(foldKeymap),
+        foldAtCursorKeymap,
+      ]
+    : [EditorView.editable.of(false)];
   return [
     json(),
-    EditorView.editable.of(false),
+    ...readOnlyMode,
     ...(opts.withFold ? [foldGutter()] : []),
     makeChrome(colors, isDark),
     makeHighlight(colors),

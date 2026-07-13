@@ -302,6 +302,60 @@ describe("collectDotenv - merge collection .env(s)", () => {
   });
 });
 
+describe("brunoToTree - .env attaches to its owning folder node", () => {
+  // the collection's root .env belongs to the imported root folder's own dotenv
+  // (so it serializes to <folder>/.env), NOT the workspace root .env.
+  it("should attach the root .env to the root folder's dotenv", () => {
+    const files: BrunoFileMap = {
+      "bruno.json": '{ "name": "as24" }',
+      "ping.bru": "get {\n  url: https://x.test\n}",
+      ".env": "BEARER_TOKEN=abc\nCULTURE=en-CA",
+    };
+
+    const root = asFolder(brunoToTree(files, "fallback")[0]);
+
+    expect(parseDotenv(root.dotenv ?? "")).toEqual({
+      BEARER_TOKEN: "abc",
+      CULTURE: "en-CA",
+    });
+  });
+
+  // a nested collection's .env attaches to THAT subfolder, and each collection's
+  // keys stay scoped to its own folder (no flattening into the root).
+  it("should attach each nested .env to its own subfolder's dotenv", () => {
+    const files: BrunoFileMap = {
+      "as24/opencollection.yml": "info:\n  name: as24",
+      "as24/ping.yml": "info:\n  name: ping\nhttp:\n  method: GET\n  url: https://x.test",
+      "as24/.env": "CULTURE=en-CA",
+      "mbu/opencollection.yml": "info:\n  name: mbu",
+      "mbu/ping.yml": "info:\n  name: ping\nhttp:\n  method: GET\n  url: https://y.test",
+      "mbu/.env": "BASE_URL=http://localhost",
+    };
+
+    const root = asFolder(brunoToTree(files, "fallback")[0]);
+    const as24 = asFolder(findByName(root.children, "as24"));
+    const mbu = asFolder(findByName(root.children, "mbu"));
+
+    expect(parseDotenv(as24.dotenv ?? "")).toEqual({ CULTURE: "en-CA" });
+    expect(parseDotenv(mbu.dotenv ?? "")).toEqual({
+      BASE_URL: "http://localhost",
+    });
+    expect(root.dotenv).toBeUndefined();
+  });
+
+  // no .env in a folder -> dotenv stays absent.
+  it("should leave dotenv absent when a folder has no .env", () => {
+    const files: BrunoFileMap = {
+      "bruno.json": '{ "name": "as24" }',
+      "ping.bru": "get {\n  url: https://x.test\n}",
+    };
+
+    const root = asFolder(brunoToTree(files, "fallback")[0]);
+
+    expect(root.dotenv).toBeUndefined();
+  });
+});
+
 describe("brunoToTree - empty collection (edge, spec §8)", () => {
   // edge (spec §8) - behavior: an empty file map still returns one root folder
   // (no children) without throwing.

@@ -10,13 +10,15 @@ function prettify(text: string): string {
 }
 
 export function JsonViewer({ text }: { text: string }) {
-  const { viewerExtensions } = useEditorExtensions();
+  const { responseViewerExtensions } = useEditorExtensions();
+  // `editable` stays true so CodeMirror renders a caret for keyboard navigation;
+  // edits are blocked by EditorState.readOnly inside responseViewerExtensions.
   return (
     <CodeEditor
       value={prettify(text)}
-      editable={false}
+      editable
       withFold
-      extensions={viewerExtensions}
+      extensions={responseViewerExtensions}
     />
   );
 }
