@@ -6,9 +6,13 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { useState } from "react";
 import { Folder, Plus, Settings, X } from "lucide-react";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
-import { SETTINGS_TAB_ID } from "@/components/workspace/pane-tabs";
+import {
+  EDITOR_TAB_ID,
+  SETTINGS_TAB_ID,
+} from "@/components/workspace/pane-tabs";
 import { openContextMenuOnKey } from "@/components/workspace/tree-nav";
 import { useShortcutOverrides } from "@/lib/settings/settings-context";
 import { resolveShortcuts } from "@/lib/shortcuts/resolve";
@@ -151,6 +155,73 @@ function SortableTab({
   );
 }
 
+// The folder config-editor tab as a sortable chip, so it drag/keyboard-reorders
+// alongside request tabs. Distinct from SortableTab: its own Folder icon, its
+// "close config editor" button, and activation via openConfigEditor (not a
+// request id) - the editor lives in the transient editTarget slot.
+function SortableEditorTab({
+  label,
+  isActive,
+  isDirty,
+  onActivate,
+  onClose,
+}: {
+  label: React.ReactNode;
+  isActive: boolean;
+  isDirty: boolean;
+  onActivate: () => void;
+  onClose: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: EDITOR_TAB_ID });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      {...attributes}
+      {...listeners}
+      role="tab"
+      aria-selected={isActive}
+      onClick={onActivate}
+      onKeyDown={(event) => listeners?.onKeyDown?.(event)}
+      className={cn(
+        "flex h-full cursor-grab touch-none items-center gap-1 border-r px-3 text-sm hover:bg-accent active:cursor-grabbing",
+        isDragging && "opacity-50",
+        isActive
+          ? "-mb-px h-[calc(100%+1px)] bg-accent text-foreground shadow-[inset_0_-2px_0_0_var(--primary)]"
+          : "bg-transparent text-muted-foreground",
+      )}
+    >
+      <Folder aria-hidden="true" className="size-3.5 shrink-0" />
+      {isDirty && (
+        <span
+          aria-label="Unsaved changes"
+          className="size-2 shrink-0 rounded-full bg-foreground"
+        />
+      )}
+      <span className="truncate">{label}</span>
+      <button
+        type="button"
+        aria-label="Close config editor"
+        onClick={(event) => {
+          event.stopPropagation();
+          onClose();
+        }}
+        className="rounded-sm p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+      >
+        <X className="size-3" />
+      </button>
+    </div>
+  );
+}
+
 export function ContentHeader() {
   const {
     openRequestIds,
@@ -176,6 +247,21 @@ export function ContentHeader() {
     "open-context-menu"
   ];
 
+  // Where the editor tab sits among the request/Settings tabs. Session-only UI
+  // state (the editor is a transient editTarget slot, never persisted); defaults
+  // to the end and clamps to the current tab count on each render.
+  const [editorTabIndex, setEditorTabIndex] = useState(Number.MAX_SAFE_INTEGER);
+  const hasEditorTab = editTarget !== null;
+  // The full ordered id list the SortableContext sorts over: request/Settings
+  // tabs plus the editor tab spliced at its index (when open).
+  const tabIds = hasEditorTab
+    ? [
+        ...openRequestIds.slice(0, editorTabIndex),
+        EDITOR_TAB_ID,
+        ...openRequestIds.slice(editorTabIndex),
+      ]
+    : openRequestIds;
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, {
@@ -188,12 +274,19 @@ export function ContentHeader() {
     if (!over || active.id === over.id) {
       return;
     }
-    const from = openRequestIds.indexOf(String(active.id));
-    const to = openRequestIds.indexOf(String(over.id));
+    const from = tabIds.indexOf(String(active.id));
+    const to = tabIds.indexOf(String(over.id));
     if (from === -1 || to === -1) {
       return;
     }
-    reorderRequests(arrayMove(openRequestIds, from, to));
+    const reordered = arrayMove(tabIds, from, to);
+    // Remember the editor tab's new slot, then persist the request/Settings order
+    // (the editor id is excluded - it doesn't live in openRequestIds).
+    const nextEditorIndex = reordered.indexOf(EDITOR_TAB_ID);
+    if (nextEditorIndex !== -1) {
+      setEditorTabIndex(nextEditorIndex);
+    }
+    reorderRequests(reordered.filter((id) => id !== EDITOR_TAB_ID));
   };
 
   return (
@@ -209,10 +302,22 @@ export function ContentHeader() {
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={openRequestIds}
+            items={tabIds}
             strategy={horizontalListSortingStrategy}
           >
-            {openRequestIds.map((id) => {
+            {tabIds.map((id) => {
+              if (id === EDITOR_TAB_ID && editTarget !== null) {
+                return (
+                  <SortableEditorTab
+                    key={id}
+                    label={editorTabLabel(editTarget, tree)}
+                    isActive={isEditorActive}
+                    isDirty={editorDirty}
+                    onActivate={() => openConfigEditor(editTarget.id)}
+                    onClose={closeEditor}
+                  />
+                );
+              }
               const closeHandlers = {
                 canCloseOthers: openRequestIds.length > 1,
                 onClose: () => requestCloseRequest(id),
@@ -274,44 +379,6 @@ export function ContentHeader() {
             })}
           </SortableContext>
         </DndContext>
-        {editTarget !== null && (
-          <div
-            className={cn(
-              "flex h-full items-center gap-1 border-r px-3 text-sm hover:bg-accent",
-              isEditorActive
-                ? "-mb-px h-[calc(100%+1px)] bg-accent shadow-[inset_0_-2px_0_0_var(--primary)]"
-                : "bg-transparent",
-            )}
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={isEditorActive}
-              onClick={() => openConfigEditor(editTarget.id)}
-              className={cn(
-                "flex items-center gap-1.5 truncate",
-                isEditorActive ? "text-foreground" : "text-muted-foreground",
-              )}
-            >
-              <Folder aria-hidden="true" className="size-3.5 shrink-0" />
-              {editorDirty && (
-                <span
-                  aria-label="Unsaved changes"
-                  className="size-2 shrink-0 rounded-full bg-foreground"
-                />
-              )}
-              {editorTabLabel(editTarget, tree)}
-            </button>
-            <button
-              type="button"
-              aria-label="Close config editor"
-              onClick={closeEditor}
-              className="rounded-sm p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              <X className="size-3" />
-            </button>
-          </div>
-        )}
       </div>
       <button
         type="button"

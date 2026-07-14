@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 
-import { flattenSelectable, rangeBetween } from "@/lib/workspace/tree-select";
+import {
+  allFolderIds,
+  flattenSelectable,
+  rangeBetween,
+} from "@/lib/workspace/tree-select";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
@@ -61,6 +65,30 @@ describe("flattenSelectable", () => {
       "r1",
       "r2",
     ]);
+  });
+});
+
+describe("allFolderIds", () => {
+  // behavior: every folder id at any depth, requests excluded, regardless of
+  // expand state (drives expand-all).
+  it("should return every folder id at any depth", () => {
+    const tree: TreeNode[] = [
+      folder("f1", [folder("f2", [request("r1")]), request("r2")]),
+      request("r3"),
+      folder("f3", []),
+    ];
+
+    expect(allFolderIds(tree).sort()).toEqual(["f1", "f2", "f3"]);
+  });
+
+  // behavior: a tree with no folders yields no ids.
+  it("should return an empty array if there are no folders", () => {
+    expect(allFolderIds([request("r1"), request("r2")])).toEqual([]);
+  });
+
+  // behavior: an empty tree yields no ids.
+  it("should return an empty array for an empty tree", () => {
+    expect(allFolderIds([])).toEqual([]);
   });
 });
 

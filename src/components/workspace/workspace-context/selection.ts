@@ -1,4 +1,9 @@
-import { flattenSelectable, rangeBetween } from "@/lib/workspace/tree-select";
+import {
+  allFolderIds,
+  flattenSelectable,
+  rangeBetween,
+} from "@/lib/workspace/tree-select";
+import { ancestorIds, findNode } from "@/lib/workspace/tree-locate";
 import {
   toggleInSet,
   type SelectMode,
@@ -9,9 +14,12 @@ export type SelectionApi = {
   selectSingle: (id: string) => void;
   focusNode: (id: string) => void;
   selectNode: (id: string) => void;
+  revealNode: (id: string) => void;
   selectInTree: (id: string, mode: SelectMode) => void;
   clearSelection: () => void;
   toggleFolder: (id: string) => void;
+  collapseAllFolders: () => void;
+  expandAllFolders: () => void;
 };
 
 export function createSelection(internals: WorkspaceInternals): SelectionApi {
@@ -27,6 +35,7 @@ export function createSelection(internals: WorkspaceInternals): SelectionApi {
     setOpenRequestIds,
     setIsEditorActive,
     setActiveRequestId,
+    setRevealRowId,
   } = internals;
 
   // Set the primary (CRUD/placement) node AND collapse the multi-selection to
@@ -59,6 +68,35 @@ export function createSelection(internals: WorkspaceInternals): SelectionApi {
     setActiveRequestId(id);
   };
 
+  // Reveal a node from outside the tree (quick-open). Expand every ancestor
+  // folder (plus the node itself when it is a folder) so the row is visible,
+  // single-select it, open+activate a request's tab, and flag its row for the
+  // sidebar to scroll into view.
+  const revealNode = (id: string) => {
+    const node = findNode(tree, id);
+    if (!node) {
+      return;
+    }
+    const toExpand = ancestorIds(tree, id);
+    setExpandedFolderIds((current) => {
+      const next = new Set(current);
+      toExpand.forEach((folderId) => next.add(folderId));
+      if (node.kind === "folder") {
+        next.add(id);
+      }
+      return next;
+    });
+    selectSingle(id);
+    if (node.kind === "request") {
+      setOpenRequestIds((current) =>
+        current.includes(id) ? current : [...current, id],
+      );
+      setIsEditorActive(false);
+      setActiveRequestId(id);
+    }
+    setRevealRowId(id);
+  };
+
   const selectInTree = (id: string, mode: SelectMode) => {
     if (mode === "toggle") {
       setSelectedIds((current) => toggleInSet(current, id));
@@ -85,12 +123,20 @@ export function createSelection(internals: WorkspaceInternals): SelectionApi {
   const toggleFolder = (id: string) =>
     setExpandedFolderIds((current) => toggleInSet(current, id));
 
+  const collapseAllFolders = () => setExpandedFolderIds(new Set());
+
+  const expandAllFolders = () =>
+    setExpandedFolderIds(new Set(allFolderIds(tree)));
+
   return {
     selectSingle,
     focusNode,
     selectNode,
+    revealNode,
     selectInTree,
     clearSelection,
     toggleFolder,
+    collapseAllFolders,
+    expandAllFolders,
   };
 }
