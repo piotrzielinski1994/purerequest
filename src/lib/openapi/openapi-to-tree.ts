@@ -20,6 +20,8 @@ import {
 // into per-tag folders (untagged operations sit directly under the root), servers
 // folded into a `baseUrl` variable + environments, and the global security scheme
 // seeded onto the root's auth. Total: parse failures / no-operation docs yield [].
+// A Swagger 2.0 document is normalized to this same 3.x shape upstream
+// (parseOpenapiDocument -> normalizeSwagger2), so this mapper stays single-format.
 
 const METHODS: Record<string, HttpMethod> = {
   get: "GET",
@@ -122,10 +124,15 @@ function securityAuthOf(doc: Record<string, unknown>): Auth | undefined {
 
 type ParamRow = { key: string; value: string; place: string };
 
-// Seed a parameter's value from `example`, else the schema's `example`/`default`.
+// Seed a parameter's value from `example`, else a top-level `default` (Swagger 2.0
+// puts a non-body param's default there, not under `schema`), else the schema's
+// `example`/`default` (OpenAPI 3.x).
 function paramValue(root: Record<string, unknown>, param: Record<string, unknown>): string {
   if (param.example !== undefined) {
     return asString(param.example);
+  }
+  if (param.default !== undefined) {
+    return asString(param.default);
   }
   const schema = resolveRef(root, param.schema);
   if (isRecord(schema)) {
@@ -173,8 +180,14 @@ function toGrid(rows: ParamRow[], place: string): KeyValue[] {
 }
 
 // The first `application/json` example value: media-type `example`, else the first
-// `examples[*].value`, else the media-type `schema.example`. undefined when none.
-function jsonExample(mediaType: Record<string, unknown>): unknown {
+// `examples[*].value`, else the (`$ref`-resolved) media-type `schema.example`.
+// undefined when none. The schema is resolved against the doc root so a
+// `#/definitions/X` (Swagger 2.0) or `#/components/schemas/X` (3.x) body ref whose
+// definition carries an `example` is honored, not just an inline schema.
+function jsonExample(
+  root: Record<string, unknown>,
+  mediaType: Record<string, unknown>,
+): unknown {
   if (mediaType.example !== undefined) {
     return mediaType.example;
   }
@@ -184,7 +197,7 @@ function jsonExample(mediaType: Record<string, unknown>): unknown {
       return first.value;
     }
   }
-  const schema = mediaType.schema;
+  const schema = resolveRef(root, mediaType.schema);
   if (isRecord(schema) && schema.example !== undefined) {
     return schema.example;
   }
@@ -200,7 +213,7 @@ function bodyOf(root: Record<string, unknown>, requestBody: unknown): RequestBod
     body.active = "none";
     return body;
   }
-  const example = jsonExample(mediaType);
+  const example = jsonExample(root, mediaType);
   if (example === undefined) {
     body.active = "none";
     return body;

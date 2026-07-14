@@ -225,17 +225,21 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > collection adds nothing; in `npm run dev` (no native host) the action is a no-op.
 >
 > **Import OpenAPI document** (`Mod+Shift+O` + palette) opens a **single-file picker** (`*.json`/`*.yaml`/
-> `*.yml`) and reads an OpenAPI **3.0/3.1** document (JSON or YAML; the YAML pass is lenient, recovering
-> real-world files with minor spec violations). It scaffolds **one request per operation** (`get`/`post`/
+> `*.yml`) and reads an OpenAPI **3.0/3.1 or Swagger 2.0** document (JSON or YAML; the YAML pass is lenient,
+> recovering real-world files with minor spec violations). A Swagger 2.0 doc is normalized to the 3.x shape
+> up front (`schemes`+`host`+`basePath` -> a server url, an `in:body` param -> the json request body,
+> `securityDefinitions` -> security schemes, `#/definitions/...` refs kept resolvable), so the rest of the
+> import is identical. It scaffolds **one request per operation** (`get`/`post`/
 > `put`/`patch`/`delete`), grouped into **per-tag folders** (an untagged operation sits directly at the
 > root), inserted as a **new top-level folder** named from `info.title`. Each request gets its url
 > (`{{baseUrl}}` + path, OpenAPI `{name}` rewritten to ReqUI `:name`), path/query/header params (values
-> seeded from `example`/`schema.example`/`schema.default`), and an `application/json` request body seeded
-> from an explicit example. **Servers** fold into a `baseUrl` variable (plus one environment per server
-> when there are two or more); the global `security` scheme (http bearer/basic) seeds the root auth; local
-> `$ref` pointers resolve. Swagger 2.0, schema-synthesised bodies, and non-json request bodies are out of
-> scope. Additive; a document with no importable operations adds nothing (and toasts to say so); in
-> `npm run dev` (no native host) the action is a no-op.
+> seeded from `example`/`default`/`schema.example`/`schema.default`), and an `application/json` request body
+> seeded from an explicit example. **Servers** fold into a `baseUrl` variable (plus one environment per server
+> when there are two or more; a Swagger 2.0 `schemes` list collapses to one `baseUrl`); the global `security`
+> scheme (http bearer/basic) seeds the root auth; local `$ref` pointers resolve. Schema-synthesised bodies,
+> non-json request bodies, and non-http (apiKey/oauth2) security are out of scope. Additive; a document with
+> no importable operations adds nothing (and toasts to say so); in `npm run dev` (no native host) the action
+> is a no-op.
 >
 > A **workspace** is a folder on disk holding the collection tree + config. By default it lives
 > in a `collection` subfolder of the app data dir (next to `settings.json`), created on first
