@@ -320,7 +320,7 @@ export function SidebarTree() {
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div className="flex min-h-0 flex-1 flex-col">
-          <ScrollArea className="flex-1" horizontal>
+          <ScrollArea className="min-h-0 flex-1" horizontal>
             <DndContext
               sensors={sensors}
               collisionDetection={pointerWithin}
