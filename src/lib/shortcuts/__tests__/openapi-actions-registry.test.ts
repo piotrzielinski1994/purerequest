@@ -32,6 +32,6 @@ describe("SHORTCUT_ACTIONS openapi action (AC-013)", () => {
   it("should expose the import-openapi default from resolveShortcuts", () => {
     const effective = resolveShortcuts({});
 
-    expect(effective["import-openapi"]).toBe("Mod+Shift+O");
+    expect(effective["import-openapi"]).toEqual(["Mod+Shift+O"]);
   });
 });

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -37,10 +38,31 @@ function RequestView() {
 }
 
 export function Content() {
-  const { isSettingsActive, isEditorActive, editTarget } = useWorkspace();
+  const {
+    isSettingsActive,
+    isEditorActive,
+    editTarget,
+    pendingPanelFocus,
+    consumePanelFocus,
+  } = useWorkspace();
+  const regionRef = useRef<HTMLDivElement>(null);
+
+  // Hiding a panel returns focus here so it never lingers on the unmounted panel.
+  useEffect(() => {
+    if (pendingPanelFocus !== "content") {
+      return;
+    }
+    regionRef.current?.focus();
+    consumePanelFocus();
+  }, [pendingPanelFocus, consumePanelFocus]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div
+      ref={regionRef}
+      tabIndex={-1}
+      data-testid="content-region"
+      className="flex h-full flex-col outline-none"
+    >
       <ContentHeader />
       {renderBody()}
     </div>

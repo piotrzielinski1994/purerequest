@@ -41,7 +41,7 @@ describe("resolveShortcuts with send-request", () => {
   it("should expose send-request as Mod+Enter when no overrides are given", () => {
     const effective = resolveShortcuts({});
 
-    expect(effective["send-request"]).toBe("Mod+Enter");
+    expect(effective["send-request"]).toEqual(["Mod+Enter"]);
   });
 });
 

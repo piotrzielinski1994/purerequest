@@ -42,6 +42,33 @@ describe("CommandPalette", () => {
     }
   });
 
+  // AC-008, TC-008 — behavior: a disabled action (no binding) shows no shortcut
+  // chip but is still a runnable palette row.
+  it("should render a disabled action's row with no shortcut but still run it", async () => {
+    const user = userEvent.setup();
+    const run = vi.fn();
+    const onOpenChange = vi.fn();
+    const disabled: Command = { action: TOGGLE_CONSOLE, binding: "", run };
+
+    render(
+      <CommandPalette
+        open
+        onOpenChange={onOpenChange}
+        commands={[disabled]}
+      />,
+    );
+
+    await screen.findByText(TOGGLE_CONSOLE.name);
+    // No formatted binding is shown for the disabled action.
+    expect(
+      screen.queryByText(formatForDisplay(TOGGLE_CONSOLE.defaultHotkey)),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByText(TOGGLE_CONSOLE.name));
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
   // AC-004 — behavior
   it("should filter rows to matches when text is typed into the input", async () => {
     const user = userEvent.setup();

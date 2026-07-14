@@ -74,7 +74,7 @@ describe("useActionHotkeys", () => {
     const user = userEvent.setup();
     const toggle = vi.fn();
 
-    renderHarness({ "toggle-console": toggle }, { "toggle-console": "Mod+K" });
+    renderHarness({ "toggle-console": toggle }, { "toggle-console": ["Mod+K"] });
     await screen.findByTestId("ready");
 
     await user.keyboard("{Control>}k{/Control}");
@@ -82,12 +82,42 @@ describe("useActionHotkeys", () => {
     expect(toggle).toHaveBeenCalledTimes(1);
   });
 
+  // AC-002, TC-002 — behavior: every binding in a multi-binding list fires.
+  it("should run the handler on each bound hotkey if the action has several", async () => {
+    const user = userEvent.setup();
+    const toggle = vi.fn();
+
+    renderHarness(
+      { "toggle-console": toggle },
+      { "toggle-console": ["Mod+J", "Mod+K"] },
+    );
+    await screen.findByTestId("ready");
+
+    await user.keyboard("{Control>}j{/Control}");
+    await user.keyboard("{Control>}k{/Control}");
+
+    expect(toggle).toHaveBeenCalledTimes(2);
+  });
+
+  // AC-004, TC-004 — behavior: a disabled ([]) action never fires.
+  it("should not run the handler if the action is disabled with an empty list", async () => {
+    const user = userEvent.setup();
+    const toggle = vi.fn();
+
+    renderHarness({ "toggle-console": toggle }, { "toggle-console": [] });
+    await screen.findByTestId("ready");
+
+    await user.keyboard("{Control>}j{/Control}");
+
+    expect(toggle).not.toHaveBeenCalled();
+  });
+
   // AC-008, TC-006 — behavior: bare-key bindings stay suppressed while typing.
   it("should not run a bare-key handler if focus is in a text input", async () => {
     const user = userEvent.setup();
     const toggle = vi.fn();
 
-    renderHarness({ "toggle-console": toggle }, { "toggle-console": "p" });
+    renderHarness({ "toggle-console": toggle }, { "toggle-console": ["p"] });
     await screen.findByTestId("ready");
 
     await user.click(screen.getByTestId("text-input"));

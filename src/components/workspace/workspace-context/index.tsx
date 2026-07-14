@@ -31,6 +31,7 @@ import {
   isOverrideFieldDirty,
   type ActiveEditor,
   type EditTarget,
+  type PanelFocusTarget,
   type ParamsReveal,
   type PendingClose,
   type PendingDelete,
@@ -173,6 +174,13 @@ export function WorkspaceProvider({
   // unique "untitled") used when the URL derives no path.
   const autoNameIds = useRef<Map<string, string>>(new Map());
   const [focusUrlNonce, setFocusUrlNonce] = useState(0);
+  const [pendingPanelFocus, setPendingPanelFocus] =
+    useState<PanelFocusTarget>(null);
+  const requestPanelFocus = useCallback(
+    (target: PanelFocusTarget) => setPendingPanelFocus(target),
+    [],
+  );
+  const consumePanelFocus = useCallback(() => setPendingPanelFocus(null), []);
   const [activeEditor, setActiveEditor] = useState<ActiveEditor | null>(null);
   const registerActiveEditor = useCallback(
     (editor: ActiveEditor | null) => setActiveEditor(editor),
@@ -436,6 +444,8 @@ export function WorkspaceProvider({
       setResponseStates,
       focusUrlNonce,
       setFocusUrlNonce,
+      pendingPanelFocus,
+      setPendingPanelFocus,
       activeEditor,
       setActiveEditor,
       expandedFolderIds,
@@ -705,6 +715,9 @@ export function WorkspaceProvider({
       importPostman,
       importOpenapi,
       focusUrlNonce,
+      pendingPanelFocus,
+      requestPanelFocus,
+      consumePanelFocus,
     };
   }, [
     tree,
@@ -740,6 +753,9 @@ export function WorkspaceProvider({
     paramsReveal,
     renamingNodeId,
     focusUrlNonce,
+    pendingPanelFocus,
+    requestPanelFocus,
+    consumePanelFocus,
     activeEditor,
     editorDirty,
     popupCanSave,

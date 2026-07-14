@@ -32,6 +32,6 @@ describe("SHORTCUT_ACTIONS bruno action (AC-010)", () => {
   it("should expose the import-bruno default from resolveShortcuts", () => {
     const effective = resolveShortcuts({});
 
-    expect(effective["import-bruno"]).toBe("Mod+Shift+B");
+    expect(effective["import-bruno"]).toEqual(["Mod+Shift+B"]);
   });
 });

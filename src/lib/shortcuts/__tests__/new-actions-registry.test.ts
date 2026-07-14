@@ -72,9 +72,9 @@ describe("resolveShortcuts with new actions", () => {
   it("should expose the new actions' defaults when no overrides are given", () => {
     const effective = resolveShortcuts({});
 
-    expect(effective["toggle-sidebar"]).toBe("Mod+B");
-    expect(effective["new-request"]).toBe("Mod+T");
-    expect(effective["open-workspace"]).toBe("Mod+O");
+    expect(effective["toggle-sidebar"]).toEqual(["Mod+B"]);
+    expect(effective["new-request"]).toEqual(["Mod+T"]);
+    expect(effective["open-workspace"]).toEqual(["Mod+O"]);
   });
 });
 

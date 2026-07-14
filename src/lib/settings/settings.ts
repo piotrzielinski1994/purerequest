@@ -157,17 +157,34 @@ function mergeLayouts(partial: unknown): Settings["layouts"] {
   }, {});
 }
 
+// A single stored hotkey (legacy model) migrates to a one-element list; a list
+// keeps only the entries that normalize. An empty list is preserved as-is: it
+// means the action was deliberately disabled. A value that is neither a string
+// nor an array is dropped so the action falls back to its registry default.
+function mergeShortcutValue(value: unknown): string[] | null {
+  if (typeof value === "string") {
+    const normalized = safeNormalize(value);
+    return normalized === null ? null : [normalized];
+  }
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  return value
+    .map((entry) => (typeof entry === "string" ? safeNormalize(entry) : null))
+    .filter((entry): entry is string => entry !== null);
+}
+
 function mergeShortcuts(partial: unknown): ShortcutOverrides {
   if (!isRecord(partial)) {
     return {};
   }
   return Object.entries(partial).reduce<ShortcutOverrides>(
     (acc, [id, value]) => {
-      if (!ACTION_IDS.has(id) || typeof value !== "string") {
+      if (!ACTION_IDS.has(id)) {
         return acc;
       }
-      const normalized = safeNormalize(value);
-      return normalized === null ? acc : { ...acc, [id]: normalized };
+      const merged = mergeShortcutValue(value);
+      return merged === null ? acc : { ...acc, [id]: merged };
     },
     {},
   );

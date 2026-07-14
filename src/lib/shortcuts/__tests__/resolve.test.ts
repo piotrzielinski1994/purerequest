@@ -100,25 +100,25 @@ describe("safeNormalize", () => {
 
 describe("resolveShortcuts", () => {
   // AC-001 — behavior
-  it("should return every action's registry default if no overrides are given", () => {
+  it("should return every action's registry default as a one-element list if no overrides are given", () => {
     const effective = resolveShortcuts({});
 
     SHORTCUT_ACTIONS.forEach((action) => {
-      expect(effective[action.id]).toBe(action.defaultHotkey);
+      expect(effective[action.id]).toEqual([action.defaultHotkey]);
     });
   });
 
-  // AC-003 — behavior
-  it("should replace the registry default with a valid override", () => {
-    const overrides: ShortcutOverrides = { "toggle-console": "Mod+K" };
+  // AC-002 — behavior
+  it("should replace the registry default with a valid override list", () => {
+    const overrides: ShortcutOverrides = { "toggle-console": ["Mod+K"] };
 
     const effective = resolveShortcuts(overrides);
 
-    expect(effective["toggle-console"]).toBe("Mod+K");
+    expect(effective["toggle-console"]).toEqual(["Mod+K"]);
   });
 
   // AC-007, E-2 — behavior
-  it("should fall back to the default if an override value is not a string", () => {
+  it("should fall back to the default if an override value is not an array", () => {
     const overrides = {
       "toggle-console": 42,
     } as unknown as ShortcutOverrides;
@@ -128,32 +128,31 @@ describe("resolveShortcuts", () => {
 
     const effective = resolveShortcuts(overrides);
 
-    expect(effective["toggle-console"]).toBe(def);
+    expect(effective["toggle-console"]).toEqual([def]);
   });
 
   // AC-007, E-2 — behavior
-  it("should fall back to the default if an override is an invalid hotkey string", () => {
-    const overrides: ShortcutOverrides = { "toggle-console": "bogus!!" };
-    const def = SHORTCUT_ACTIONS.find(
-      (a) => a.id === "toggle-console",
-    )!.defaultHotkey;
+  it("should drop an invalid hotkey entry from the override list", () => {
+    const overrides: ShortcutOverrides = {
+      "toggle-console": ["Mod+K", "bogus!!"],
+    };
 
     const effective = resolveShortcuts(overrides);
 
-    expect(effective["toggle-console"]).toBe(def);
+    expect(effective["toggle-console"]).toEqual(["Mod+K"]);
   });
 
   // AC-007, E-3 — behavior
   it("should ignore an override for an unknown action id and keep all defaults", () => {
     const overrides = {
-      bogus: "Mod+Q",
+      bogus: ["Mod+Q"],
     } as unknown as ShortcutOverrides;
 
     const effective = resolveShortcuts(overrides);
 
     expect(effective).not.toHaveProperty("bogus");
     SHORTCUT_ACTIONS.forEach((action) => {
-      expect(effective[action.id]).toBe(action.defaultHotkey);
+      expect(effective[action.id]).toEqual([action.defaultHotkey]);
     });
   });
 
@@ -169,20 +168,20 @@ describe("resolveShortcuts", () => {
 });
 
 describe("findConflict", () => {
-  // AC-005 — behavior
+  // AC-006 — behavior
   it("should return the owning action id if another action holds the hotkey", () => {
     const effective = resolveShortcuts({});
-    const closeRequestKey = effective["close-request"];
+    const closeRequestKey = effective["close-request"][0];
 
     const owner = findConflict(closeRequestKey, "toggle-console", effective);
 
     expect(owner).toBe("close-request");
   });
 
-  // AC-005 — behavior
+  // AC-006 — behavior
   it("should match on normalized equality if the candidate differs only in casing", () => {
     const effective = resolveShortcuts({});
-    const closeRequestKey = effective["close-request"];
+    const closeRequestKey = effective["close-request"][0];
     const lowered = closeRequestKey.toLowerCase();
 
     const owner = findConflict(lowered, "toggle-console", effective);
@@ -199,10 +198,10 @@ describe("findConflict", () => {
     expect(owner).toBeNull();
   });
 
-  // AC-005 — behavior
+  // AC-006 — behavior
   it("should ignore the action being edited when checking for a conflict", () => {
     const effective = resolveShortcuts({});
-    const ownKey = effective["toggle-console"];
+    const ownKey = effective["toggle-console"][0];
 
     const owner = findConflict(ownKey, "toggle-console", effective);
 

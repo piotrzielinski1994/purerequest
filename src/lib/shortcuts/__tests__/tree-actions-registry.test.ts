@@ -48,13 +48,18 @@ describe("SHORTCUT_ACTIONS tree/tab actions", () => {
   it("should expose every tree/tab default when no overrides are given", () => {
     const effective = resolveShortcuts({});
     TREE_DEFAULTS.forEach(([id, hotkey]) => {
-      expect(effective[id]).toBe(hotkey);
+      expect(effective[id]).toEqual([hotkey]);
     });
   });
 
-  it("should keep a bad tree override at the registry default", () => {
-    const effective = resolveShortcuts({ "tree-nav-down": "" });
-    expect(effective["tree-nav-down"]).toBe("ArrowDown");
+  it("should drop a bad tree override entry, leaving an empty list", () => {
+    const effective = resolveShortcuts({ "tree-nav-down": [""] });
+    expect(effective["tree-nav-down"]).toEqual([]);
+  });
+
+  it("should expose the tree default as a one-element list when no override", () => {
+    const effective = resolveShortcuts({});
+    expect(effective["tree-nav-down"]).toEqual(["ArrowDown"]);
   });
 });
 

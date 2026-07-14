@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { Extension } from "@codemirror/state";
 import { CodeEditor } from "@/components/workspace/code-editor";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -87,8 +88,9 @@ function ConsoleLine({
 }
 
 export function Console() {
-  const { consoleLines } = useWorkspace();
+  const { consoleLines, pendingPanelFocus, consumePanelFocus } = useWorkspace();
   const { consoleViewerExtensions, editorColors } = useEditorExtensions();
+  const sectionRef = useRef<HTMLElement>(null);
   const tokenColors: TokenColors = {
     key: editorColors.property,
     string: editorColors.string,
@@ -96,10 +98,23 @@ export function Console() {
     keyword: editorColors.keyword,
   };
 
+  // Toggling the console visible focuses its scroll region so keyboard scrolling
+  // (arrows/PageUp/PageDown) works right away. Console has no item nav, so the
+  // section itself is the focus target.
+  useEffect(() => {
+    if (pendingPanelFocus !== "console") {
+      return;
+    }
+    sectionRef.current?.focus();
+    consumePanelFocus();
+  }, [pendingPanelFocus, consumePanelFocus]);
+
   return (
     <section
+      ref={sectionRef}
+      tabIndex={-1}
       aria-label="Console"
-      className="flex h-full flex-col bg-muted/30 font-mono text-xs"
+      className="flex h-full flex-col bg-muted/30 font-mono text-xs outline-none"
     >
       <div className="border-b px-3 py-1.5 tracking-wide text-muted-foreground uppercase">
         Console

@@ -32,6 +32,6 @@ describe("SHORTCUT_ACTIONS postman action (AC-011)", () => {
   it("should expose the import-postman default from resolveShortcuts", () => {
     const effective = resolveShortcuts({});
 
-    expect(effective["import-postman"]).toBe("Mod+Shift+P");
+    expect(effective["import-postman"]).toEqual(["Mod+Shift+P"]);
   });
 });

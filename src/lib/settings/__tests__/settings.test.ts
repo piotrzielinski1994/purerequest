@@ -226,49 +226,58 @@ describe("mergeSettings shortcuts", () => {
     expect(merged.shortcuts).toEqual({});
   });
 
-  // AC-003 — behavior
-  it("should keep a valid shortcuts override map", () => {
+  // AC-007, E-3 — behavior: a legacy single-string override migrates to a list.
+  it("should migrate a legacy string override into a one-element list", () => {
     const partial = { shortcuts: { "toggle-console": "Mod+K" } };
 
     const merged = mergeSettings(DEFAULT_SETTINGS, partial);
 
-    expect(merged.shortcuts).toEqual({ "toggle-console": "Mod+K" });
+    expect(merged.shortcuts).toEqual({ "toggle-console": ["Mod+K"] });
+  });
+
+  // AC-007 — behavior
+  it("should keep a valid shortcuts override list", () => {
+    const partial = { shortcuts: { "toggle-console": ["Mod+K", "Mod+G"] } };
+
+    const merged = mergeSettings(DEFAULT_SETTINGS, partial);
+
+    expect(merged.shortcuts).toEqual({ "toggle-console": ["Mod+K", "Mod+G"] });
   });
 
   // AC-007, E-2 — behavior
-  it("should drop a non-string shortcut value", () => {
+  it("should drop a non-string, non-array shortcut value", () => {
     const partial = {
-      shortcuts: { "toggle-console": 42, "close-request": "Mod+W" },
+      shortcuts: { "toggle-console": 42, "close-request": ["Mod+W"] },
     };
 
     const merged = mergeSettings(DEFAULT_SETTINGS, partial);
 
     expect(merged.shortcuts).not.toHaveProperty("toggle-console");
-    expect(merged.shortcuts["close-request"]).toBe("Mod+W");
+    expect(merged.shortcuts["close-request"]).toEqual(["Mod+W"]);
   });
 
   // AC-007, E-2 — behavior
-  it("should drop an invalid hotkey string", () => {
+  it("should drop an invalid hotkey entry from the list", () => {
     const partial = {
-      shortcuts: { "toggle-console": "bogus!!", "close-request": "Mod+W" },
+      shortcuts: { "toggle-console": ["bogus!!"], "close-request": ["Mod+W"] },
     };
 
     const merged = mergeSettings(DEFAULT_SETTINGS, partial);
 
-    expect(merged.shortcuts).not.toHaveProperty("toggle-console");
-    expect(merged.shortcuts["close-request"]).toBe("Mod+W");
+    expect(merged.shortcuts["toggle-console"]).toEqual([]);
+    expect(merged.shortcuts["close-request"]).toEqual(["Mod+W"]);
   });
 
   // AC-007, E-3 — behavior
   it("should drop an override for an unknown action id", () => {
     const partial = {
-      shortcuts: { bogus: "Mod+Q", "toggle-console": "Mod+K" },
+      shortcuts: { bogus: ["Mod+Q"], "toggle-console": ["Mod+K"] },
     };
 
     const merged = mergeSettings(DEFAULT_SETTINGS, partial);
 
     expect(merged.shortcuts).not.toHaveProperty("bogus");
-    expect(merged.shortcuts["toggle-console"]).toBe("Mod+K");
+    expect(merged.shortcuts["toggle-console"]).toEqual(["Mod+K"]);
   });
 
   // AC-007 — behavior
