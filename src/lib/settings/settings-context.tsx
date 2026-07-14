@@ -19,6 +19,7 @@ import {
   type ThemeMode,
 } from "@/lib/settings/settings";
 import type { ShortcutActionId } from "@/lib/shortcuts/registry";
+import { resolveShortcuts, safeNormalize } from "@/lib/shortcuts/resolve";
 
 type SettingsContextValue = {
   settings: Settings;
@@ -27,7 +28,8 @@ type SettingsContextValue = {
   saveSidebarHidden: (hidden: boolean) => void;
   saveWindowFullscreen: (fullscreen: boolean) => void;
   saveWorkspacePath: (path: string) => void;
-  saveShortcut: (id: ShortcutActionId, hotkey: string) => void;
+  addShortcut: (id: ShortcutActionId, hotkey: string) => void;
+  removeShortcut: (id: ShortcutActionId, hotkey: string) => void;
   resetShortcut: (id: ShortcutActionId) => void;
   saveOpenTabs: (
     openRequestIds: string[],
@@ -107,12 +109,43 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
     [update],
   );
 
-  const saveShortcut = useCallback(
+  // Append a binding to the action's effective list (seeded from the registry
+  // default when no override exists yet), normalized + de-duplicated. An invalid
+  // hotkey or a duplicate is a no-op.
+  const addShortcut = useCallback(
     (id: ShortcutActionId, hotkey: string) =>
-      update((base) => ({
-        ...base,
-        shortcuts: { ...base.shortcuts, [id]: hotkey },
-      })),
+      update((base) => {
+        const normalized = safeNormalize(hotkey);
+        if (normalized === null) {
+          return base;
+        }
+        const current = resolveShortcuts(base.shortcuts)[id];
+        if (current.includes(normalized)) {
+          return base;
+        }
+        return {
+          ...base,
+          shortcuts: { ...base.shortcuts, [id]: [...current, normalized] },
+        };
+      }),
+    [update],
+  );
+
+  // Drop one binding from the action's effective list. Removing the last one
+  // leaves an empty list - the action is disabled (distinct from "no override").
+  const removeShortcut = useCallback(
+    (id: ShortcutActionId, hotkey: string) =>
+      update((base) => {
+        const normalized = safeNormalize(hotkey) ?? hotkey;
+        const current = resolveShortcuts(base.shortcuts)[id];
+        return {
+          ...base,
+          shortcuts: {
+            ...base.shortcuts,
+            [id]: current.filter((binding) => binding !== normalized),
+          },
+        };
+      }),
     [update],
   );
 
@@ -177,7 +210,8 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
             saveSidebarHidden,
             saveWindowFullscreen,
             saveWorkspacePath,
-            saveShortcut,
+            addShortcut,
+            removeShortcut,
             resetShortcut,
             saveOpenTabs,
             saveDraftTabs,
@@ -193,7 +227,8 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
       saveSidebarHidden,
       saveWindowFullscreen,
       saveWorkspacePath,
-      saveShortcut,
+      addShortcut,
+      removeShortcut,
       resetShortcut,
       saveOpenTabs,
       saveDraftTabs,

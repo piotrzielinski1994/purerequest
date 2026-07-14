@@ -81,10 +81,10 @@ describe("SHORTCUT_ACTIONS tree-crud actions (AC-009)", () => {
   it("should expose the new defaults via resolveShortcuts when no overrides are set", () => {
     const effective = resolveShortcuts({});
 
-    expect(effective["new-folder"]).toBe("Mod+Shift+N");
-    expect(effective["duplicate-request"]).toBe("Mod+D");
-    expect(effective["rename-node"]).toBe("F2");
-    expect(effective["delete-node"]).toBe("Mod+Backspace");
+    expect(effective["new-folder"]).toEqual(["Mod+Shift+N"]);
+    expect(effective["duplicate-request"]).toEqual(["Mod+D"]);
+    expect(effective["rename-node"]).toEqual(["F2"]);
+    expect(effective["delete-node"]).toEqual(["Mod+Backspace"]);
   });
 
   // AC-009 - behavior: the new bindings participate in conflict checking.

@@ -13,20 +13,44 @@ import {
 
 // Consumer that exercises the shortcut/console additions to the context.
 function ShortcutProbe() {
-  const { settings, saveShortcut, resetShortcut, saveConsoleHidden } =
-    useSettings();
+  const {
+    settings,
+    addShortcut,
+    removeShortcut,
+    resetShortcut,
+    saveConsoleHidden,
+  } = useSettings();
+  const bindings = settings.shortcuts["toggle-console"];
 
   return (
     <div>
       <span data-testid="console-hidden">{String(settings.consoleHidden)}</span>
       <span data-testid="toggle-console-binding">
-        {settings.shortcuts["toggle-console"] ?? "none"}
+        {bindings === undefined ? "none" : JSON.stringify(bindings)}
       </span>
       <button
         type="button"
-        onClick={() => saveShortcut("toggle-console", "Mod+K")}
+        onClick={() => addShortcut("toggle-console", "Mod+K")}
       >
-        save shortcut
+        add shortcut
+      </button>
+      <button
+        type="button"
+        onClick={() => addShortcut("toggle-console", "Mod+G")}
+      >
+        add second shortcut
+      </button>
+      <button
+        type="button"
+        onClick={() => removeShortcut("toggle-console", "Mod+K")}
+      >
+        remove shortcut
+      </button>
+      <button
+        type="button"
+        onClick={() => removeShortcut("toggle-console", "Mod+J")}
+      >
+        remove default shortcut
       </button>
       <button type="button" onClick={() => resetShortcut("toggle-console")}>
         reset shortcut
@@ -243,8 +267,8 @@ describe("SettingsProvider concurrent saves", () => {
 });
 
 describe("SettingsProvider shortcut actions", () => {
-  // AC-003 — behavior
-  it("should set settings.shortcuts[id] if saveShortcut is called", async () => {
+  // AC-002 — behavior
+  it("should append the binding to settings.shortcuts[id] if addShortcut is called", async () => {
     const user = userEvent.setup();
     const store = createInMemorySettingsStore();
 
@@ -259,17 +283,65 @@ describe("SettingsProvider shortcut actions", () => {
       "none",
     );
 
-    await user.click(screen.getByRole("button", { name: /save shortcut/i }));
+    await user.click(screen.getByRole("button", { name: /^add shortcut$/i }));
 
     await waitFor(() => {
       expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
-        "Mod+K",
+        JSON.stringify(["Mod+J", "Mod+K"]),
       );
     });
   });
 
-  // AC-003 — side-effect-contract
-  it("should persist the override via store.save if saveShortcut is called", async () => {
+  // AC-002 — behavior: a second add keeps the first binding and appends the new one.
+  it("should keep existing bindings if a second addShortcut is called", async () => {
+    const user = userEvent.setup();
+    const store = createInMemorySettingsStore();
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+
+    await user.click(screen.getByRole("button", { name: /^add shortcut$/i }));
+    await user.click(
+      screen.getByRole("button", { name: /add second shortcut/i }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        JSON.stringify(["Mod+J", "Mod+K", "Mod+G"]),
+      );
+    });
+  });
+
+  // E-1 — behavior: adding a hotkey already present is a no-op (no duplicate).
+  it("should not add a duplicate binding if the hotkey is already present", async () => {
+    const user = userEvent.setup();
+    const store = createInMemorySettingsStore();
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+
+    await user.click(screen.getByRole("button", { name: /^add shortcut$/i }));
+    await user.click(screen.getByRole("button", { name: /^add shortcut$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        JSON.stringify(["Mod+J", "Mod+K"]),
+      );
+    });
+  });
+
+  // AC-002 — side-effect-contract
+  it("should persist the override array via store.save if addShortcut is called", async () => {
     const user = userEvent.setup();
     const inner = createInMemorySettingsStore();
     const saveSpy = vi.fn(inner.save);
@@ -283,17 +355,17 @@ describe("SettingsProvider shortcut actions", () => {
 
     await screen.findByTestId("toggle-console-binding");
 
-    await user.click(screen.getByRole("button", { name: /save shortcut/i }));
+    await user.click(screen.getByRole("button", { name: /^add shortcut$/i }));
 
     await waitFor(() => {
       expect(saveSpy).toHaveBeenCalledTimes(1);
     });
     const persisted = saveSpy.mock.calls[0][0];
-    expect(persisted.shortcuts["toggle-console"]).toBe("Mod+K");
+    expect(persisted.shortcuts["toggle-console"]).toEqual(["Mod+J", "Mod+K"]);
   });
 
-  // AC-004 — behavior
-  it("should remove the override if resetShortcut is called", async () => {
+  // AC-004 — behavior: removing the last binding leaves an empty (disabled) list.
+  it("should disable the action with an empty list if the last binding is removed", async () => {
     const user = userEvent.setup();
     const store = createInMemorySettingsStore();
 
@@ -305,10 +377,65 @@ describe("SettingsProvider shortcut actions", () => {
 
     await screen.findByTestId("toggle-console-binding");
 
-    await user.click(screen.getByRole("button", { name: /save shortcut/i }));
+    // The only effective binding is the default Mod+J; removing it disables the
+    // action, leaving an explicit empty list (distinct from "no override").
+    await user.click(
+      screen.getByRole("button", { name: /remove default shortcut/i }),
+    );
+
     await waitFor(() => {
       expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
-        "Mod+K",
+        JSON.stringify([]),
+      );
+    });
+  });
+
+  // AC-004 — behavior
+  it("should remove one binding but keep the rest if removeShortcut is called", async () => {
+    const user = userEvent.setup();
+    const store = createInMemorySettingsStore();
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+
+    await user.click(screen.getByRole("button", { name: /^add shortcut$/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        JSON.stringify(["Mod+J", "Mod+K"]),
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: /^remove shortcut$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        JSON.stringify(["Mod+J"]),
+      );
+    });
+  });
+
+  // AC-005 — behavior
+  it("should remove the override entirely if resetShortcut is called", async () => {
+    const user = userEvent.setup();
+    const store = createInMemorySettingsStore();
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+
+    await user.click(screen.getByRole("button", { name: /^add shortcut$/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        JSON.stringify(["Mod+J", "Mod+K"]),
       );
     });
 
@@ -321,7 +448,7 @@ describe("SettingsProvider shortcut actions", () => {
     });
   });
 
-  // AC-004 — side-effect-contract
+  // AC-005 — side-effect-contract
   it("should persist the removal via store.save if resetShortcut is called", async () => {
     const user = userEvent.setup();
     const inner = createInMemorySettingsStore();
@@ -336,7 +463,7 @@ describe("SettingsProvider shortcut actions", () => {
 
     await screen.findByTestId("toggle-console-binding");
 
-    await user.click(screen.getByRole("button", { name: /save shortcut/i }));
+    await user.click(screen.getByRole("button", { name: /^add shortcut$/i }));
     await user.click(screen.getByRole("button", { name: /reset shortcut/i }));
 
     await waitFor(() => {
@@ -395,7 +522,7 @@ describe("SettingsProvider shortcut actions", () => {
     expect(saveSpy.mock.calls[0][0].consoleHidden).toBe(true);
   });
 
-  // TC-002, AC-003 — side-effect-contract
+  // TC-002, AC-002 — side-effect-contract
   it("should round-trip a saved shortcut through the store to a fresh provider", async () => {
     const user = userEvent.setup();
     const store = createInMemorySettingsStore();
@@ -407,10 +534,10 @@ describe("SettingsProvider shortcut actions", () => {
     );
 
     await screen.findByTestId("toggle-console-binding");
-    await user.click(screen.getByRole("button", { name: /save shortcut/i }));
+    await user.click(screen.getByRole("button", { name: /^add shortcut$/i }));
     await waitFor(() => {
       expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
-        "Mod+K",
+        JSON.stringify(["Mod+J", "Mod+K"]),
       );
     });
 
@@ -424,6 +551,6 @@ describe("SettingsProvider shortcut actions", () => {
 
     expect(
       await screen.findByTestId("toggle-console-binding"),
-    ).toHaveTextContent("Mod+K");
+    ).toHaveTextContent(JSON.stringify(["Mod+J", "Mod+K"]));
   });
 });

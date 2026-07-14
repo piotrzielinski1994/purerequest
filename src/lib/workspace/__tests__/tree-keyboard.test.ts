@@ -218,7 +218,7 @@ describe("resolveTreeKey - modifier leak guard (bug #3)", () => {
 
 describe("resolveTreeKey - custom bindings", () => {
   it("should honour a rebound tree-move-up key", () => {
-    const custom = resolveShortcuts({ "tree-move-up": "Mod+Shift+ArrowUp" });
+    const custom = resolveShortcuts({ "tree-move-up": ["Mod+Shift+ArrowUp"] });
     // Default Alt+ArrowUp must no longer trigger the move.
     expect(resolve(keyEvent("ArrowUp", { alt: true }), "c2", expandedAll, custom)).toEqual(
       { type: "none" },
@@ -235,7 +235,7 @@ describe("resolveTreeKey - custom bindings", () => {
   });
 
   it("should honour a rebound tree-activate key", () => {
-    const custom = resolveShortcuts({ "tree-activate": "Mod+Enter" });
+    const custom = resolveShortcuts({ "tree-activate": ["Mod+Enter"] });
     // Bare Enter no longer activates.
     expect(resolve(keyEvent("Enter"), "r1", expandedAll, custom)).toEqual({
       type: "none",
@@ -243,6 +243,30 @@ describe("resolveTreeKey - custom bindings", () => {
     expect(
       resolve(keyEvent("Enter", { ctrl: true }), "r1", expandedAll, custom),
     ).toEqual({ type: "activate", id: "r1" });
+  });
+
+  // E-2 — behavior: a disabled ([]) tree action never fires, and its old default
+  // key resolves to none.
+  it("should be a no-op for a disabled tree action's former default key", () => {
+    const custom = resolveShortcuts({ "tree-nav-down": [] });
+    expect(resolve(keyEvent("ArrowDown"), "f1", expandedAll, custom)).toEqual({
+      type: "none",
+    });
+  });
+
+  // AC-002 — behavior: a tree action bound to several keys fires on any of them.
+  it("should honour any binding in a multi-binding tree action", () => {
+    const custom = resolveShortcuts({
+      "tree-nav-down": ["ArrowDown", "Mod+ArrowDown"],
+    });
+    // The vitest env detects as "windows", so Mod == Ctrl.
+    expect(resolve(keyEvent("ArrowDown"), "f1", expandedAll, custom)).toEqual({
+      type: "focus",
+      id: "c1",
+    });
+    expect(
+      resolve(keyEvent("ArrowDown", { ctrl: true }), "f1", expandedAll, custom),
+    ).toEqual({ type: "focus", id: "c1" });
   });
 });
 

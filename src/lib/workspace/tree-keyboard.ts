@@ -17,9 +17,10 @@ export type TreeKeyCommand =
 
 export type TreeMoveDirection = "up" | "down" | "outdent" | "nest";
 
-// The effective binding for each tree action (from resolveShortcuts). Only the
-// tree-scoped ids are read here; the map may carry every action.
-export type TreeBindings = Partial<Record<ShortcutActionId, string>>;
+// The effective bindings for each tree action (from resolveShortcuts). Only the
+// tree-scoped ids are read here; the map may carry every action. Each action
+// maps to a LIST of hotkeys (empty = disabled).
+export type TreeBindings = Partial<Record<ShortcutActionId, string[]>>;
 
 const NONE: TreeKeyCommand = { type: "none" };
 
@@ -192,10 +193,12 @@ export function resolveTreeKey(input: {
     return NONE;
   }
   const action = TREE_ACTION_ORDER.find((id) => {
-    const binding = bindings[id];
+    const actionBindings = bindings[id];
     return (
-      typeof binding === "string" &&
-      matchesKeyboardEvent(event, binding as Hotkey)
+      Array.isArray(actionBindings) &&
+      actionBindings.some((binding) =>
+        matchesKeyboardEvent(event, binding as Hotkey),
+      )
     );
   });
   if (!action) {

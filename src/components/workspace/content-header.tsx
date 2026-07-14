@@ -72,7 +72,7 @@ function SortableTab({
   onClose,
   onCloseOthers,
   onCloseAll,
-  contextMenuBinding,
+  contextMenuBindings,
 }: {
   id: string;
   label: React.ReactNode;
@@ -85,7 +85,7 @@ function SortableTab({
   onClose: () => void;
   onCloseOthers: () => void;
   onCloseAll: () => void;
-  contextMenuBinding: string;
+  contextMenuBindings: string[];
 }) {
   const {
     attributes,
@@ -109,7 +109,7 @@ function SortableTab({
           onClick={onActivate}
           onKeyDown={(event) => {
             listeners?.onKeyDown?.(event);
-            openContextMenuOnKey(event, contextMenuBinding);
+            openContextMenuOnKey(event, contextMenuBindings);
           }}
           className={cn(
             "flex h-full cursor-grab touch-none items-center gap-1.5 border-r px-3 text-sm hover:bg-accent active:cursor-grabbing",
@@ -172,7 +172,7 @@ export function ContentHeader() {
     openSettings,
     newRequest,
   } = useWorkspace();
-  const contextMenuBinding = resolveShortcuts(useShortcutOverrides())[
+  const contextMenuBindings = resolveShortcuts(useShortcutOverrides())[
     "open-context-menu"
   ];
 
@@ -218,7 +218,7 @@ export function ContentHeader() {
                 onClose: () => requestCloseRequest(id),
                 onCloseOthers: () => requestCloseOthers(id),
                 onCloseAll: () => requestCloseAll(),
-                contextMenuBinding,
+                contextMenuBindings,
               };
               if (id === SETTINGS_TAB_ID) {
                 return (

@@ -41,7 +41,7 @@ const TOGGLE_CONSOLE = SHORTCUT_ACTIONS.find((a) => a.id === "toggle-console")!;
 const CLOSE_REQUEST = SHORTCUT_ACTIONS.find((a) => a.id === "close-request")!;
 
 describe("ShortcutsSection", () => {
-  // AC-006, TC-001 — behavior
+  // AC-001 — behavior
   it("should render a row for every in-scope action", async () => {
     renderSection();
 
@@ -57,7 +57,7 @@ describe("ShortcutsSection", () => {
     expect(await screen.findByText("Open command palette")).toBeInTheDocument();
   });
 
-  // AC-006 — behavior
+  // AC-001 — behavior
   it("should show each action's current binding formatted for display", async () => {
     renderSection();
 
@@ -65,23 +65,25 @@ describe("ShortcutsSection", () => {
     expect(await screen.findByText(defaultLabel)).toBeInTheDocument();
   });
 
-  // AC-006 — behavior
-  it("should show the override binding label if an override is set", async () => {
-    renderSection({ "toggle-console": "Mod+Y" });
+  // AC-002 — behavior: multiple bindings each render as a chip.
+  it("should render a chip for every binding if an action has several", async () => {
+    renderSection({ "toggle-console": ["Mod+J", "Mod+Y"] });
 
-    const overrideLabel = formatForDisplay("Mod+Y");
-    expect(await screen.findByText(overrideLabel)).toBeInTheDocument();
+    expect(
+      await screen.findByText(formatForDisplay("Mod+J")),
+    ).toBeInTheDocument();
+    expect(screen.getByText(formatForDisplay("Mod+Y"))).toBeInTheDocument();
   });
 
-  // AC-003, TC-002 — side-effect-contract
-  it("should persist the override if a new free combo is recorded for an action", async () => {
+  // AC-002, TC-002 — side-effect-contract: recording a free combo appends it.
+  it("should persist an appended binding if a new free combo is recorded", async () => {
     const user = userEvent.setup();
     const { saveSpy } = renderSection();
 
-    const editButton = await screen.findByRole("button", {
-      name: new RegExp(`edit.*${TOGGLE_CONSOLE.name}`, "i"),
+    const addButton = await screen.findByRole("button", {
+      name: new RegExp(`add shortcut for ${TOGGLE_CONSOLE.name}`, "i"),
     });
-    await user.click(editButton);
+    await user.click(addButton);
 
     // Mod+Y is unused by any other action -> free.
     await user.keyboard("{Control>}y{/Control}");
@@ -90,13 +92,43 @@ describe("ShortcutsSection", () => {
       expect(saveSpy).toHaveBeenCalled();
     });
     const persisted = saveSpy.mock.calls.at(-1)![0];
-    expect(persisted.shortcuts["toggle-console"]).toBe("Mod+Y");
+    expect(persisted.shortcuts["toggle-console"]).toEqual(["Mod+J", "Mod+Y"]);
   });
 
-  // AC-004, TC-003 — side-effect-contract
+  // AC-003 — side-effect-contract: removing one chip drops just that binding.
+  it("should persist the removal of one binding if its × is clicked", async () => {
+    const user = userEvent.setup();
+    const { saveSpy } = renderSection({ "toggle-console": ["Mod+J", "Mod+Y"] });
+
+    const removeButton = await screen.findByRole("button", {
+      name: `Remove ${formatForDisplay("Mod+Y")} from ${TOGGLE_CONSOLE.name}`,
+    });
+    await user.click(removeButton);
+
+    await waitFor(() => {
+      expect(saveSpy).toHaveBeenCalled();
+    });
+    const persisted = saveSpy.mock.calls.at(-1)![0];
+    expect(persisted.shortcuts["toggle-console"]).toEqual(["Mod+J"]);
+  });
+
+  // AC-004 — behavior: removing the last binding disables the action.
+  it("should show a disabled state if the last binding is removed", async () => {
+    const user = userEvent.setup();
+    renderSection({ "toggle-console": ["Mod+J"] });
+
+    const removeButton = await screen.findByRole("button", {
+      name: `Remove ${formatForDisplay("Mod+J")} from ${TOGGLE_CONSOLE.name}`,
+    });
+    await user.click(removeButton);
+
+    expect(await screen.findByText("(disabled)")).toBeInTheDocument();
+  });
+
+  // AC-005, TC-005 — side-effect-contract
   it("should remove the override and restore the default if reset is clicked", async () => {
     const user = userEvent.setup();
-    const { saveSpy } = renderSection({ "toggle-console": "Mod+K" });
+    const { saveSpy } = renderSection({ "toggle-console": ["Mod+K"] });
 
     const resetButton = await screen.findByRole("button", {
       name: new RegExp(`reset.*${TOGGLE_CONSOLE.name}`, "i"),
@@ -114,15 +146,15 @@ describe("ShortcutsSection", () => {
     ).toBeInTheDocument();
   });
 
-  // AC-005, TC-004 — behavior
+  // AC-006, TC-006 — behavior
   it("should name the owning action and not persist if a used combo is recorded", async () => {
     const user = userEvent.setup();
     const { saveSpy } = renderSection();
 
-    const editButton = await screen.findByRole("button", {
-      name: new RegExp(`edit.*${TOGGLE_CONSOLE.name}`, "i"),
+    const addButton = await screen.findByRole("button", {
+      name: new RegExp(`add shortcut for ${TOGGLE_CONSOLE.name}`, "i"),
     });
-    await user.click(editButton);
+    await user.click(addButton);
 
     // close-request owns Mod+W by default; recording it for toggle-console conflicts.
     await user.keyboard("{Control>}w{/Control}");
@@ -132,18 +164,18 @@ describe("ShortcutsSection", () => {
     expect(saveSpy).not.toHaveBeenCalled();
   });
 
-  // AC-005, AC-006 — behavior
-  it("should keep the default binding label if a conflicting combo is recorded", async () => {
+  // AC-006 — behavior
+  it("should keep the existing binding chip if a conflicting combo is recorded", async () => {
     const user = userEvent.setup();
     renderSection();
 
-    const editButton = await screen.findByRole("button", {
-      name: new RegExp(`edit.*${TOGGLE_CONSOLE.name}`, "i"),
+    const addButton = await screen.findByRole("button", {
+      name: new RegExp(`add shortcut for ${TOGGLE_CONSOLE.name}`, "i"),
     });
-    await user.click(editButton);
+    await user.click(addButton);
     await user.keyboard("{Control>}w{/Control}");
 
-    // The conflict is blocked, so toggle-console still shows its default binding.
+    // The conflict is blocked, so toggle-console still shows only its default.
     expect(
       await screen.findByText(formatForDisplay(TOGGLE_CONSOLE.defaultHotkey)),
     ).toBeInTheDocument();

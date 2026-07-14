@@ -11,11 +11,13 @@ import { matchesKeyboardEvent, type Hotkey } from "@tanstack/hotkeys";
 // user's effective `open-context-menu` hotkey; the ContextMenu key always works.
 export function openContextMenuOnKey(
   event: React.KeyboardEvent,
-  binding: string,
+  bindings: string[],
 ): boolean {
   const isMenuKey =
     event.key === "ContextMenu" ||
-    matchesKeyboardEvent(event.nativeEvent, binding as Hotkey);
+    bindings.some((binding) =>
+      matchesKeyboardEvent(event.nativeEvent, binding as Hotkey),
+    );
   if (!isMenuKey) {
     return false;
   }
@@ -38,14 +40,14 @@ export function openContextMenuOnKey(
 // focus the newly-selected row, and the key dispatcher each row calls onKeyDown.
 export type TreeNavState = {
   rovingId: string | null;
-  contextMenuBinding: string;
+  contextMenuBindings: string[];
   registerRow: (id: string, el: HTMLElement | null) => void;
   handleKeyDown: (focusedId: string, event: React.KeyboardEvent) => void;
 };
 
 const TreeNavContext = createContext<TreeNavState>({
   rovingId: null,
-  contextMenuBinding: "Shift+F10",
+  contextMenuBindings: ["Shift+F10"],
   registerRow: () => {},
   handleKeyDown: () => {},
 });

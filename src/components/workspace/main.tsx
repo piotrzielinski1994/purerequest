@@ -74,6 +74,7 @@ export function Main({
     importBruno,
     importPostman,
     importOpenapi,
+    requestPanelFocus,
   } = useWorkspace();
   const { show: showToast } = useToast();
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -166,8 +167,16 @@ export function Main({
   const handlers: Partial<Record<ShortcutActionId, () => void>> = {
     "open-settings": openSettings,
     "close-settings": closeSettings,
-    "toggle-console": () => saveConsoleHidden(!settings.consoleHidden),
-    "toggle-sidebar": () => saveSidebarHidden(!settings.sidebarHidden),
+    "toggle-console": () => {
+      const nextHidden = !settings.consoleHidden;
+      saveConsoleHidden(nextHidden);
+      requestPanelFocus(nextHidden ? "content" : "console");
+    },
+    "toggle-sidebar": () => {
+      const nextHidden = !settings.sidebarHidden;
+      saveSidebarHidden(nextHidden);
+      requestPanelFocus(nextHidden ? "content" : "sidebar");
+    },
     "toggle-theme": toggleTheme,
     "next-request": () => stepRequest(1),
     "prev-request": () => stepRequest(-1),
@@ -235,7 +244,9 @@ export function Main({
       if (!run) {
         return null;
       }
-      return { action, binding: effective[action.id], run };
+      // A disabled action (empty binding list) shows no shortcut chip but is
+      // still runnable from the palette; otherwise show its first binding.
+      return { action, binding: effective[action.id][0] ?? "", run };
     })
     .filter((command): command is PaletteCommand => command !== null);
 

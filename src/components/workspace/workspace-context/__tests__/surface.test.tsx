@@ -112,6 +112,9 @@ const EXPECTED_MEMBERS = [
   "importPostman",
   "importOpenapi",
   "focusUrlNonce",
+  "pendingPanelFocus",
+  "requestPanelFocus",
+  "consumePanelFocus",
 ] as const;
 
 describe("workspace-context public surface", () => {

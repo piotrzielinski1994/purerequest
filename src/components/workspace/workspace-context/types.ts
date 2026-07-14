@@ -64,6 +64,8 @@ export type WorkspaceInternals = {
   setResponseStates: Dispatch<SetStateAction<Map<string, ResponseState>>>;
   focusUrlNonce: number;
   setFocusUrlNonce: Dispatch<SetStateAction<number>>;
+  pendingPanelFocus: PanelFocusTarget;
+  setPendingPanelFocus: Dispatch<SetStateAction<PanelFocusTarget>>;
   activeEditor: ActiveEditor | null;
   setActiveEditor: Dispatch<SetStateAction<ActiveEditor | null>>;
   expandedFolderIds: Set<string>;
@@ -157,6 +159,13 @@ export function toggleInSet(set: Set<string>, id: string): Set<string> {
 }
 
 export type EditTarget = { kind: "config"; id: string } | null;
+
+// A one-shot request to move keyboard focus into a panel after a visibility
+// toggle. Consumed (cleared) by the panel that focuses. A consume-once flag,
+// not a nonce+diff, because a panel toggled visible mounts FRESH - a
+// just-mounted consumer would see its seen-nonce already equal to the current
+// one and skip focusing.
+export type PanelFocusTarget = "sidebar" | "console" | "content" | null;
 
 // A "go to source" jump from a token popup: which folder scope + which view to
 // open so the value behind the token is editable. `nonce` makes consecutive
@@ -344,4 +353,10 @@ export type WorkspaceContextValue = {
   importPostman: (files: PostmanFileMap, name: string) => void;
   importOpenapi: (text: string, name: string) => void;
   focusUrlNonce: number;
+  // A pending request to focus a panel after a visibility toggle, and the two
+  // ops around it: request a focus (set by the toggle handler), consume it
+  // (cleared by the panel that focused).
+  pendingPanelFocus: PanelFocusTarget;
+  requestPanelFocus: (target: PanelFocusTarget) => void;
+  consumePanelFocus: () => void;
 };

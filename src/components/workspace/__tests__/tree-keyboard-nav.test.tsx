@@ -369,7 +369,7 @@ describe("tree keyboard reconfigurable bindings", () => {
     const user = userEvent.setup();
     // Rebind next-row from ArrowDown to a custom combo.
     await renderTree(["folder-auth", "folder-oauth"], {
-      "tree-nav-down": "Mod+ArrowDown",
+      "tree-nav-down": ["Mod+ArrowDown"],
     });
 
     const auth = row("Auth");

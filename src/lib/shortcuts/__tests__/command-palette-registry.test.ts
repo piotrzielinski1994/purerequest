@@ -34,7 +34,7 @@ describe("resolveShortcuts with open-command-palette", () => {
   it("should expose open-command-palette as Mod+K when no overrides are given", () => {
     const effective = resolveShortcuts({});
 
-    expect(effective["open-command-palette"]).toBe("Mod+K");
+    expect(effective["open-command-palette"]).toEqual(["Mod+K"]);
   });
 });
 

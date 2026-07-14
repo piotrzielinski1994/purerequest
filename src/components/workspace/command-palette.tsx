@@ -41,7 +41,9 @@ export function CommandPalette({
             }}
           >
             <span>{action.name}</span>
-            <CommandShortcut>{formatForDisplay(binding)}</CommandShortcut>
+            {binding !== "" && (
+              <CommandShortcut>{formatForDisplay(binding)}</CommandShortcut>
+            )}
           </CommandItem>
         ))}
       </CommandList>

@@ -11,15 +11,16 @@ export function ShortcutsSection() {
     <section className="flex flex-col gap-1">
       <h2 className="text-lg font-medium">Keyboard Shortcuts</h2>
       <p className="text-sm text-muted-foreground">
-        Press Edit and type a new combination. Escape cancels recording, so it
-        cannot be assigned.
+        Press Add and type a combination to bind it; an action can have several.
+        Remove the × on a binding to drop it (removing the last one disables the
+        action). Escape cancels recording, so it cannot be assigned.
       </p>
       <div className="mt-2 divide-y">
         {SHORTCUT_ACTIONS.map((action) => (
           <ShortcutRow
             key={action.id}
             action={action}
-            binding={effective[action.id]}
+            bindings={effective[action.id]}
             effective={effective}
             hasOverride={action.id in settings.shortcuts}
           />

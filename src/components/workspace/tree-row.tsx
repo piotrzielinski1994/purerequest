@@ -216,7 +216,7 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }) {
     beginRename,
   } = useWorkspace();
   const { activeId } = useTreeDnd();
-  const { rovingId, contextMenuBinding, registerRow, handleKeyDown } =
+  const { rovingId, contextMenuBindings, registerRow, handleKeyDown } =
     useTreeNav();
   const {
     attributes,
@@ -254,7 +254,7 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }) {
             if (isRenaming) {
               return;
             }
-            if (openContextMenuOnKey(event, contextMenuBinding)) {
+            if (openContextMenuOnKey(event, contextMenuBindings)) {
               return;
             }
             handleKeyDown(node.id, event);
@@ -339,7 +339,7 @@ function RequestRow({ node, depth }: { node: RequestNode; depth: number }) {
     renamingNodeId,
     beginRename,
   } = useWorkspace();
-  const { rovingId, contextMenuBinding, registerRow, handleKeyDown } =
+  const { rovingId, contextMenuBindings, registerRow, handleKeyDown } =
     useTreeNav();
   const {
     attributes,
@@ -375,7 +375,7 @@ function RequestRow({ node, depth }: { node: RequestNode; depth: number }) {
             if (isRenaming) {
               return;
             }
-            if (openContextMenuOnKey(event, contextMenuBinding)) {
+            if (openContextMenuOnKey(event, contextMenuBindings)) {
               return;
             }
             handleKeyDown(node.id, event);

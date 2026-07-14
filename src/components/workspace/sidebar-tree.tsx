@@ -117,6 +117,8 @@ export function SidebarTree() {
     selectInTree,
     newRequest,
     newFolder,
+    pendingPanelFocus,
+    consumePanelFocus,
   } = useWorkspace();
   const bindings = resolveShortcuts(useShortcutOverrides());
   const rowRefs = useRef(new Map<string, HTMLElement>());
@@ -192,6 +194,19 @@ export function SidebarTree() {
     pendingFocusId.current = null;
     rowRefs.current.get(id)?.focus();
   });
+
+  // Toggling the sidebar visible focuses its roving row so arrow keys drive the
+  // tree immediately. A one-shot flag: clear it whether or not a row exists (an
+  // empty tree has none), so a stale request never re-fires.
+  useEffect(() => {
+    if (pendingPanelFocus !== "sidebar") {
+      return;
+    }
+    if (rovingId !== null) {
+      rowRefs.current.get(rovingId)?.focus();
+    }
+    consumePanelFocus();
+  }, [pendingPanelFocus, rovingId, consumePanelFocus]);
   const rootTarget = { parentId: null as string | null, index: tree.length };
   const [activeId, setActiveId] = useState<string | null>(null);
   const [indicator, setIndicator] = useState<DropIndicator | null>(null);
@@ -322,7 +337,7 @@ export function SidebarTree() {
                 <TreeNavProvider
                   value={{
                     rovingId,
-                    contextMenuBinding: bindings["open-context-menu"],
+                    contextMenuBindings: bindings["open-context-menu"],
                     registerRow,
                     handleKeyDown,
                   }}

@@ -147,8 +147,11 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > tab inside the workspace (sidebar + console stay visible); `Mod+Shift+S` opens/activates it,
 > `Esc` or the tab's close button returns to the request. `Mod+W` closes whatever tab is
 > active (settings or a request). Open workspace shows a native folder picker and loads the chosen folder. Rebind any
-> shortcut there (no on-screen link yet); a new binding is rejected if another action already
-> uses it. Settings is not a route, so it never resets the workspace.
+> shortcut there (no on-screen link yet): an action can hold **several** bindings (Add records another;
+> the × on a chip drops one; removing the last one disables the action) and a new binding is rejected
+> if another action already uses it. Toggling the sidebar or console visible moves keyboard focus into
+> it (roving tree row / console region); hiding it returns focus to the content area. Settings is not a
+> route, so it never resets the workspace.
 >
 > Drag-and-drop: open request tabs can be dragged to reorder them (the new order persists
 > like the rest of the tab state). In the sidebar collection tree, drag a request or folder

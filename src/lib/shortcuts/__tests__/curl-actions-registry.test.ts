@@ -60,7 +60,7 @@ describe("SHORTCUT_ACTIONS curl actions (AC-001, AC-011)", () => {
   it("should expose the actions' defaults from resolveShortcuts", () => {
     const effective = resolveShortcuts({});
 
-    expect(effective["copy-as-code"]).toBe("Mod+Shift+C");
-    expect(effective["import-curl"]).toBe("Mod+Shift+I");
+    expect(effective["copy-as-code"]).toEqual(["Mod+Shift+C"]);
+    expect(effective["import-curl"]).toEqual(["Mod+Shift+I"]);
   });
 });
