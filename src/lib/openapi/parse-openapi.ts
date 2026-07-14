@@ -1,4 +1,5 @@
 import { parseDocument } from "yaml";
+import { normalizeSwagger2 } from "@/lib/openapi/swagger2";
 
 // An OpenAPI 3.x document, parsed but not deeply validated: every nested field is
 // read + narrowed lazily by the mapper (openapi-to-tree). Only the version gate is
@@ -31,19 +32,22 @@ function parseText(text: string): unknown {
   }
 }
 
-// Parse an OpenAPI document (JSON or YAML) and version-gate it to 3.0/3.1. Total:
-// invalid text, a non-object doc, a `swagger: "2.0"` doc, or a missing/other
-// `openapi` value all yield null (never throws).
+// Parse an OpenAPI document (JSON or YAML) and version-gate it to 3.0/3.1. A
+// Swagger 2.0 doc (`swagger: "2.0"`) is first normalized into the 3.x shape, so it
+// passes the same gate and flows through the unchanged mapper. Total: invalid text,
+// a non-object doc, a `swagger` other than "2.0", or a missing/other `openapi`
+// value all yield null (never throws).
 export function parseOpenapiDocument(text: string): OpenapiDoc | null {
   const parsed = parseText(text);
   if (!isRecord(parsed)) {
     return null;
   }
-  const version = parsed.openapi;
+  const doc = parsed.swagger === "2.0" ? normalizeSwagger2(parsed) : parsed;
+  const version = doc.openapi;
   if (typeof version !== "string" || !SUPPORTED_VERSION.test(version)) {
     return null;
   }
-  return parsed as OpenapiDoc;
+  return doc as OpenapiDoc;
 }
 
 // Split a JSON pointer (`#/a/b~1c`) into its decoded segments (`~1` -> `/`, `~0` -> `~`).

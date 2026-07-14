@@ -700,9 +700,17 @@ describe("openapiToTree - root wrap + fallback + empty (AC-011)", () => {
     );
   });
 
-  // AC-010/AC-011 - behavior: an invalid / non-3.x doc -> [].
+  // AC-010/AC-011 - behavior: an unparseable / unversioned doc -> [].
   it("should return an empty array for an invalid document", () => {
     expect(openapiToTree("not a document {{{", "fallback")).toEqual([]);
+    expect(
+      openapiToTree(JSON.stringify({ info: { title: "x" }, paths: {} }), "fallback"),
+    ).toEqual([]);
+  });
+
+  // A swagger 2.0 doc is now ACCEPTED (normalized to 3.x), so an empty result means
+  // "no operations", not "rejected" - an operationless 2.0 doc still yields [].
+  it("should return an empty array for a swagger 2.0 doc with no operations", () => {
     expect(
       openapiToTree(JSON.stringify({ swagger: "2.0", paths: {} }), "fallback"),
     ).toEqual([]);

@@ -73,11 +73,17 @@ describe("parseOpenapiDocument - format + version gate (AC-001)", () => {
 });
 
 describe("parseOpenapiDocument - rejects non-3.x + invalid (AC-001, AC-010)", () => {
-  // AC-001, TC-001 - behavior: a swagger 2.0 doc is gated out (null).
-  it("should return null for a swagger 2.0 document", () => {
-    const doc = json({ swagger: "2.0", info: { title: "x" }, paths: {} });
+  // AC-001 - behavior: a swagger 2.0 doc is now ACCEPTED (normalized to 3.x, then
+  // gated) - it is no longer rejected. (Swagger 2.0 support: feature
+  // 20260714131950-swagger2-import.)
+  it("should accept a swagger 2.0 document (normalized to 3.x)", () => {
+    const doc = json({
+      swagger: "2.0",
+      info: { title: "x" },
+      paths: { "/x": { get: {} } },
+    });
 
-    expect(parseOpenapiDocument(doc)).toBeNull();
+    expect(parseOpenapiDocument(doc)).not.toBeNull();
   });
 
   // AC-001, TC-001 - behavior: a doc with no openapi field is gated out (null).
