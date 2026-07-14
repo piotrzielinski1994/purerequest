@@ -131,6 +131,47 @@ describe("planReconcile remove set", () => {
     expect(result.remove).not.toContain("api/.env");
   });
 
+  // behavior - a folder .env IS removed when the whole folder is deleted, so the
+  // now-empty dir can be pruned (else the orphan .env resurrects the folder on
+  // reload). The folder is "gone" when no next key lives under its dir subtree.
+  it("should remove a folder .env if its entire folder subtree is gone from next", () => {
+    const current: FileMap = {
+      "requi.workspace.json": '{"schemaVersion":3}',
+      "bruno/folder.json": '{"name":"bruno","order":10}',
+      "bruno/collections/folder.json": '{"name":"collections","order":0}',
+      "bruno/collections/as24/folder.json": '{"name":"as24","order":0}',
+      "bruno/collections/as24/.env": "TOKEN=secret",
+    };
+    const next: FileMap = { "requi.workspace.json": '{"schemaVersion":3}' };
+
+    const result = planReconcile(current, next);
+
+    expect(result.remove).toContain("bruno/collections/as24/.env");
+    expect(result.remove).toContain("bruno/collections/as24/folder.json");
+    expect(result.remove).toContain("bruno/folder.json");
+  });
+
+  // behavior - a folder .env survives when a DEEPER folder in its subtree still
+  // exists (the parent folder is not gone).
+  it("should keep a folder .env if a deeper folder in its subtree survives", () => {
+    const current: FileMap = {
+      "requi.workspace.json": '{"schemaVersion":3}',
+      "api/.env": "TOKEN=api",
+      "api/folder.json": '{"name":"Api","order":0}',
+      "api/sub/folder.json": '{"name":"Sub","order":0}',
+    };
+    // The api/ folder itself lost its folder.json, but api/sub still exists, so
+    // api/ still exists as an ancestor - its .env must not be reconciled away.
+    const next: FileMap = {
+      "requi.workspace.json": '{"schemaVersion":3}',
+      "api/sub/folder.json": '{"name":"Sub","order":0}',
+    };
+
+    const result = planReconcile(current, next);
+
+    expect(result.remove).not.toContain("api/.env");
+  });
+
   // AC-006 / behavior - moved folder old paths are removed
   it("should include the old managed paths in remove if a folder moved", () => {
     const current: FileMap = {

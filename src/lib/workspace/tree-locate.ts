@@ -38,6 +38,27 @@ export function findNode(nodes: TreeNode[], id: string): TreeNode | null {
   return null;
 }
 
+// The folder-id chain from the root down to (not including) the node's parent's
+// own id - i.e. every ancestor folder of `id`, root-first. `[]` for a root node
+// or an unknown id. Used to expand exactly the folders needed to reveal a node.
+export function ancestorIds(nodes: TreeNode[], id: string): string[] {
+  const walk = (current: TreeNode[], path: string[]): string[] | null => {
+    for (const node of current) {
+      if (node.id === id) {
+        return path;
+      }
+      if (node.kind === "folder") {
+        const found = walk(node.children, [...path, node.id]);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    return null;
+  };
+  return walk(nodes, []) ?? [];
+}
+
 export type DropPosition = "before" | "after" | "inside";
 
 // An empty folder has no child rows to drop near, so during a drag it renders

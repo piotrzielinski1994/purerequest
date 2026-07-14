@@ -18,6 +18,17 @@ export function flattenSelectable(
   });
 }
 
+// Every folder id in the tree at any depth (requests excluded), independent of
+// expand state - drives expand-all (add them all) and collapse-all (the tree
+// clears its expanded set to empty, so this is only needed for expand).
+export function allFolderIds(nodes: TreeNode[]): string[] {
+  return nodes.flatMap((node) =>
+    node.kind === "folder"
+      ? [node.id, ...allFolderIds(node.children)]
+      : [],
+  );
+}
+
 // The inclusive range of ids between `anchor` and `target` in the visible order,
 // direction-independent. Falls back to just `target` if either endpoint is not
 // visible (e.g. a stale anchor inside a since-collapsed folder).

@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import {
   locateNode,
   findNode,
+  ancestorIds,
   dropTarget,
   rawDropTarget,
   projectDropPosition,
@@ -63,6 +64,25 @@ describe("findNode", () => {
   // behavior
   it("should return null for an unknown id", () => {
     expect(findNode(tree, "nope")).toBeNull();
+  });
+});
+
+describe("ancestorIds", () => {
+  const nested: TreeNode[] = [folder("F", [folder("G", [request("R")])])];
+
+  // AC-008, TC-007 — behavior: the root→parent folder-id chain of a nested node.
+  it("should return the root-to-parent folder id chain for a nested node", () => {
+    expect(ancestorIds(nested, "R")).toEqual(["F", "G"]);
+  });
+
+  // AC-008, TC-007 — behavior: a root node has no folder ancestors.
+  it("should return an empty array for a root node", () => {
+    expect(ancestorIds(nested, "F")).toEqual([]);
+  });
+
+  // AC-008, TC-007 — behavior: an unknown id is null-safe and returns [].
+  it("should return an empty array for an unknown id", () => {
+    expect(ancestorIds(nested, "nope")).toEqual([]);
   });
 });
 

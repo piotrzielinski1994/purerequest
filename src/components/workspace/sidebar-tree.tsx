@@ -16,6 +16,7 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { useWorkspace } from "@/components/workspace/workspace-context";
@@ -117,8 +118,12 @@ export function SidebarTree() {
     selectInTree,
     newRequest,
     newFolder,
+    collapseAllFolders,
+    expandAllFolders,
     pendingPanelFocus,
     consumePanelFocus,
+    revealRowId,
+    consumeRevealRow,
   } = useWorkspace();
   const bindings = resolveShortcuts(useShortcutOverrides());
   const rowRefs = useRef(new Map<string, HTMLElement>());
@@ -207,6 +212,16 @@ export function SidebarTree() {
     }
     consumePanelFocus();
   }, [pendingPanelFocus, rovingId, consumePanelFocus]);
+
+  // Scroll a quick-open-revealed row into view once. Consume-once even when no
+  // row matches (a since-collapsed/unknown id), so a stale reveal never re-fires.
+  useEffect(() => {
+    if (revealRowId === null) {
+      return;
+    }
+    rowRefs.current.get(revealRowId)?.scrollIntoView({ block: "nearest" });
+    consumeRevealRow();
+  }, [revealRowId, consumeRevealRow]);
   const rootTarget = { parentId: null as string | null, index: tree.length };
   const [activeId, setActiveId] = useState<string | null>(null);
   const [indicator, setIndicator] = useState<DropIndicator | null>(null);
@@ -409,6 +424,13 @@ export function SidebarTree() {
         </ContextMenuItem>
         <ContextMenuItem onSelect={() => newFolder(rootTarget)}>
           New folder
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={() => expandAllFolders()}>
+          Expand all folders
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => collapseAllFolders()}>
+          Collapse all folders
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

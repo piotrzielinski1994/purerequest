@@ -181,6 +181,8 @@ export function WorkspaceProvider({
     [],
   );
   const consumePanelFocus = useCallback(() => setPendingPanelFocus(null), []);
+  const [revealRowId, setRevealRowId] = useState<string | null>(null);
+  const consumeRevealRow = useCallback(() => setRevealRowId(null), []);
   const [activeEditor, setActiveEditor] = useState<ActiveEditor | null>(null);
   const registerActiveEditor = useCallback(
     (editor: ActiveEditor | null) => setActiveEditor(editor),
@@ -452,6 +454,8 @@ export function WorkspaceProvider({
       setExpandedFolderIds,
       selectedNodeId,
       setSelectedNodeId,
+      revealRowId,
+      setRevealRowId,
       selectedIds,
       setSelectedIds,
       selectAnchorId,
@@ -496,9 +500,12 @@ export function WorkspaceProvider({
       selectSingle,
       focusNode,
       selectNode,
+      revealNode,
       selectInTree,
       clearSelection,
       toggleFolder,
+      collapseAllFolders,
+      expandAllFolders,
     } = createSelection(internals);
     const {
       closeRequest,
@@ -665,8 +672,13 @@ export function WorkspaceProvider({
       isSettingsOpen,
       isSettingsActive,
       toggleFolder,
+      collapseAllFolders,
+      expandAllFolders,
       selectNode,
       focusNode,
+      revealNode,
+      revealRowId,
+      consumeRevealRow,
       selectedIds,
       selectInTree,
       clearSelection,
@@ -756,6 +768,8 @@ export function WorkspaceProvider({
     pendingPanelFocus,
     requestPanelFocus,
     consumePanelFocus,
+    revealRowId,
+    consumeRevealRow,
     activeEditor,
     editorDirty,
     popupCanSave,

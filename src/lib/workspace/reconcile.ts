@@ -5,6 +5,8 @@ const MANAGED_FILE =
 
 export type ReconcilePlan = { write: FileMap; remove: string[] };
 
+const ENV_FILE = /(?:^|\/)\.env$/;
+
 export function planReconcile(current: FileMap, next: FileMap): ReconcilePlan {
   const write: FileMap = {};
   for (const [path, content] of Object.entries(next)) {
@@ -12,9 +14,24 @@ export function planReconcile(current: FileMap, next: FileMap): ReconcilePlan {
       write[path] = content;
     }
   }
-  const remove = Object.keys(current).filter(
-    (path) => !(path in next) && MANAGED_FILE.test(path),
+  // Every dir that still has a file under it in `next` - a `.env` may only be
+  // reconciled away when NO next file lives in its folder subtree (the folder is
+  // gone), else a per-folder `.env` that `next` simply didn't re-emit would be
+  // wrongly deleted.
+  const survivingDirs = new Set(
+    Object.keys(next).flatMap((path) => ancestorDirs(path)),
   );
+  const isRemovable = (path: string): boolean => {
+    if (path in next) {
+      return false;
+    }
+    if (MANAGED_FILE.test(path)) {
+      return true;
+    }
+    const dir = parentDir(path);
+    return ENV_FILE.test(path) && dir !== null && !survivingDirs.has(dir);
+  };
+  const remove = Object.keys(current).filter(isRemovable);
   return { write, remove };
 }
 

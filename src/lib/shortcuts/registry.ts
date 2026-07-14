@@ -23,6 +23,9 @@ export type ShortcutActionId =
   | "import-postman"
   | "import-openapi"
   | "open-command-palette"
+  | "open-quick-open"
+  | "collapse-all-folders"
+  | "expand-all-folders"
   | "tree-nav-down"
   | "tree-nav-up"
   | "tree-nav-first"
@@ -192,6 +195,24 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     name: "Open command palette",
     description: "Search and run any action from a command list.",
     defaultHotkey: "Mod+K",
+  },
+  {
+    id: "open-quick-open",
+    name: "Quick open request",
+    description: "Fuzzy-search and jump to any request or folder by name.",
+    defaultHotkey: "Mod+P",
+  },
+  {
+    id: "collapse-all-folders",
+    name: "Collapse all folders",
+    description: "Collapse every folder in the sidebar collection tree.",
+    defaultHotkey: "Mod+Shift+[",
+  },
+  {
+    id: "expand-all-folders",
+    name: "Expand all folders",
+    description: "Expand every folder in the sidebar collection tree.",
+    defaultHotkey: "Mod+Shift+]",
   },
   {
     id: "tree-nav-down",

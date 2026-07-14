@@ -10,6 +10,8 @@ import {
   CommandPalette,
   type PaletteCommand,
 } from "@/components/workspace/command-palette";
+import { RequestQuickOpen } from "@/components/workspace/request-quick-open";
+import { buildQuickOpenEntries } from "@/lib/workspace/quick-open";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
 import { DeleteConfirmDialog } from "@/components/workspace/delete-confirm-dialog";
 import { CurlImportDialog } from "@/components/workspace/curl-import-dialog";
@@ -50,11 +52,17 @@ export function Main({
     saveThemeMode,
   } = useSettings();
   const {
+    tree,
     openRequestIds,
     activeRequestId,
     selectedNodeId,
     isEditorActive,
     editTarget,
+    revealNode,
+    requestsById,
+    openConfigEditor,
+    collapseAllFolders,
+    expandAllFolders,
     setActiveRequest,
     requestCloseRequest,
     requestCloseOthers,
@@ -78,6 +86,7 @@ export function Main({
   } = useWorkspace();
   const { show: showToast } = useToast();
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [isQuickOpenOpen, setIsQuickOpenOpen] = useState(false);
 
   const toggleTheme = () => {
     const next = cycleThemeMode(settings.theme.mode);
@@ -228,6 +237,9 @@ export function Main({
     "import-bruno": importBrunoCollection,
     "import-postman": importPostmanCollection,
     "import-openapi": importOpenapiDocument,
+    "open-quick-open": () => setIsQuickOpenOpen(true),
+    "collapse-all-folders": collapseAllFolders,
+    "expand-all-folders": expandAllFolders,
   };
 
   useActionHotkeys({
@@ -256,6 +268,20 @@ export function Main({
         open={isPaletteOpen}
         onOpenChange={setIsPaletteOpen}
         commands={commands}
+      />
+      <RequestQuickOpen
+        open={isQuickOpenOpen}
+        onOpenChange={setIsQuickOpenOpen}
+        entries={buildQuickOpenEntries(tree)}
+        onSelect={(id) => {
+          revealNode(id);
+          // A request reveal opens its tab (handled by revealNode); a folder
+          // additionally opens its edit card, so quick-open lands on something
+          // editable rather than just a highlighted row.
+          if (!requestsById.has(id)) {
+            openConfigEditor(id);
+          }
+        }}
       />
       <CloseConfirmDialog />
       <DeleteConfirmDialog />

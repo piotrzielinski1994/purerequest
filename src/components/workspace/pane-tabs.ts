@@ -4,6 +4,13 @@
 // and it is dropped from the persisted open-tab ids (reopens fresh each launch).
 export const SETTINGS_TAB_ID = "__settings__";
 
+// A synthetic tab id for the folder config-editor tab so it joins the ordered
+// sortable tab list (drag + keyboard reorder parity). Unlike Settings it does NOT
+// live in `openRequestIds` (the editor is a transient `editTarget` slot, not a
+// persisted open tab); the tab bar splices it into the sortable order at a local
+// index, so its position is session-only UI state.
+export const EDITOR_TAB_ID = "__config_editor__";
+
 export const PANE_TABS_LIST =
   "h-full! w-fit gap-0 rounded-none bg-transparent p-0";
 

@@ -140,10 +140,16 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > request tabs `Mod+Alt+W`, close all request tabs `Mod+Shift+W`, new request `Mod+T`, open workspace `Mod+O`, send request
 > `Mod+Enter`, copy as code `Mod+Shift+C`, import cURL `Mod+Shift+I`, import Bruno collection
 > `Mod+Shift+B`, import Postman collection `Mod+Shift+P`, import OpenAPI document `Mod+Shift+O`,
-> command palette `Mod+K`
+> command palette `Mod+K`, quick open request `Mod+P`, collapse all folders `Mod+Shift+[`,
+> expand all folders `Mod+Shift+]`
 > (`Mod` = Cmd on macOS, Ctrl
 > elsewhere). The command palette is an overlay listing every wired action with its shortcut;
-> type to filter, arrow to move, Enter (or click) to run, Esc to close. Settings open as a
+> type to filter, arrow to move, Enter (or click) to run, Esc to close. **Quick open** (`Mod+P`)
+> is a separate overlay that fuzzy-searches every request + folder by name, folder breadcrumb,
+> and URL; Enter/click jumps to it - a request opens (and its tab activates), a folder reveals
+> in the tree and opens its config edit card. **Collapse/expand all folders** (`Mod+Shift+[` /
+> `Mod+Shift+]`, also in the palette and the sidebar's empty-area right-click menu) fold or
+> unfold the whole collection tree. Settings open as a
 > tab inside the workspace (sidebar + console stay visible); `Mod+Shift+S` opens/activates it,
 > `Esc` or the tab's close button returns to the request. `Mod+W` closes whatever tab is
 > active (settings or a request). Open workspace shows a native folder picker and loads the chosen folder. Rebind any
@@ -153,8 +159,9 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > it (roving tree row / console region); hiding it returns focus to the content area. Settings is not a
 > route, so it never resets the workspace.
 >
-> Drag-and-drop: open request tabs can be dragged to reorder them (the new order persists
-> like the rest of the tab state). In the sidebar collection tree, drag a request or folder
+> Drag-and-drop: open request tabs (plus the Settings tab and an open folder config-editor
+> tab) can be dragged to reorder them (the request/Settings order persists like the rest of
+> the tab state; the editor tab's slot is session-only). In the sidebar collection tree, drag a request or folder
 > onto another folder to move it inside, or between two rows to reorder siblings; the change
 > is written back to the workspace on disk so it survives a reload (in `npm run dev` there is
 > no Tauri host, so the move stays in-session only). The sidebar supports **multi-select**:

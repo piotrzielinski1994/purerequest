@@ -72,6 +72,8 @@ export type WorkspaceInternals = {
   setExpandedFolderIds: Dispatch<SetStateAction<Set<string>>>;
   selectedNodeId: string | null;
   setSelectedNodeId: Dispatch<SetStateAction<string | null>>;
+  revealRowId: string | null;
+  setRevealRowId: Dispatch<SetStateAction<string | null>>;
   selectedIds: Set<string>;
   setSelectedIds: Dispatch<SetStateAction<Set<string>>>;
   selectAnchorId: string | null;
@@ -304,8 +306,20 @@ export type WorkspaceContextValue = {
   isSettingsOpen: boolean;
   isSettingsActive: boolean;
   toggleFolder: (id: string) => void;
+  // Collapse every folder (clear the expanded set) / expand every folder in the
+  // tree at any depth. Sidebar-wide actions (shortcut + palette + context menu).
+  collapseAllFolders: () => void;
+  expandAllFolders: () => void;
   selectNode: (id: string) => void;
   focusNode: (id: string) => void;
+  // Jump to any node from outside the tree (quick-open): expand its ancestor
+  // folders, single-select it, open+activate a request's tab (a folder is just
+  // expanded), and ask the sidebar to scroll its row into view.
+  revealNode: (id: string) => void;
+  // The row the sidebar should scroll into view next (consume-once); cleared by
+  // the sidebar after scrolling.
+  revealRowId: string | null;
+  consumeRevealRow: () => void;
   selectInTree: (id: string, mode: SelectMode) => void;
   clearSelection: () => void;
   setActiveRequest: (id: string) => void;
