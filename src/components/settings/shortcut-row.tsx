@@ -27,21 +27,51 @@ export function ShortcutRow({
   effective,
   hasOverride,
 }: ShortcutRowProps) {
-  const { addShortcut, removeShortcut, resetShortcut } = useSettings();
+  const { addShortcut, removeShortcut, replaceShortcut, resetShortcut } =
+    useSettings();
   const [conflictName, setConflictName] = useState<string | null>(null);
+  // The binding currently being re-recorded in place, or null when the standalone
+  // Add recorder is armed (or nothing is recording).
+  const [editingBinding, setEditingBinding] = useState<string | null>(null);
 
   const recorder = useRecordHotkey({
     onRecord: (hotkey) => {
       const owner = findConflict(hotkey, action.id, effective);
       if (owner !== null) {
         setConflictName(actionName(owner));
+        setEditingBinding(null);
         return;
       }
       setConflictName(null);
+      if (editingBinding !== null) {
+        replaceShortcut(action.id, editingBinding, hotkey);
+        setEditingBinding(null);
+        return;
+      }
       addShortcut(action.id, hotkey);
     },
-    onCancel: () => setConflictName(null),
+    onCancel: () => {
+      setConflictName(null);
+      setEditingBinding(null);
+    },
   });
+
+  const startEditing = (binding: string) => {
+    setConflictName(null);
+    setEditingBinding(binding);
+    recorder.startRecording();
+  };
+
+  const cancelRecording = () => {
+    setEditingBinding(null);
+    recorder.cancelRecording();
+  };
+
+  const startAdding = () => {
+    setConflictName(null);
+    setEditingBinding(null);
+    recorder.startRecording();
+  };
 
   return (
     <div className="flex items-center gap-2 py-1.5">
@@ -50,23 +80,39 @@ export function ShortcutRow({
         {bindings.length === 0 && !recorder.isRecording && (
           <span className="text-xs text-muted-foreground">(disabled)</span>
         )}
-        {bindings.map((binding) => (
-          <span
-            key={binding}
-            className="flex items-center gap-1 border border-border bg-muted/40 px-1.5 py-0.5 font-mono text-xs"
-          >
-            {formatForDisplay(binding)}
-            <button
-              type="button"
-              aria-label={`Remove ${formatForDisplay(binding)} from ${action.name}`}
-              className="text-muted-foreground hover:text-foreground"
-              onClick={() => removeShortcut(action.id, binding)}
+        {bindings.map((binding) =>
+          recorder.isRecording && editingBinding === binding ? (
+            <span
+              key={binding}
+              className="font-mono text-xs text-muted-foreground"
             >
-              ×
-            </button>
-          </span>
-        ))}
-        {recorder.isRecording && (
+              Press keys…
+            </span>
+          ) : (
+            <span
+              key={binding}
+              className="flex items-center gap-1 border border-border bg-muted/40 px-1.5 py-0.5 font-mono text-xs"
+            >
+              <button
+                type="button"
+                aria-label={`Edit ${formatForDisplay(binding)} for ${action.name}`}
+                className="hover:text-foreground"
+                onClick={() => startEditing(binding)}
+              >
+                {formatForDisplay(binding)}
+              </button>
+              <button
+                type="button"
+                aria-label={`Remove ${formatForDisplay(binding)} from ${action.name}`}
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => removeShortcut(action.id, binding)}
+              >
+                ×
+              </button>
+            </span>
+          ),
+        )}
+        {recorder.isRecording && editingBinding === null && (
           <span className="font-mono text-xs text-muted-foreground">
             Press keys…
           </span>
@@ -82,7 +128,7 @@ export function ShortcutRow({
           type="button"
           variant="ghost"
           size="sm"
-          onClick={recorder.cancelRecording}
+          onClick={cancelRecording}
         >
           Cancel
         </Button>
@@ -92,10 +138,7 @@ export function ShortcutRow({
           variant="outline"
           size="sm"
           aria-label={`Add shortcut for ${action.name}`}
-          onClick={() => {
-            setConflictName(null);
-            recorder.startRecording();
-          }}
+          onClick={startAdding}
         >
           Add
         </Button>
