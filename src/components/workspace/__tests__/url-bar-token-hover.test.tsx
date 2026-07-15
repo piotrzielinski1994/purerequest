@@ -238,6 +238,79 @@ describe("UrlBar token hover preview", () => {
   });
 });
 
+describe("UrlBar token edit drills to the real value source (AC-008)", () => {
+  const pointerTree: TreeNode[] = [
+    {
+      kind: "folder",
+      id: "root",
+      name: "as24",
+      config: {
+        variables: [
+          { key: "CUSTOMER_ID", value: "{{process.env.CUSTOMER_ID}}" },
+        ],
+      },
+      children: [
+        {
+          kind: "request",
+          id: "req",
+          name: "Req",
+          method: "GET",
+          url: "{{CUSTOMER_ID}}/get",
+          body: emptyBody(),
+          params: emptyParams(),
+          config: {},
+        },
+      ],
+    },
+  ];
+
+  // TC-008, side-effect-contract: editing a var whose folder row is a
+  // `{{process.env.KEY}}` pointer drills the write to the global `.env` (via
+  // onEnvChange), NOT into the folder row. The onEnvChange call is the
+  // discriminator: overwriting the folder row (today's behavior) never fires it.
+  // Re-hover then confirms the value resolves end-to-end after the drilled write.
+  it("should write the edited value to the global .env if the folder row is a process.env pointer", async () => {
+    const user = userEvent.setup();
+    const onEnvChange = vi.fn();
+    // Overwriting the folder row (today's behavior) persists the tree; the drill
+    // touches only the `.env`, so onTreeChange must NEVER fire - the pointer row
+    // stays `{{process.env.CUSTOMER_ID}}` on disk.
+    const onTreeChange = vi.fn().mockResolvedValue({ ok: true });
+    render(
+      <WorkspaceProvider
+        tree={pointerTree}
+        initialActiveRequestId="req"
+        initialExpandedIds={["root"]}
+        processEnv={{ CUSTOMER_ID: "orig" }}
+        onEnvChange={onEnvChange}
+        onTreeChange={onTreeChange}
+      >
+        <UrlBar />
+      </WorkspaceProvider>,
+    );
+
+    await user.hover(screen.getByText("{{CUSTOMER_ID}}"));
+    const input = await screen.findByRole("textbox", { name: /value/i });
+    expect(input).toHaveValue("orig");
+
+    await user.clear(input);
+    await user.type(input, "new{Enter}");
+
+    expect(onEnvChange).toHaveBeenCalled();
+    expect(
+      onEnvChange.mock.calls.some(([text]) =>
+        String(text).includes("CUSTOMER_ID=new"),
+      ),
+    ).toBe(true);
+    // The folder pointer row was never rewritten.
+    expect(onTreeChange).not.toHaveBeenCalled();
+
+    await user.hover(screen.getByText("{{CUSTOMER_ID}}"));
+    const reopened = await screen.findByRole("textbox", { name: /value/i });
+    expect(reopened).toHaveValue("new");
+  });
+});
+
 describe("UrlBar path param token hover", () => {
   const pathTree = (path: Record<string, string>): TreeNode[] => [
     {
