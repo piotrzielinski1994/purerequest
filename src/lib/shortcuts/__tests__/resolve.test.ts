@@ -37,6 +37,7 @@ const ACTION_IDS: ShortcutActionId[] = [
   "import-openapi",
   "open-command-palette",
   "open-quick-open",
+  "open-find",
   "collapse-all-folders",
   "expand-all-folders",
   "panel-expand",

@@ -24,6 +24,7 @@ export type ShortcutActionId =
   | "import-openapi"
   | "open-command-palette"
   | "open-quick-open"
+  | "open-find"
   | "collapse-all-folders"
   | "expand-all-folders"
   | "panel-shrink"
@@ -203,6 +204,12 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     name: "Quick open request",
     description: "Fuzzy-search and jump to any request or folder by name.",
     defaultHotkey: "Mod+P",
+  },
+  {
+    id: "open-find",
+    name: "Find",
+    description: "Open the in-app find bar for the focused editor or viewer.",
+    defaultHotkey: "Mod+F",
   },
   {
     id: "collapse-all-folders",

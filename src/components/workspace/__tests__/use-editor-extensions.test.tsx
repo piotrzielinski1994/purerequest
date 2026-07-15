@@ -2,7 +2,8 @@ import { describe, it, expect, afterEach } from "vitest";
 import type { ReactElement } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { EditorView } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
+import { EditorState, type Extension } from "@codemirror/state";
+import { openSearchPanel } from "@codemirror/search";
 
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
@@ -194,5 +195,83 @@ describe("useEditorExtensions", () => {
   it("should expose the custom dark editor string via the merged default table", () => {
     const sentinel = "oklch(0.321 0.123 321)";
     expect(sentinel).not.toBe(DEFAULT_THEME_COLORS.dark.editor.string);
+  });
+
+  // AC-005 — behavior: every in-scope CodeMirror surface (body, config, response
+  // viewer, console viewer, and the standalone findExtension for script/GraphQL)
+  // carries find, proven by mounting the set and opening the search panel: the
+  // shared FindBar input must appear. Guards against a set silently missing find.
+  const IN_SCOPE_SETS: Array<keyof ExtensionSets> = [
+    "bodyExtensions",
+    "configExtensions",
+    "viewerExtensions",
+    "responseViewerExtensions",
+    "consoleViewerExtensions",
+    "findExtension",
+  ];
+
+  it.each(IN_SCOPE_SETS)(
+    "should open the shared FindBar for the %s surface",
+    async (setKey) => {
+      stubMatchMedia(false);
+      const { captures, Probe } = makeProbe();
+      renderHook({ mode: "light", Probe });
+      await screen.findByTestId("probe");
+      await waitFor(() => expect(captures.length).toBeGreaterThan(0));
+
+      const set = captures.at(-1)?.[setKey];
+      const parent = document.createElement("div");
+      document.body.appendChild(parent);
+      const view = new EditorView({
+        state: EditorState.create({
+          doc: "hello",
+          extensions: set as Extension,
+        }),
+        parent,
+      });
+
+      openSearchPanel(view);
+      // `.cm-requi-find` is our styled panel specifically - CodeMirror's DEFAULT
+      // panel also uses an aria-label="Find" input, so we key on the panel class to
+      // prove find is wired to OUR FindBar, not just any search panel.
+      await waitFor(() => {
+        expect(
+          parent.querySelector(".cm-requi-find"),
+          `${setKey} did not open the shared FindBar`,
+        ).not.toBeNull();
+      });
+
+      view.destroy();
+    },
+  );
+
+  // AC-005 — regression guard: the `.env` set is a key-value table surface, NOT a
+  // CodeMirror editor, so it deliberately does NOT wire OUR find. Even though CM can
+  // still surface its own default search panel, our styled `.cm-requi-find` must be
+  // absent - proving editorFind was not added to this set. Pins the scoping decision
+  // so a future edit doesn't quietly wire our FindBar into it.
+  it("should NOT wire the shared FindBar into the env extension set", async () => {
+    stubMatchMedia(false);
+    const { captures, Probe } = makeProbe();
+    renderHook({ mode: "light", Probe });
+    await screen.findByTestId("probe");
+    await waitFor(() => expect(captures.length).toBeGreaterThan(0));
+
+    const env = captures.at(-1)?.envExtensions;
+    const parent = document.createElement("div");
+    document.body.appendChild(parent);
+    const view = new EditorView({
+      state: EditorState.create({
+        doc: "KEY=value",
+        extensions: env as Extension,
+      }),
+      parent,
+    });
+
+    openSearchPanel(view);
+    await Promise.resolve();
+    expect(parent.querySelector(".cm-requi-find")).toBeNull();
+
+    view.destroy();
   });
 });
