@@ -179,6 +179,24 @@ describe("panel resize actions - console focus", () => {
     const persisted = await store.load();
     expect(persisted.layouts.main!.console).toBe(30);
   });
+
+  // AC-003 — behavior: shrink is the inverse of expand for the console.
+  it("should shrink the console panel by 5% if panel-shrink fires with focus in the console", async () => {
+    const user = userEvent.setup();
+    const { store } = renderShell();
+    const consoleRegion = await screen.findByRole("region", {
+      name: /console/i,
+    });
+    await waitFor(() => expect(flexGrowOf("console")).toBe(25));
+
+    consoleRegion.focus();
+
+    await user.keyboard(SHRINK);
+
+    await waitFor(() => expect(flexGrowOf("console")).toBe(20));
+    const persisted = await store.load();
+    expect(persisted.layouts.main!.console).toBe(20);
+  });
 });
 
 describe("panel resize actions - no-op targets", () => {
@@ -260,5 +278,26 @@ describe("panel resize actions - command palette", () => {
 
     expect(within(dialog).getByText("Expand panel")).toBeInTheDocument();
     expect(within(dialog).getByText("Shrink panel")).toBeInTheDocument();
+  });
+
+  // AC-006 — behavior: running Expand panel from the palette resizes the panel
+  // that was focused when the palette opened (focus is trapped in the modal at
+  // run time, so the handler must fall back to the pre-palette target).
+  it("should resize the panel focused when the palette opened if run from the palette", async () => {
+    const user = userEvent.setup();
+    const { store } = renderShell();
+    await screen.findByRole("region", { name: /console/i });
+    await waitFor(() => expect(flexGrowOf("sidebar")).toBe(20));
+
+    const tree = screen.getByRole("tree", { name: /collection/i });
+    within(tree).getAllByRole("treeitem")[0].focus();
+
+    await user.keyboard("{Control>}k{/Control}");
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByText("Expand panel"));
+
+    await waitFor(() => expect(flexGrowOf("sidebar")).toBe(25));
+    const persisted = await store.load();
+    expect(persisted.layouts.workspace!.sidebar).toBe(25);
   });
 });

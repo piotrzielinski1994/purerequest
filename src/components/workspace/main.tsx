@@ -9,6 +9,7 @@ import {
   PANEL_RESIZE_STEP,
   resolveFocusedPanel,
   stepLayout,
+  type PanelResizeTarget,
 } from "@/lib/workspace/panel-resize";
 import { Content } from "@/components/workspace/content";
 import { Console } from "@/components/workspace/console";
@@ -186,8 +187,20 @@ export function Main({
     [registerPanelGroup],
   );
 
+  // The panel focused when the command palette opened. Running a resize action
+  // from the palette can't read `document.activeElement` (focus is trapped in
+  // the modal), so it falls back to this snapshot.
+  const [paletteResizeTarget, setPaletteResizeTarget] =
+    useState<PanelResizeTarget | null>(null);
+  const openPalette = () => {
+    setPaletteResizeTarget(resolveFocusedPanel(document.activeElement));
+    setIsPaletteOpen(true);
+  };
+
   const resizeFocusedPanel = (deltaPct: number) => {
-    const target = resolveFocusedPanel(document.activeElement);
+    const target =
+      resolveFocusedPanel(document.activeElement) ??
+      (isPaletteOpen ? paletteResizeTarget : null);
     if (target === null) {
       return;
     }
@@ -271,7 +284,7 @@ export function Main({
 
   useActionHotkeys({
     ...handlers,
-    "open-command-palette": () => setIsPaletteOpen(true),
+    "open-command-palette": openPalette,
   });
 
   const effective = resolveShortcuts(settings.shortcuts);
