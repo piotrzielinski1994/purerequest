@@ -30,6 +30,11 @@ type SettingsContextValue = {
   saveWorkspacePath: (path: string) => void;
   addShortcut: (id: ShortcutActionId, hotkey: string) => void;
   removeShortcut: (id: ShortcutActionId, hotkey: string) => void;
+  replaceShortcut: (
+    id: ShortcutActionId,
+    oldHotkey: string,
+    newHotkey: string,
+  ) => void;
   resetShortcut: (id: ShortcutActionId) => void;
   saveOpenTabs: (
     openRequestIds: string[],
@@ -149,6 +154,37 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
     [update],
   );
 
+  // Swap one binding for another in place (preserving its slot), normalized +
+  // de-duplicated. A no-op when the new hotkey is invalid or the old one is not
+  // actually bound to the action.
+  const replaceShortcut = useCallback(
+    (id: ShortcutActionId, oldHotkey: string, newHotkey: string) =>
+      update((base) => {
+        const normalizedNew = safeNormalize(newHotkey);
+        if (normalizedNew === null) {
+          return base;
+        }
+        const normalizedOld = safeNormalize(oldHotkey) ?? oldHotkey;
+        const current = resolveShortcuts(base.shortcuts)[id];
+        if (!current.includes(normalizedOld)) {
+          return base;
+        }
+        const swapped = current.map((binding) =>
+          binding === normalizedOld ? normalizedNew : binding,
+        );
+        return {
+          ...base,
+          shortcuts: {
+            ...base.shortcuts,
+            [id]: swapped.filter(
+              (binding, index) => swapped.indexOf(binding) === index,
+            ),
+          },
+        };
+      }),
+    [update],
+  );
+
   const resetShortcut = useCallback(
     (id: ShortcutActionId) =>
       update((base) => ({
@@ -212,6 +248,7 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
             saveWorkspacePath,
             addShortcut,
             removeShortcut,
+            replaceShortcut,
             resetShortcut,
             saveOpenTabs,
             saveDraftTabs,
@@ -229,6 +266,7 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
       saveWorkspacePath,
       addShortcut,
       removeShortcut,
+      replaceShortcut,
       resetShortcut,
       saveOpenTabs,
       saveDraftTabs,
