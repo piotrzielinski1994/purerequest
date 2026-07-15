@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 
-import { resolveTokenPreview } from "@/components/workspace/url-token";
+import {
+  pureRefInner,
+  resolvePathTokenPreview,
+  resolveTokenPreview,
+  resolveWriteTarget,
+} from "@/components/workspace/url-token";
 import { resolveConfig } from "@/lib/workspace/resolve";
 import type { TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
@@ -222,5 +227,220 @@ describe("resolveTokenPreview - rawValue + write target", () => {
 
     expect(preview?.rawValue).toBe("abc123");
     expect(preview?.target).toEqual({ kind: "dotenv", key: "TOKEN" });
+  });
+});
+
+// A root folder holding `variables`/`environments` and a single request `req`, so
+// `resolveConfig(mkTree(...), "req")` folds the same chain the popup resolves.
+type Config = TreeNode["config"];
+function mkTree(config: Config): TreeNode[] {
+  return [
+    {
+      kind: "folder",
+      id: "root",
+      name: "Root",
+      config,
+      children: [
+        {
+          kind: "request",
+          id: "req",
+          name: "Req",
+          method: "GET",
+          url: "{{a}}",
+          body: emptyBody(),
+          params: emptyParams(),
+          config: {},
+        },
+      ],
+    },
+  ];
+}
+
+describe("pureRefInner (AC-001)", () => {
+  // TC-001, behavior: a single pure `{{token}}` yields its trimmed inner name.
+  it("should return the trimmed inner token name if the value is a single pure reference", () => {
+    expect(pureRefInner("{{ x }}")).toBe("x");
+    expect(pureRefInner("{{process.env.K}}")).toBe("process.env.K");
+  });
+
+  // TC-001, behavior: anything that is not a single pure reference is null.
+  it("should return null for a literal, empty, wrapped, multi-token, or text-around value", () => {
+    expect(pureRefInner("lit")).toBeNull();
+    expect(pureRefInner("")).toBeNull();
+    expect(pureRefInner("{{a}}/v1")).toBeNull();
+    expect(pureRefInner("{{a}}{{b}}")).toBeNull();
+    expect(pureRefInner("x {{a}}")).toBeNull();
+  });
+});
+
+describe("resolveWriteTarget (AC-002..006)", () => {
+  // TC-002, behavior: a literal nearest row is its own write target - identical to
+  // the preview's current `target`, so the literal case is unchanged.
+  it("should return the row's own variable target if the nearest row is a real literal", () => {
+    const effective = resolveConfig(tree, "req");
+
+    expect(resolveWriteTarget("suffix", effective)).toEqual({
+      kind: "variable",
+      scopeId: "root",
+      name: "suffix",
+    });
+    expect(resolveWriteTarget("suffix", effective)).toEqual(
+      resolveTokenPreview("suffix", effective, {})?.target,
+    );
+  });
+
+  // TC-003, behavior: a pure `{{process.env.KEY}}` pointer drills to the .env key.
+  it("should return a dotenv target if the nearest row is a pure process.env pointer", () => {
+    const effective = resolveConfig(
+      mkTree({
+        variables: [
+          { key: "CUSTOMER_ID", value: "{{process.env.CUSTOMER_ID}}" },
+        ],
+      }),
+      "req",
+    );
+
+    expect(resolveWriteTarget("CUSTOMER_ID", effective)).toEqual({
+      kind: "dotenv",
+      key: "CUSTOMER_ID",
+    });
+  });
+
+  // TC-004, behavior: a var->var->process.env chain drills through every hop.
+  it("should follow multiple hops to a process.env terminal", () => {
+    const effective = resolveConfig(
+      mkTree({
+        variables: [
+          { key: "a", value: "{{b}}" },
+          { key: "b", value: "{{process.env.K}}" },
+        ],
+      }),
+      "req",
+    );
+
+    expect(resolveWriteTarget("a", effective)).toEqual({
+      kind: "dotenv",
+      key: "K",
+    });
+  });
+
+  // TC-004, behavior: a var->var chain ending at a literal targets the literal row.
+  it("should follow a hop to the literal row it points at", () => {
+    const effective = resolveConfig(
+      mkTree({
+        variables: [
+          { key: "a", value: "{{b}}" },
+          { key: "b", value: "lit" },
+        ],
+      }),
+      "req",
+    );
+
+    expect(resolveWriteTarget("a", effective)).toEqual({
+      kind: "variable",
+      scopeId: "root",
+      name: "b",
+    });
+  });
+
+  // TC-005, behavior: a pointer resolved through the active environment block
+  // yields an environment target for the terminal literal row.
+  it("should return an environment target if the pointer resolves via an env block", () => {
+    const effective = resolveConfig(
+      mkTree({
+        variables: [{ key: "a", value: "{{host}}" }],
+        environments: [
+          {
+            name: "prod",
+            variables: [{ key: "host", value: "https://prod.example.com" }],
+          },
+        ],
+      }),
+      "req",
+      { environment: "prod" },
+    );
+
+    expect(resolveWriteTarget("a", effective, "prod")).toEqual({
+      kind: "environment",
+      scopeId: "root",
+      env: "prod",
+      name: "host",
+    });
+  });
+
+  // TC-006, behavior: a pointer to an undefined var falls back to the hovered
+  // var's own row (never throws / hangs).
+  it("should fall back to the hovered row if the pointer targets an undefined var", () => {
+    const effective = resolveConfig(
+      mkTree({ variables: [{ key: "a", value: "{{missing}}" }] }),
+      "req",
+    );
+
+    expect(resolveWriteTarget("a", effective)).toEqual({
+      kind: "variable",
+      scopeId: "root",
+      name: "a",
+    });
+  });
+
+  // behavior: a non-pure multi-token value is a literal terminal - no drill,
+  // the row is written in place (its interpolated result lands there).
+  it("should treat a non-pure multi-token value as its own terminal row", () => {
+    const effective = resolveConfig(tree, "req", { environment: "prod" });
+
+    // `api = {{baseUrl}}{{suffix}}` (two tokens) is defined in the prod env block.
+    expect(resolveWriteTarget("api", effective, "prod")).toEqual({
+      kind: "environment",
+      scopeId: "root",
+      env: "prod",
+      name: "api",
+    });
+  });
+
+  // TC-006, behavior: a reference cycle falls back to the hovered row (no hang).
+  it("should fall back to the hovered row if the reference chain is a cycle", () => {
+    const effective = resolveConfig(
+      mkTree({
+        variables: [
+          { key: "a", value: "{{b}}" },
+          { key: "b", value: "{{a}}" },
+        ],
+      }),
+      "req",
+    );
+
+    expect(resolveWriteTarget("a", effective)).toEqual({
+      kind: "variable",
+      scopeId: "root",
+      name: "a",
+    });
+  });
+});
+
+describe("resolveTokenPreview - writeTarget field (AC-007)", () => {
+  // TC-007, behavior: a directly-hovered process.env token has writeTarget ==
+  // target (no indirection to follow).
+  it("should set writeTarget equal to target for a directly-hovered process.env token", () => {
+    const preview = resolveTokenPreview(
+      "process.env.TOKEN",
+      resolveConfig(tree, "req"),
+      { TOKEN: "abc123" },
+    );
+
+    expect(preview?.writeTarget).toEqual({ kind: "dotenv", key: "TOKEN" });
+    expect(preview?.writeTarget).toEqual(preview?.target);
+  });
+
+  // TC-007, behavior: a path-param token has writeTarget === target (same target).
+  it("should set writeTarget to the same target for a path-param token", () => {
+    const preview = resolvePathTokenPreview(
+      "id",
+      "req",
+      { id: "42" },
+      resolveConfig(tree, "req"),
+      {},
+    );
+
+    expect(preview?.writeTarget).toBe(preview?.target);
   });
 });

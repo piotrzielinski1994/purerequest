@@ -29,7 +29,11 @@ function TokenValueEditor({ preview }: { preview: TokenPreview }) {
 
   const commit = () => {
     if (draft !== preview.value) {
-      setTokenValue(preview.target, draft);
+      // Write to the DRILLED terminal source (the real literal / `.env` key),
+      // not the nearest row - editing a `{{process.env.X}}` pointer updates the
+      // value it points at, leaving the pointer intact. The pencil below still
+      // navigates to `target` (the nearest defining row).
+      setTokenValue(preview.writeTarget, draft);
     }
   };
 

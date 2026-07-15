@@ -126,4 +126,47 @@ describe("token popup: go to source", () => {
     // The .env table shows the dotenv key for the owning folder.
     expect(await screen.findByDisplayValue("HOST")).toBeInTheDocument();
   });
+
+  // The pencil follows `target` (nearest defining row), NOT the drilled
+  // `writeTarget`: for a var that is a `{{process.env.X}}` pointer it reveals the
+  // folder Vars grid showing the pointer row, not the `.env` view the inline edit
+  // would write to.
+  it("should reveal the folder Vars pointer row for a process.env-pointer variable", async () => {
+    const user = userEvent.setup();
+    const tree: TreeNode[] = [
+      {
+        kind: "folder",
+        id: "root",
+        name: "Root",
+        config: {
+          variables: [
+            { key: "CUSTOMER_ID", value: "{{process.env.CUSTOMER_ID}}" },
+          ],
+        },
+        dotenv: "CUSTOMER_ID=orig",
+        children: [
+          {
+            kind: "request",
+            id: "req",
+            name: "Req",
+            method: "GET",
+            url: "{{CUSTOMER_ID}}/x",
+            body: emptyBody(),
+            params: emptyParams(),
+            config: {},
+          },
+        ],
+      },
+    ];
+    renderWith(tree);
+
+    await user.hover(screen.getByText("{{CUSTOMER_ID}}"));
+    await user.click(await screen.findByRole("button", { name: /go to source/i }));
+
+    // The Vars grid shows the pointer row's raw value - the .env view would show
+    // the resolved "orig" instead, so this discriminates target from writeTarget.
+    expect(
+      await screen.findByDisplayValue("{{process.env.CUSTOMER_ID}}"),
+    ).toBeInTheDocument();
+  });
 });
