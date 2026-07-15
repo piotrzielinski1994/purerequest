@@ -39,6 +39,8 @@ const ACTION_IDS: ShortcutActionId[] = [
   "open-quick-open",
   "collapse-all-folders",
   "expand-all-folders",
+  "panel-expand",
+  "panel-shrink",
   "tree-nav-down",
   "tree-nav-up",
   "tree-nav-first",

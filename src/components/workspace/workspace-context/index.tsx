@@ -16,7 +16,7 @@ import {
   resolveProcessEnv,
 } from "@/lib/workspace/resolve";
 import type { MoveTarget } from "@/lib/workspace/move";
-import type { DraftTab } from "@/lib/settings/settings";
+import type { DraftTab, PanelGroupKey } from "@/lib/settings/settings";
 import { SETTINGS_TAB_ID } from "@/components/workspace/pane-tabs";
 import type { WriteResult } from "@/lib/workspace/fs";
 import { createFakeHttpClient } from "@/lib/http/fake-client";
@@ -34,6 +34,7 @@ import {
   type PanelFocusTarget,
   type ParamsReveal,
   type PendingClose,
+  type PanelGroupHandle,
   type PendingDelete,
   type RequestOverride,
   type RequestTab,
@@ -181,6 +182,23 @@ export function WorkspaceProvider({
     [],
   );
   const consumePanelFocus = useCallback(() => setPendingPanelFocus(null), []);
+  // Ref (not state): registering a group handle must not re-render, and the
+  // resize handlers read it on demand at keypress time.
+  const panelGroups = useRef<Map<PanelGroupKey, PanelGroupHandle>>(new Map());
+  const registerPanelGroup = useCallback(
+    (key: PanelGroupKey, handle: PanelGroupHandle | null) => {
+      if (handle) {
+        panelGroups.current.set(key, handle);
+        return;
+      }
+      panelGroups.current.delete(key);
+    },
+    [],
+  );
+  const getPanelGroup = useCallback(
+    (key: PanelGroupKey) => panelGroups.current.get(key) ?? null,
+    [],
+  );
   const [revealRowId, setRevealRowId] = useState<string | null>(null);
   const consumeRevealRow = useCallback(() => setRevealRowId(null), []);
   const [activeEditor, setActiveEditor] = useState<ActiveEditor | null>(null);
@@ -730,6 +748,8 @@ export function WorkspaceProvider({
       pendingPanelFocus,
       requestPanelFocus,
       consumePanelFocus,
+      registerPanelGroup,
+      getPanelGroup,
     };
   }, [
     tree,
@@ -768,6 +788,8 @@ export function WorkspaceProvider({
     pendingPanelFocus,
     requestPanelFocus,
     consumePanelFocus,
+    registerPanelGroup,
+    getPanelGroup,
     revealRowId,
     consumeRevealRow,
     activeEditor,

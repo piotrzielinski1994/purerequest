@@ -13,7 +13,10 @@ import type {
   KeyValue,
 } from "@/lib/workspace/model";
 import type { RequestPatch } from "@/lib/workspace/update-request";
-import type { DraftTab } from "@/lib/settings/settings";
+import type { GroupImperativeHandle } from "react-resizable-panels";
+import type { DraftTab, PanelGroupKey } from "@/lib/settings/settings";
+
+export type PanelGroupHandle = GroupImperativeHandle;
 import type { TokenTarget } from "@/components/workspace/url-token";
 import type { CurlParseResult } from "@/lib/curl/parse-curl";
 import type { BrunoFileMap } from "@/lib/bruno/bruno-to-tree";
@@ -373,4 +376,12 @@ export type WorkspaceContextValue = {
   pendingPanelFocus: PanelFocusTarget;
   requestPanelFocus: (target: PanelFocusTarget) => void;
   consumePanelFocus: () => void;
+  // Imperative resizable-group handles, registered by the component that renders
+  // each group so the resize handlers (which live in `main.tsx`) can reach the
+  // sidebar's group even though it is rendered by `workspace-layout.tsx`.
+  registerPanelGroup: (
+    key: PanelGroupKey,
+    handle: PanelGroupHandle | null,
+  ) => void;
+  getPanelGroup: (key: PanelGroupKey) => PanelGroupHandle | null;
 };

@@ -1,9 +1,15 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import type { PanelGroupHandle } from "@/components/workspace/workspace-context/types";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import {
+  PANEL_RESIZE_STEP,
+  resolveFocusedPanel,
+  stepLayout,
+} from "@/lib/workspace/panel-resize";
 import { Content } from "@/components/workspace/content";
 import { Console } from "@/components/workspace/console";
 import {
@@ -83,6 +89,8 @@ export function Main({
     importPostman,
     importOpenapi,
     requestPanelFocus,
+    registerPanelGroup,
+    getPanelGroup,
   } = useWorkspace();
   const { show: showToast } = useToast();
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -173,6 +181,23 @@ export function Main({
     );
   };
 
+  const mainGroupRef = useCallback(
+    (handle: PanelGroupHandle | null) => registerPanelGroup("main", handle),
+    [registerPanelGroup],
+  );
+
+  const resizeFocusedPanel = (deltaPct: number) => {
+    const target = resolveFocusedPanel(document.activeElement);
+    if (target === null) {
+      return;
+    }
+    const handle = getPanelGroup(target.group);
+    if (handle === null) {
+      return;
+    }
+    handle.setLayout(stepLayout(handle.getLayout(), target, deltaPct));
+  };
+
   const handlers: Partial<Record<ShortcutActionId, () => void>> = {
     "open-settings": openSettings,
     "close-settings": closeSettings,
@@ -240,6 +265,8 @@ export function Main({
     "open-quick-open": () => setIsQuickOpenOpen(true),
     "collapse-all-folders": collapseAllFolders,
     "expand-all-folders": expandAllFolders,
+    "panel-expand": () => resizeFocusedPanel(PANEL_RESIZE_STEP),
+    "panel-shrink": () => resizeFocusedPanel(-PANEL_RESIZE_STEP),
   };
 
   useActionHotkeys({
@@ -302,6 +329,7 @@ export function Main({
   return (
     <>
       <ResizablePanelGroup
+        groupRef={mainGroupRef}
         orientation="vertical"
         className="h-full"
         defaultLayout={settings.layouts.main}
