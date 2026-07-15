@@ -164,6 +164,108 @@ describe("ShortcutsSection", () => {
     expect(saveSpy).not.toHaveBeenCalled();
   });
 
+  // behavior: clicking a binding chip arms the recorder in that chip's place.
+  it("should turn a binding chip into a recorder if the chip is clicked", async () => {
+    const user = userEvent.setup();
+    renderSection({ "toggle-console": ["Mod+J"] });
+
+    const chip = await screen.findByRole("button", {
+      name: `Edit ${formatForDisplay("Mod+J")} for ${TOGGLE_CONSOLE.name}`,
+    });
+    await user.click(chip);
+
+    expect(await screen.findByText("Press keys…")).toBeInTheDocument();
+    // The chip's keys are replaced by the recorder, so the label is gone.
+    expect(screen.queryByText(formatForDisplay("Mod+J"))).not.toBeInTheDocument();
+  });
+
+  // behavior + side-effect-contract: recording a free combo swaps that binding
+  // in place, keeping its position among the action's other bindings.
+  it("should replace the clicked binding in place if a free combo is recorded", async () => {
+    const user = userEvent.setup();
+    const { saveSpy } = renderSection({
+      "toggle-console": ["Mod+J", "Mod+G"],
+    });
+
+    const chip = await screen.findByRole("button", {
+      name: `Edit ${formatForDisplay("Mod+J")} for ${TOGGLE_CONSOLE.name}`,
+    });
+    await user.click(chip);
+
+    // Mod+Y is unused by any action -> free.
+    await user.keyboard("{Control>}y{/Control}");
+
+    await waitFor(() => {
+      expect(saveSpy).toHaveBeenCalled();
+    });
+    const persisted = saveSpy.mock.calls.at(-1)![0];
+    expect(persisted.shortcuts["toggle-console"]).toEqual(["Mod+Y", "Mod+G"]);
+  });
+
+  // AC-006 — behavior: editing to a combo owned by another action is blocked.
+  it("should keep the clicked binding and alert if an edit conflicts", async () => {
+    const user = userEvent.setup();
+    const { saveSpy } = renderSection({ "toggle-console": ["Mod+J"] });
+
+    const chip = await screen.findByRole("button", {
+      name: `Edit ${formatForDisplay("Mod+J")} for ${TOGGLE_CONSOLE.name}`,
+    });
+    await user.click(chip);
+
+    // close-request owns Mod+W by default -> conflict.
+    await user.keyboard("{Control>}w{/Control}");
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(new RegExp(CLOSE_REQUEST.name, "i"));
+    expect(saveSpy).not.toHaveBeenCalled();
+    // The original chip is restored.
+    expect(
+      screen.getByText(formatForDisplay("Mod+J")),
+    ).toBeInTheDocument();
+  });
+
+  // behavior: cancelling an edit restores the original chip untouched.
+  it("should restore the binding chip if the edit recorder is cancelled", async () => {
+    const user = userEvent.setup();
+    renderSection({ "toggle-console": ["Mod+J"] });
+
+    const chip = await screen.findByRole("button", {
+      name: `Edit ${formatForDisplay("Mod+J")} for ${TOGGLE_CONSOLE.name}`,
+    });
+    await user.click(chip);
+    await screen.findByText("Press keys…");
+
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(
+      await screen.findByRole("button", {
+        name: `Edit ${formatForDisplay("Mod+J")} for ${TOGGLE_CONSOLE.name}`,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Press keys…")).not.toBeInTheDocument();
+  });
+
+  // behavior: pressing Escape while editing restores the original chip.
+  it("should restore the binding chip if Escape is pressed while editing", async () => {
+    const user = userEvent.setup();
+    renderSection({ "toggle-console": ["Mod+J"] });
+
+    const chip = await screen.findByRole("button", {
+      name: `Edit ${formatForDisplay("Mod+J")} for ${TOGGLE_CONSOLE.name}`,
+    });
+    await user.click(chip);
+    await screen.findByText("Press keys…");
+
+    await user.keyboard("{Escape}");
+
+    expect(
+      await screen.findByRole("button", {
+        name: `Edit ${formatForDisplay("Mod+J")} for ${TOGGLE_CONSOLE.name}`,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Press keys…")).not.toBeInTheDocument();
+  });
+
   // AC-006 — behavior
   it("should keep the existing binding chip if a conflicting combo is recorded", async () => {
     const user = userEvent.setup();

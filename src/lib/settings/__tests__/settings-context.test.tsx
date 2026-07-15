@@ -17,6 +17,7 @@ function ShortcutProbe() {
     settings,
     addShortcut,
     removeShortcut,
+    replaceShortcut,
     resetShortcut,
     saveConsoleHidden,
   } = useSettings();
@@ -51,6 +52,24 @@ function ShortcutProbe() {
         onClick={() => removeShortcut("toggle-console", "Mod+J")}
       >
         remove default shortcut
+      </button>
+      <button
+        type="button"
+        onClick={() => replaceShortcut("toggle-console", "Mod+J", "Mod+Y")}
+      >
+        replace default shortcut
+      </button>
+      <button
+        type="button"
+        onClick={() => replaceShortcut("toggle-console", "Mod+J", "Mod+G")}
+      >
+        replace default with second
+      </button>
+      <button
+        type="button"
+        onClick={() => replaceShortcut("toggle-console", "Mod+X", "Mod+Y")}
+      >
+        replace absent shortcut
       </button>
       <button type="button" onClick={() => resetShortcut("toggle-console")}>
         reset shortcut
@@ -415,6 +434,121 @@ describe("SettingsProvider shortcut actions", () => {
     await waitFor(() => {
       expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
         JSON.stringify(["Mod+J"]),
+      );
+    });
+  });
+
+  // behavior: replace maps the old binding to the new one, preserving position.
+  it("should swap one binding in place if replaceShortcut is called", async () => {
+    const user = userEvent.setup();
+    const store = createInMemorySettingsStore();
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+
+    // Seed a second binding so we can assert the replaced one keeps its slot.
+    await user.click(screen.getByRole("button", { name: /add second shortcut/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        JSON.stringify(["Mod+J", "Mod+G"]),
+      );
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: /^replace default shortcut$/i }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        JSON.stringify(["Mod+Y", "Mod+G"]),
+      );
+    });
+  });
+
+  // side-effect-contract: the replaced list is persisted.
+  it("should persist the swapped list via store.save if replaceShortcut is called", async () => {
+    const user = userEvent.setup();
+    const inner = createInMemorySettingsStore();
+    const saveSpy = vi.fn(inner.save);
+    const store: SettingsStore = { load: inner.load, save: saveSpy };
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+
+    await user.click(
+      screen.getByRole("button", { name: /^replace default shortcut$/i }),
+    );
+
+    await waitFor(() => {
+      expect(saveSpy).toHaveBeenCalled();
+    });
+    const persisted = saveSpy.mock.calls.at(-1)![0];
+    expect(persisted.shortcuts["toggle-console"]).toEqual(["Mod+Y"]);
+  });
+
+  // E-2 — behavior: replacing with a combo the action already has de-dups (no twin).
+  it("should de-dupe if replaceShortcut targets a combo the action already holds", async () => {
+    const user = userEvent.setup();
+    const store = createInMemorySettingsStore();
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+
+    await user.click(screen.getByRole("button", { name: /add second shortcut/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        JSON.stringify(["Mod+J", "Mod+G"]),
+      );
+    });
+
+    // Replace Mod+J with Mod+G, which is already bound -> collapse to one entry.
+    await user.click(
+      screen.getByRole("button", { name: /replace default with second/i }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        JSON.stringify(["Mod+G"]),
+      );
+    });
+  });
+
+  // E-3 — behavior: replacing a binding the action does not hold is a no-op.
+  it("should leave bindings untouched if replaceShortcut targets an absent binding", async () => {
+    const user = userEvent.setup();
+    const store = createInMemorySettingsStore();
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+
+    await user.click(
+      screen.getByRole("button", { name: /replace absent shortcut/i }),
+    );
+
+    // The absent Mod+X replace is a no-op: no override is written at all.
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        "none",
       );
     });
   });
