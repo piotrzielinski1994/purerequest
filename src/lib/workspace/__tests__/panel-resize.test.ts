@@ -48,7 +48,7 @@ describe("resolveFocusedPanel", () => {
   });
 
   // AC-003, TC-004 — behavior: focus inside the console panel maps to the main
-  // group, sibling `content`, console bounds 10-90.
+  // group, sibling `content`, console bounds 10-70 (content sibling min 30%).
   it("should resolve the main console target if focus is inside the console panel", () => {
     const child = panelChild("console");
 
@@ -57,7 +57,7 @@ describe("resolveFocusedPanel", () => {
       panelId: "console",
       siblingId: "content",
       min: 10,
-      max: 90,
+      max: 70,
     });
   });
 
@@ -97,7 +97,7 @@ const consoleTarget: PanelResizeTarget = {
   panelId: "console",
   siblingId: "content",
   min: 10,
-  max: 90,
+  max: 70,
 };
 
 describe("stepLayout", () => {

@@ -26,7 +26,9 @@ const RESIZE_TARGETS: Record<string, PanelResizeTarget> = {
     panelId: "console",
     siblingId: "content",
     min: 10,
-    max: 90,
+    // The `content` sibling declares minSize 30%, so the console's real ceiling
+    // is 70%; keep the helper's clamp in step with the library's.
+    max: 70,
   },
 };
 
