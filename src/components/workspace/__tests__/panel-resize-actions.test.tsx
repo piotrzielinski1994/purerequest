@@ -161,6 +161,62 @@ describe("panel resize actions - sidebar focus", () => {
   });
 });
 
+describe("panel resize actions - pointer-activated panel", () => {
+  // AC-002 — behavior: clicking a blank (non-focusable) area of the sidebar does
+  // not move DOM focus into it, but must still mark it the active resize target.
+  it("should grow the sidebar if it was last clicked, even without a focused element inside it", async () => {
+    const user = userEvent.setup();
+    const { store } = renderShell();
+    await screen.findByRole("region", { name: /console/i });
+    await waitFor(() => expect(flexGrowOf("sidebar")).toBe(20));
+
+    (document.activeElement as HTMLElement | null)?.blur();
+    await user.click(document.getElementById("sidebar")!);
+
+    await user.keyboard(EXPAND);
+
+    await waitFor(() => expect(flexGrowOf("sidebar")).toBe(25));
+    const persisted = await store.load();
+    expect(persisted.layouts.workspace!.sidebar).toBe(25);
+  });
+
+  // AC-003 — behavior: same for the console panel.
+  it("should grow the console if it was last clicked, even without a focused element inside it", async () => {
+    const user = userEvent.setup();
+    const { store } = renderShell();
+    await screen.findByRole("region", { name: /console/i });
+    await waitFor(() => expect(flexGrowOf("console")).toBe(25));
+
+    (document.activeElement as HTMLElement | null)?.blur();
+    await user.click(document.getElementById("console")!);
+
+    await user.keyboard(EXPAND);
+
+    await waitFor(() => expect(flexGrowOf("console")).toBe(30));
+    const persisted = await store.load();
+    expect(persisted.layouts.main!.console).toBe(30);
+  });
+
+  // AC-005 — side-effect-contract: clicking the sidebar then the content region
+  // clears the active target, so a resize is a no-op (last interaction wins).
+  it("should not resize if the last click was in the content region", async () => {
+    const user = userEvent.setup();
+    const { saveSpy } = renderShell();
+    await screen.findByRole("region", { name: /console/i });
+    await waitFor(() => expect(flexGrowOf("sidebar")).toBe(20));
+
+    await user.click(document.getElementById("sidebar")!);
+    await user.click(screen.getByTestId("content-region"));
+    const savesBefore = saveSpy.mock.calls.length;
+
+    await user.keyboard(EXPAND);
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(saveSpy.mock.calls.length).toBe(savesBefore);
+    expect(flexGrowOf("sidebar")).toBe(20);
+  });
+});
+
 describe("panel resize actions - console focus", () => {
   // AC-003, TC-004 — behavior
   it("should grow the console panel by 5% if panel-expand fires with focus in the console", async () => {
