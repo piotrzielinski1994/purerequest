@@ -1,4 +1,5 @@
-import type { ConfigScope, KeyValue } from "@/lib/workspace/model";
+import { upsertRow } from "@/lib/workspace/model";
+import type { ConfigScope } from "@/lib/workspace/model";
 import { resolveProcessEnvProvenance } from "@/lib/workspace/resolve";
 import { setDotenvValue } from "@/lib/workspace/environment";
 import { updateFolderDotenv } from "@/lib/workspace/update-folder-dotenv";
@@ -50,9 +51,9 @@ export function createTokens(
       // a nearer folder shadows it would be silently overridden.
       const owner =
         activeScopeId !== null
-          ? resolveProcessEnvProvenance(tree, activeScopeId, processEnv)[
+          ? (resolveProcessEnvProvenance(tree, activeScopeId, processEnv)[
               target.key
-            ]?.scopeId ?? null
+            ]?.scopeId ?? null)
           : null;
       if (owner === null) {
         saveEnv(setDotenvValue(envText, target.key, value));
@@ -60,7 +61,7 @@ export function createTokens(
       }
       const folder = findNode(tree, owner);
       const nextDotenv = setDotenvValue(
-        folder?.kind === "folder" ? folder.dotenv ?? "" : "",
+        folder?.kind === "folder" ? (folder.dotenv ?? "") : "",
         target.key,
         value,
       );
@@ -72,12 +73,7 @@ export function createTokens(
       if (!node) {
         return;
       }
-      const path = node.params.path;
-      const next = path.some((row) => row.key === target.name)
-        ? path.map((row) =>
-            row.key === target.name ? { ...row, value } : row,
-          )
-        : [...path, { key: target.name, value }];
+      const next = upsertRow(node.params.path, target.name, value);
       setRequestPathParams(target.requestId, next);
       return;
     }
@@ -86,11 +82,6 @@ export function createTokens(
       return;
     }
     const config = node.config;
-    // Update-or-append a `{key,value}` in a KeyValue[] rows list.
-    const upsertRow = (rows: KeyValue[], key: string, val: string) =>
-      rows.some((row) => row.key === key)
-        ? rows.map((row) => (row.key === key ? { ...row, value: val } : row))
-        : [...rows, { key, value: val }];
     const nextConfig: ConfigScope =
       target.kind === "environment"
         ? {
@@ -143,9 +134,9 @@ export function createTokens(
     if (target.kind === "dotenv") {
       const owner =
         activeScopeId !== null
-          ? resolveProcessEnvProvenance(tree, activeScopeId, processEnv)[
+          ? (resolveProcessEnvProvenance(tree, activeScopeId, processEnv)[
               target.key
-            ]?.scopeId ?? null
+            ]?.scopeId ?? null)
           : null;
       if (owner === null) {
         setOpenRequestIds((current) =>

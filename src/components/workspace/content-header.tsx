@@ -17,6 +17,7 @@ import { openContextMenuOnKey } from "@/components/workspace/tree-nav";
 import { useShortcutOverrides } from "@/lib/settings/settings-context";
 import { resolveShortcuts } from "@/lib/shortcuts/resolve";
 import type { TreeNode } from "@/lib/workspace/model";
+import { findNode } from "@/lib/workspace/tree-locate";
 import {
   DndContext,
   KeyboardSensor,
@@ -34,21 +35,6 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-
-function findNode(nodes: TreeNode[], id: string): TreeNode | null {
-  for (const node of nodes) {
-    if (node.id === id) {
-      return node;
-    }
-    if (node.kind === "folder") {
-      const found = findNode(node.children, id);
-      if (found) {
-        return found;
-      }
-    }
-  }
-  return null;
-}
 
 function editorTabLabel(
   editTarget: NonNullable<ReturnType<typeof useWorkspace>["editTarget"]>,

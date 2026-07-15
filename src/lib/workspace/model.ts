@@ -87,6 +87,19 @@ export function keyValuesToRecord(rows: KeyValue[]): Record<string, string> {
   return Object.fromEntries(rows.map((row) => [row.key, row.value]));
 }
 
+// Update-or-append a `{key, value}` in a KeyValue[] rows list: overwrite the
+// first row whose key matches (preserving its other fields, e.g. `enabled`),
+// else append. Immutable - returns a new array.
+export function upsertRow(
+  rows: KeyValue[],
+  key: string,
+  value: string,
+): KeyValue[] {
+  return rows.some((row) => row.key === key)
+    ? rows.map((row) => (row.key === key ? { ...row, value } : row))
+    : [...rows, { key, value }];
+}
+
 // One named environment on a scope: its variable overrides as KeyValue[] rows
 // (consistent with the plain `variables` grid and headers). Array, not a record,
 // so order survives and the shape matches every other grid.
@@ -154,7 +167,11 @@ export type DissectionSegment = {
 // bytes decoded here; "facts" = socket-derived facts only (no header bytes); "privileged" =
 // observable but only via a privileged capture driver (what Wireshark uses), a deliberate
 // opt-out for an unprivileged app; "unreachable" = not observable by any software.
-export type DissectionReach = "decoded" | "facts" | "privileged" | "unreachable";
+export type DissectionReach =
+  | "decoded"
+  | "facts"
+  | "privileged"
+  | "unreachable";
 
 export type DissectionLayer = {
   osi: number;

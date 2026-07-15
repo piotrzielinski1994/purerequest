@@ -1,7 +1,8 @@
 import type { Scope } from "@/lib/workspace/resolve";
 import { findScopePath } from "@/lib/workspace/resolve";
 import { updateNodeConfig } from "@/lib/workspace/update-config";
-import { findNode } from "@/lib/workspace/tree-edit";
+import { findNode } from "@/lib/workspace/tree-locate";
+import { upsertRow } from "@/lib/workspace/model";
 import type { TreeNode } from "@/lib/workspace/model";
 
 // Where a `requi.setVar(name, ...)` write lands: the nearest scope (leaf-first
@@ -71,9 +72,6 @@ export function setNodeVar(
   if (!node) {
     return tree;
   }
-  const rows = node.config.variables ?? [];
-  const variables = rows.some((row) => row.key === name)
-    ? rows.map((row) => (row.key === name ? { ...row, value } : row))
-    : [...rows, { key: name, value }];
+  const variables = upsertRow(node.config.variables ?? [], name, value);
   return updateNodeConfig(tree, nodeId, { ...node.config, variables });
 }
