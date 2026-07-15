@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { PanelGroupHandle } from "@/components/workspace/workspace-context/types";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import {
+  PANEL_RESIZE_STEP,
+  resolveFocusedPanel,
+  stepLayout,
+  type PanelResizeTarget,
+} from "@/lib/workspace/panel-resize";
 import { Content } from "@/components/workspace/content";
 import { Console } from "@/components/workspace/console";
 import {
@@ -83,6 +90,8 @@ export function Main({
     importPostman,
     importOpenapi,
     requestPanelFocus,
+    registerPanelGroup,
+    getPanelGroup,
   } = useWorkspace();
   const { show: showToast } = useToast();
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -173,6 +182,55 @@ export function Main({
     );
   };
 
+  const mainGroupRef = useCallback(
+    (handle: PanelGroupHandle | null) => registerPanelGroup("main", handle),
+    [registerPanelGroup],
+  );
+
+  // The last panel the pointer interacted with. Clicking a blank (non-focusable)
+  // area of the sidebar/console does not move DOM focus into it, so
+  // `document.activeElement` alone can't tell a resize which panel is active;
+  // this tracks the last-clicked panel (null when the last click was outside a
+  // resizable panel, e.g. the content area) as the fallback target.
+  const [pointerTarget, setPointerTarget] =
+    useState<PanelResizeTarget | null>(null);
+  useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      const next = resolveFocusedPanel(event.target as Element | null);
+      setPointerTarget((current) =>
+        current?.panelId === next?.panelId ? current : next,
+      );
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, []);
+
+  // The panel focused when the command palette opened. Running a resize action
+  // from the palette can't read `document.activeElement` (focus is trapped in
+  // the modal), so it falls back to this snapshot.
+  const [paletteResizeTarget, setPaletteResizeTarget] =
+    useState<PanelResizeTarget | null>(null);
+  const openPalette = () => {
+    setPaletteResizeTarget(
+      resolveFocusedPanel(document.activeElement) ?? pointerTarget,
+    );
+    setIsPaletteOpen(true);
+  };
+
+  const resizeFocusedPanel = (deltaPct: number) => {
+    const target =
+      resolveFocusedPanel(document.activeElement) ??
+      (isPaletteOpen ? paletteResizeTarget : pointerTarget);
+    if (target === null) {
+      return;
+    }
+    const handle = getPanelGroup(target.group);
+    if (handle === null) {
+      return;
+    }
+    handle.setLayout(stepLayout(handle.getLayout(), target, deltaPct));
+  };
+
   const handlers: Partial<Record<ShortcutActionId, () => void>> = {
     "open-settings": openSettings,
     "close-settings": closeSettings,
@@ -240,11 +298,13 @@ export function Main({
     "open-quick-open": () => setIsQuickOpenOpen(true),
     "collapse-all-folders": collapseAllFolders,
     "expand-all-folders": expandAllFolders,
+    "panel-expand": () => resizeFocusedPanel(PANEL_RESIZE_STEP),
+    "panel-shrink": () => resizeFocusedPanel(-PANEL_RESIZE_STEP),
   };
 
   useActionHotkeys({
     ...handlers,
-    "open-command-palette": () => setIsPaletteOpen(true),
+    "open-command-palette": openPalette,
   });
 
   const effective = resolveShortcuts(settings.shortcuts);
@@ -302,6 +362,7 @@ export function Main({
   return (
     <>
       <ResizablePanelGroup
+        groupRef={mainGroupRef}
         orientation="vertical"
         className="h-full"
         defaultLayout={settings.layouts.main}

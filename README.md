@@ -141,7 +141,7 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > `Mod+Enter`, copy as code `Mod+Shift+C`, import cURL `Mod+Shift+I`, import Bruno collection
 > `Mod+Shift+B`, import Postman collection `Mod+Shift+P`, import OpenAPI document `Mod+Shift+O`,
 > command palette `Mod+K`, quick open request `Mod+P`, collapse all folders `Mod+Shift+[`,
-> expand all folders `Mod+Shift+]`
+> expand all folders `Mod+Shift+]`, expand panel `Mod+Alt+=`, shrink panel `Mod+Alt+-`
 > (`Mod` = Cmd on macOS, Ctrl
 > elsewhere). The command palette is an overlay listing every wired action with its shortcut;
 > type to filter, arrow to move, Enter (or click) to run, Esc to close. **Quick open** (`Mod+P`)
@@ -149,7 +149,10 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > and URL; Enter/click jumps to it - a request opens (and its tab activates), a folder reveals
 > in the tree and opens its config edit card. **Collapse/expand all folders** (`Mod+Shift+[` /
 > `Mod+Shift+]`, also in the palette and the sidebar's empty-area right-click menu) fold or
-> unfold the whole collection tree. Settings open as a
+> unfold the whole collection tree. **Expand/shrink panel** (`Mod+Alt+=` / `Mod+Alt+-`, also
+> in the palette) resize whichever panel holds keyboard focus - the sidebar or the console -
+> by 5% per press, clamped to each panel's min/max; with focus elsewhere they are a no-op.
+> Settings open as a
 > tab inside the workspace (sidebar + console stay visible); `Mod+Shift+S` opens/activates it,
 > `Esc` or the tab's close button returns to the request. `Mod+W` closes whatever tab is
 > active (settings or a request). Open workspace shows a native folder picker and loads the chosen folder. Rebind any

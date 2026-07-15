@@ -1,4 +1,5 @@
-import type { CSSProperties } from "react";
+import { useCallback, type CSSProperties } from "react";
+import type { PanelGroupHandle } from "@/components/workspace/workspace-context/types";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -25,13 +26,18 @@ export function WorkspaceLayout({
   openapiReader?: OpenapiReader;
 }) {
   const { settings, saveLayout } = useSettings();
-  const { activeAccentColor } = useWorkspace();
+  const { activeAccentColor, registerPanelGroup } = useWorkspace();
   // The accent recolors the existing 1px borders by overriding the --border
   // token on the shell root (every divider/input border resolves from it). The
   // tint is the hex's own alpha pair (#rrggbbaa). Only --border is overridden.
   const accentStyle: CSSProperties | undefined = activeAccentColor
     ? ({ "--border": activeAccentColor } as CSSProperties)
     : undefined;
+
+  const groupRef = useCallback(
+    (handle: PanelGroupHandle | null) => registerPanelGroup("workspace", handle),
+    [registerPanelGroup],
+  );
 
   if (settings.sidebarHidden) {
     return (
@@ -48,6 +54,7 @@ export function WorkspaceLayout({
 
   return (
     <ResizablePanelGroup
+      groupRef={groupRef}
       orientation="horizontal"
       className="h-full w-full"
       style={accentStyle}

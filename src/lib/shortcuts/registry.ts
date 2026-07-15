@@ -26,6 +26,8 @@ export type ShortcutActionId =
   | "open-quick-open"
   | "collapse-all-folders"
   | "expand-all-folders"
+  | "panel-shrink"
+  | "panel-expand"
   | "tree-nav-down"
   | "tree-nav-up"
   | "tree-nav-first"
@@ -213,6 +215,18 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     name: "Expand all folders",
     description: "Expand every folder in the sidebar collection tree.",
     defaultHotkey: "Mod+Shift+]",
+  },
+  {
+    id: "panel-expand",
+    name: "Expand panel",
+    description: "Grow the focused panel (sidebar or console).",
+    defaultHotkey: "Mod+Alt+=",
+  },
+  {
+    id: "panel-shrink",
+    name: "Shrink panel",
+    description: "Shrink the focused panel (sidebar or console).",
+    defaultHotkey: "Mod+Alt+-",
   },
   {
     id: "tree-nav-down",

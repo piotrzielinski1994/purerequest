@@ -120,6 +120,8 @@ const EXPECTED_MEMBERS = [
   "pendingPanelFocus",
   "requestPanelFocus",
   "consumePanelFocus",
+  "registerPanelGroup",
+  "getPanelGroup",
 ] as const;
 
 describe("workspace-context public surface", () => {
