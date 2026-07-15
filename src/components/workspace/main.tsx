@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { EditorView } from "@codemirror/view";
+import { openSearchPanel } from "@codemirror/search";
 import type { PanelGroupHandle } from "@/components/workspace/workspace-context/types";
 import {
   ResizableHandle,
@@ -38,6 +40,19 @@ import type { FolderPicker } from "@/lib/workspace/folder-picker";
 import type { BrunoCollectionReader } from "@/lib/bruno/reader";
 import type { PostmanCollectionReader } from "@/lib/postman/reader";
 import type { OpenapiReader } from "@/lib/openapi/reader";
+
+// Open the find panel on a snapshotted CodeMirror view. Find has no global toggle - each
+// editor owns its own Cmd+F (CM keymap) - so the palette can't just re-fire the keystroke:
+// the modal traps focus, and CM's keymap ignores synthetic KeyboardEvents (it reads keyCode,
+// not `key`). Instead the palette snapshots the focused EditorView on open and drives
+// openSearchPanel directly, matching how panel-resize snapshots its focused target.
+function openFindOn(view: EditorView | null) {
+  if (view === null) {
+    return;
+  }
+  view.focus();
+  openSearchPanel(view);
+}
 
 export function Main({
   picker,
@@ -210,9 +225,19 @@ export function Main({
   // the modal), so it falls back to this snapshot.
   const [paletteResizeTarget, setPaletteResizeTarget] =
     useState<PanelResizeTarget | null>(null);
+  // The CodeMirror view focused when the palette opened, so the palette "Find" command can
+  // reopen its search panel after the modal stole focus (see openFindOn).
+  const [paletteFindTarget, setPaletteFindTarget] = useState<EditorView | null>(
+    null,
+  );
   const openPalette = () => {
     setPaletteResizeTarget(
       resolveFocusedPanel(document.activeElement) ?? pointerTarget,
+    );
+    setPaletteFindTarget(
+      document.activeElement instanceof HTMLElement
+        ? EditorView.findFromDOM(document.activeElement)
+        : null,
     );
     setIsPaletteOpen(true);
   };
@@ -308,11 +333,18 @@ export function Main({
   });
 
   const effective = resolveShortcuts(settings.shortcuts);
+  // Find is palette-runnable but NOT a global hotkey: each CodeMirror surface owns
+  // its own Cmd+F (CM keymap), so the palette re-fires the binding at the focused
+  // surface rather than routing through the global hotkey layer.
+  const paletteRuns: Partial<Record<ShortcutActionId, () => void>> = {
+    ...handlers,
+    "open-find": () => openFindOn(paletteFindTarget),
+  };
   const commands: PaletteCommand[] = SHORTCUT_ACTIONS.filter(
     (action) => action.id !== "open-command-palette",
   )
     .map((action) => {
-      const run = handlers[action.id];
+      const run = paletteRuns[action.id];
       if (!run) {
         return null;
       }

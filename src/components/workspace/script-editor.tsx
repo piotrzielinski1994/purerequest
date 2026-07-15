@@ -25,7 +25,8 @@ export function ScriptEditor({
   onBlur,
   ariaLabel,
 }: ScriptEditorProps) {
-  const { scriptChrome, scriptHighlight } = useEditorExtensions();
+  const { scriptChrome, scriptHighlight, findExtension } =
+    useEditorExtensions();
   const extensions = useMemo(
     () => [
       javascript(),
@@ -37,11 +38,12 @@ export function ScriptEditor({
       lintGutter(),
       scriptChrome,
       scriptHighlight,
+      findExtension,
       // Mirror the aria-label onto the CM content node so the existing
       // getByLabelText query still resolves the editor.
       EditorView.contentAttributes.of({ "aria-label": ariaLabel }),
     ],
-    [stage, ariaLabel, scriptChrome, scriptHighlight],
+    [stage, ariaLabel, scriptChrome, scriptHighlight, findExtension],
   );
   return (
     <CodeEditor

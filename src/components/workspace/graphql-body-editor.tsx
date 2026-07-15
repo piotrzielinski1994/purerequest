@@ -33,7 +33,8 @@ export function GraphqlBodyEditor({
   onVariablesChange,
   candidates,
 }: GraphqlBodyEditorProps) {
-  const { scriptChrome, scriptHighlight } = useEditorExtensions();
+  const { scriptChrome, scriptHighlight, findExtension } =
+    useEditorExtensions();
   const candidatesKey = (candidates ?? [])
     .map((c) => `${c.name}:${c.source}`)
     .join("|");
@@ -43,6 +44,7 @@ export function GraphqlBodyEditor({
       graphqlLanguageSupport(),
       scriptChrome,
       scriptHighlight,
+      findExtension,
       // Mirror the aria-label onto the CM content node so the label query resolves
       // the editor (matches ScriptEditor).
       EditorView.contentAttributes.of({ "aria-label": "GraphQL query" }),
@@ -56,7 +58,7 @@ export function GraphqlBodyEditor({
     // candidates captured via candidatesKey (stable identity); the deps lint
     // can't see through that.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scriptChrome, scriptHighlight, candidatesKey]);
+  }, [scriptChrome, scriptHighlight, findExtension, candidatesKey]);
 
   return (
     <ResizablePanelGroup orientation="vertical" className="h-full">
