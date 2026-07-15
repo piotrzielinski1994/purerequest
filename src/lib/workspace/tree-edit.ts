@@ -1,20 +1,5 @@
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 
-export function findNode(nodes: TreeNode[], id: string): TreeNode | null {
-  for (const node of nodes) {
-    if (node.id === id) {
-      return node;
-    }
-    if (node.kind === "folder") {
-      const found = findNode(node.children, id);
-      if (found) {
-        return found;
-      }
-    }
-  }
-  return null;
-}
-
 export function containsId(node: TreeNode, id: string): boolean {
   if (node.id === id) {
     return true;

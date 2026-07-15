@@ -1,11 +1,6 @@
 import type { TreeNode } from "@/lib/workspace/model";
-import {
-  containsId,
-  findNode,
-  insertNode,
-  removeNode,
-} from "@/lib/workspace/tree-edit";
-import { locateNode } from "@/lib/workspace/tree-locate";
+import { containsId, insertNode, removeNode } from "@/lib/workspace/tree-edit";
+import { findNode, locateNode } from "@/lib/workspace/tree-locate";
 
 export type MoveTarget = { parentId: string | null; index: number };
 
