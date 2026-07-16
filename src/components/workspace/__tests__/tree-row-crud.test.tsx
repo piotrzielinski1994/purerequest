@@ -169,10 +169,10 @@ describe("TreeRow context menu (AC-008, TC-012)", () => {
     ).not.toBeInTheDocument();
   });
 
-  // AC-008, TC-012 - render-contract: a FOLDER row's context menu offers New
-  // request / New folder (create INSIDE it) + Rename + Delete, but NOT Duplicate
-  // (a folder cannot be duplicated).
-  it("should show New request, New folder, Rename, Edit config, Delete and NOT Duplicate for a folder row", async () => {
+  // AC-008, TC-010 - render-contract: a FOLDER row's context menu offers New
+  // request / New folder (create INSIDE it) + Rename + Duplicate + Delete. A
+  // folder CAN now be duplicated (the request-only guard was dropped).
+  it("should show New request, New folder, Rename, Duplicate, Edit config, Delete for a folder row", async () => {
     renderRow(usersFolder);
 
     // the hover pencil is gone - config editing moved to the context menu.
@@ -191,15 +191,15 @@ describe("TreeRow context menu (AC-008, TC-012)", () => {
     expect(
       screen.getByRole("menuitem", { name: /rename/i }),
     ).toBeInTheDocument();
+    // a folder CAN now be duplicated.
+    expect(
+      screen.getByRole("menuitem", { name: /duplicate/i }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("menuitem", { name: /^edit$/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("menuitem", { name: /delete/i }),
     ).toBeInTheDocument();
-    // a folder cannot be duplicated.
-    expect(
-      screen.queryByRole("menuitem", { name: /duplicate/i }),
-    ).not.toBeInTheDocument();
   });
 });

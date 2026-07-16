@@ -94,7 +94,7 @@ export function Main({
     closeSettings,
     newRequest,
     newFolder,
-    duplicateRequest,
+    duplicateNode,
     beginRename,
     requestDeleteNode,
     sendRequest,
@@ -292,9 +292,9 @@ export function Main({
     "close-all-requests": () => requestCloseAll(),
     "new-request": () => newRequest(),
     "new-folder": () => newFolder(),
-    "duplicate-request": () => {
+    "duplicate-node": () => {
       if (targetNodeId !== null) {
-        duplicateRequest(targetNodeId);
+        duplicateNode(targetNodeId);
       }
     },
     "rename-node": () => {

@@ -186,8 +186,8 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > tab's right-click menu from the keyboard.
 >
 > The collection tree is fully writable from the UI. **Right-click a folder** for New request /
-> New folder (created inside it) / Rename / Delete; **right-click a request** for Rename /
-> Duplicate / Delete; **right-click the empty sidebar area** for New request / New folder (at the
+> New folder (created inside it) / Rename / Duplicate / Delete; **right-click a request** for
+> Rename / Duplicate / Delete; **right-click the empty sidebar area** for New request / New folder (at the
 > workspace root). The same ops run from the **command palette** or via shortcuts: new request
 > `Mod+T`, new folder `Mod+Shift+N`, duplicate `Mod+D`, rename `F2`, delete `Mod+Backspace`
 > (palette/shortcut ops act on the selected node; `delete` is suppressed while a text field is

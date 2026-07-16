@@ -153,7 +153,7 @@ function RowContextMenu({
     newRequest,
     newFolder,
     beginRename,
-    duplicateRequest,
+    duplicateNode,
     openConfigEditor,
     requestDeleteNode,
   } = useWorkspace();
@@ -185,11 +185,9 @@ function RowContextMenu({
         <ContextMenuItem onSelect={() => beginRename(node.id)}>
           Rename
         </ContextMenuItem>
-        {node.kind === "request" && (
-          <ContextMenuItem onSelect={() => duplicateRequest(node.id)}>
-            Duplicate
-          </ContextMenuItem>
-        )}
+        <ContextMenuItem onSelect={() => duplicateNode(node.id)}>
+          Duplicate
+        </ContextMenuItem>
         <ContextMenuItem onSelect={() => openConfigEditor(node.id)}>
           Edit
         </ContextMenuItem>
