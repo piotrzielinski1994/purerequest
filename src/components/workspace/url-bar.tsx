@@ -14,7 +14,7 @@ import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import type { HttpMethod } from "@/lib/workspace/model";
 import { keyValuesToRecord } from "@/lib/workspace/model";
 
-const METHODS: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+const METHODS: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE", "QUERY"];
 
 function UrlField({
   url,

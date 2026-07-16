@@ -352,6 +352,25 @@ describe("RequestPane Raw sub-tab", () => {
     expect(diagnosticCount(view.state)).toBeGreaterThan(0);
   });
 
+  // TC-006, AC-005 - behavior: a QUERY method in the Raw JSON keeps the editor
+  // saveable (parseRequest accepts QUERY -> a non-null patch -> popupCanSave true).
+  it("should keep saving enabled if the Raw JSON method is QUERY", async () => {
+    const user = userEvent.setup();
+    renderPane();
+
+    const tablist = screen.getByRole("tablist", { name: /request sections/i });
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
+    await waitFor(() => {
+      expect(document.querySelector(".cm-editor")).not.toBeNull();
+    });
+
+    await setDoc(fullRequestDoc({ method: "QUERY" }));
+    await waitFor(() => {
+      expect(screen.getByTestId("editor-dirty")).toHaveTextContent("true");
+    });
+    expect(screen.getByTestId("popup-can-save")).toHaveTextContent("true");
+  });
+
   // behavior: valid Raw JSON keeps the editor saveable.
   it("should keep saving enabled if the Raw JSON is valid", async () => {
     const user = userEvent.setup();
