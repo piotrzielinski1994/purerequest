@@ -100,6 +100,26 @@ describe("treeToBrunoFiles - bruno.json + a single request (AC-001, AC-002)", ()
   });
 });
 
+describe("treeToBrunoFiles - QUERY method block (AC-012)", () => {
+  // TC-011, AC-012 - behavior: a QUERY request emits a lowercased `query {` method
+  // block (the method string is interpolated into the block name), and re-parsing
+  // it yields method QUERY.
+  it("should emit a query { block for a QUERY request and round-trip its method", () => {
+    const root: BrunoExportRoot = {
+      name: "C",
+      config: {},
+      children: [
+        req({ name: "Search", method: "QUERY", url: "https://example.org" }),
+      ],
+    };
+
+    const bru = treeToBrunoFiles(root)["search.bru"];
+
+    expect(bru).toContain("query {");
+    expect(parseBru(bru).method).toBe("QUERY");
+  });
+});
+
 describe("treeToBrunoFiles - disabled row prefix (AC-003)", () => {
   // TC-002 - behavior: a disabled header row emits with a leading `~` on its
   // key; an enabled row emits plain (no `~`).
