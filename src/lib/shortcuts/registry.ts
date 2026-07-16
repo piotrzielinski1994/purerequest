@@ -22,6 +22,7 @@ export type ShortcutActionId =
   | "import-bruno"
   | "import-postman"
   | "import-openapi"
+  | "export-bruno"
   | "open-command-palette"
   | "open-quick-open"
   | "open-find"
@@ -192,6 +193,13 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     name: "Import OpenAPI document",
     description: "Pick an OpenAPI 3.x JSON/YAML document to import as a new folder.",
     defaultHotkey: "Mod+Shift+O",
+  },
+  {
+    id: "export-bruno",
+    name: "Export as Bruno collection",
+    description:
+      "Export the selected folder (or the whole workspace) as a Bruno collection.",
+    defaultHotkey: "Mod+Shift+E",
   },
   {
     id: "open-command-palette",
