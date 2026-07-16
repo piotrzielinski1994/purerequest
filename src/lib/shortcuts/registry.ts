@@ -11,7 +11,7 @@ export type ShortcutActionId =
   | "close-all-requests"
   | "new-request"
   | "new-folder"
-  | "duplicate-request"
+  | "duplicate-node"
   | "rename-node"
   | "delete-node"
   | "open-workspace"
@@ -127,9 +127,9 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     defaultHotkey: "Mod+Shift+N",
   },
   {
-    id: "duplicate-request",
-    name: "Duplicate request",
-    description: "Duplicate the selected request.",
+    id: "duplicate-node",
+    name: "Duplicate",
+    description: "Duplicate the selected request or folder.",
     defaultHotkey: "Mod+D",
   },
   {

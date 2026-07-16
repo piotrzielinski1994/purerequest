@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // Imported even though it does not exist yet: the test must fail on the missing
 // feature (module), not on a typo. Once tree-edit.ts ships, these assertions pin
@@ -9,7 +9,7 @@ import {
   insertNode,
   removeNode,
   renameNode,
-  duplicateRequest,
+  duplicateNode,
   collectRequestIds,
   countDescendants,
   containsId,
@@ -140,24 +140,45 @@ describe("renameNode", () => {
   });
 });
 
-describe("duplicateRequest", () => {
-  // AC-007, TC-011 - behavior: the copy is inserted right AFTER the original.
-  it("should insert a deep copy right after the original at root", () => {
+// A monotonic mint factory: `new-1`, `new-2`, ... A folder duplication needs N
+// fresh ids, so the lib takes a `mint: () => string` closure instead of a single
+// `newId`. The FIRST mint() call is the top copy's id (spec: lib mints the matched
+// node before recursing children).
+const mintSeq = () => {
+  let n = 0;
+  return () => {
+    n += 1;
+    return `new-${n}`;
+  };
+};
+
+// Every id reachable from a node (itself + all descendants), preorder.
+const allIds = (node: TreeNode): string[] => {
+  if (node.kind !== "folder") {
+    return [node.id];
+  }
+  return [node.id, ...node.children.flatMap(allIds)];
+};
+
+describe("duplicateNode", () => {
+  // TC-001, AC-001 - behavior: a REQUEST copy is inserted right AFTER the original
+  // with a fresh id from mint (the first mint() call = the top copy id).
+  it("should insert a request deep copy right after the original at root", () => {
     const tree: TreeNode[] = [request("r1", "alpha"), request("r2", "beta")];
 
-    const result = duplicateRequest(tree, "r1", "new-1");
+    const result = duplicateNode(tree, "r1", mintSeq());
 
     // copy sits immediately after r1, before r2.
     expect(ids(result)).toEqual(["r1", "new-1", "r2"]);
   });
 
-  // AC-007 - behavior: the copy is inserted after the original inside a folder.
-  it("should insert the copy after the original inside its folder", () => {
+  // AC-001 - behavior: the copy is inserted after the original inside a folder.
+  it("should insert the request copy after the original inside its folder", () => {
     const tree: TreeNode[] = [
       folder("f1", [request("c1", "one"), request("c2", "two")]),
     ];
 
-    const result = duplicateRequest(tree, "c1", "new-1");
+    const result = duplicateNode(tree, "c1", mintSeq());
 
     expect(ids(findFolder(result, "f1").children)).toEqual([
       "c1",
@@ -166,11 +187,11 @@ describe("duplicateRequest", () => {
     ]);
   });
 
-  // AC-007 - behavior: the copy carries the fresh id and the "<name> copy" name.
-  it("should give the copy the new id and a '<name> copy' name", () => {
+  // AC-001 - behavior: the request copy carries the fresh id and "<name> copy".
+  it("should give the request copy the minted id and a '<name> copy' name", () => {
     const tree: TreeNode[] = [request("r1", "profile")];
 
-    const result = duplicateRequest(tree, "r1", "new-1");
+    const result = duplicateNode(tree, "r1", mintSeq());
 
     const copy = find(result, "new-1") as RequestNode;
     expect(copy.id).toBe("new-1");
@@ -179,8 +200,8 @@ describe("duplicateRequest", () => {
     expect((find(result, "r1") as RequestNode).name).toBe("profile");
   });
 
-  // AC-007 - behavior: the copy is a deep clone of every other field.
-  it("should deep-copy the original's method/url/body/config", () => {
+  // AC-001 - behavior: the request copy deep-clones method/url/body/config.
+  it("should deep-copy the original request's method/url/body/config", () => {
     const original = request("r1", "profile", {
       variables: [{ key: "token", value: "abc" }],
       headers: [{ key: "X", value: "1" }],
@@ -198,7 +219,7 @@ describe("duplicateRequest", () => {
     };
     const tree: TreeNode[] = [original];
 
-    const result = duplicateRequest(tree, "r1", "new-1");
+    const result = duplicateNode(tree, "r1", mintSeq());
 
     const copy = find(result, "new-1") as RequestNode;
     expect(copy.method).toBe("POST");
@@ -218,14 +239,14 @@ describe("duplicateRequest", () => {
     });
   });
 
-  // AC-007 - side-effect-contract: mutating the copy's config never touches the
-  // original (proves a deep, not shallow, copy of config).
-  it("should deep-copy config so mutating the copy leaves the original intact", () => {
+  // AC-001, AC-005 - side-effect-contract: mutating the request copy's config
+  // never touches the original (proves a deep, not shallow, copy of config).
+  it("should deep-copy config so mutating the request copy leaves the original intact", () => {
     const tree: TreeNode[] = [
       request("r1", "profile", { variables: [{ key: "token", value: "abc" }] }),
     ];
 
-    const result = duplicateRequest(tree, "r1", "new-1");
+    const result = duplicateNode(tree, "r1", mintSeq());
 
     const copy = find(result, "new-1") as RequestNode;
     // mutate the copy's nested config object.
@@ -237,30 +258,131 @@ describe("duplicateRequest", () => {
     ).toBe("abc");
   });
 
-  // AC-007 - behavior: a folder id is a no-op (duplicate request only).
-  it("should return a tree equal to the input if the id is a folder", () => {
-    const tree: TreeNode[] = [folder("f1", [request("c1")])];
+  // TC-002, AC-002/AC-004 - behavior: a FOLDER copy is inserted right after the
+  // original; the top copy is named "<name> copy"; its children mirror the
+  // originals' names (unchanged).
+  it("should insert a folder copy after the original with a '<name> copy' top name and mirrored child names", () => {
+    const tree: TreeNode[] = [
+      folder("f1", [request("c1", "one"), request("c2", "two")], "f1"),
+      request("r3", "three"),
+    ];
 
-    const result = duplicateRequest(tree, "f1", "new-1");
+    const result = duplicateNode(tree, "f1", mintSeq());
 
-    expect(result).toEqual(tree);
+    // top copy sits immediately after f1, before r3 (first mint() = "new-1").
+    expect(ids(result)).toEqual(["f1", "new-1", "r3"]);
+    const copy = findFolder(result, "new-1");
+    expect(copy.name).toBe("f1 copy");
+    // child names mirror the originals (unchanged, not "<name> copy").
+    expect(copy.children.map((child) => child.name)).toEqual(["one", "two"]);
+    // the original folder is untouched.
+    expect(findFolder(result, "f1").name).toBe("f1");
   });
 
-  // AC-007 - behavior: an unknown id is a no-op.
-  it("should return a tree equal to the input if the id is unknown", () => {
-    const tree: TreeNode[] = [request("r1")];
+  // TC-003, AC-003 - behavior: every node in a duplicated folder subtree (top +
+  // every descendant) gets a fresh id from mint; NONE is shared with the original.
+  it("should give every node in a duplicated folder subtree a fresh minted id", () => {
+    const tree: TreeNode[] = [
+      folder("f1", [request("a", "a"), folder("sub", [request("b", "b")])]),
+    ];
 
-    const result = duplicateRequest(tree, "missing", "new-1");
+    const result = duplicateNode(tree, "f1", mintSeq());
 
-    expect(result).toEqual(tree);
+    // the copy is the second root node (right after the original).
+    const copy = result[1];
+    const originalIds = new Set(["f1", "a", "sub", "b"]);
+    const copyIds = allIds(copy);
+    // four fresh ids, one per node in the subtree.
+    expect(copyIds).toHaveLength(4);
+    // no copy id collides with any original id.
+    copyIds.forEach((id) => expect(originalIds.has(id)).toBe(false));
+    // every copy id came from mint (the "new-" sequence).
+    copyIds.forEach((id) => expect(id).toMatch(/^new-\d+$/));
   });
 
-  // side-effect-contract: the input tree is not mutated.
+  // TC-004, AC-005 - side-effect-contract: a folder copy is a deep clone -
+  // mutating a nested child config, folder environmentColors, or dotenv never
+  // touches the original.
+  it("should deep-clone a folder subtree so mutating the copy leaves the original intact", () => {
+    const child = request("c1", "one", {
+      variables: [{ key: "token", value: "abc" }],
+    });
+    const original: FolderNode = {
+      kind: "folder",
+      id: "f1",
+      name: "f1",
+      config: {},
+      dotenv: "KEY=orig",
+      environmentColors: { dev: "#112233" },
+      children: [child],
+    };
+    const tree: TreeNode[] = [original];
+
+    const result = duplicateNode(tree, "f1", mintSeq());
+
+    const copy = findFolder(result, "new-1");
+    const copyChild = copy.children[0] as RequestNode;
+    // mutate every nested field of the copy.
+    copyChild.config.variables!.find((r) => r.key === "token")!.value =
+      "MUTATED";
+    copy.environmentColors!.dev = "#ffffff";
+    copy.dotenv = "KEY=changed";
+
+    const origAgain = findFolder(result, "f1");
+    expect(
+      (origAgain.children[0] as RequestNode).config.variables!.find(
+        (r) => r.key === "token",
+      )?.value,
+    ).toBe("abc");
+    expect(origAgain.environmentColors!.dev).toBe("#112233");
+    expect(origAgain.dotenv).toBe("KEY=orig");
+  });
+
+  // TC-005, AC-002/AC-003 - behavior: an empty folder duplicates to an empty
+  // "<name> copy" folder with a fresh id.
+  it("should duplicate an empty folder to a fresh empty '<name> copy' folder", () => {
+    const tree: TreeNode[] = [folder("f1", [], "f1")];
+
+    const result = duplicateNode(tree, "f1", mintSeq());
+
+    expect(ids(result)).toEqual(["f1", "new-1"]);
+    const copy = findFolder(result, "new-1");
+    expect(copy.name).toBe("f1 copy");
+    expect(copy.children).toEqual([]);
+  });
+
+  // TC-006, AC-006 - behavior: an unknown id is a no-op (tree equals input) and
+  // mint is never called.
+  it("should return a tree equal to the input and never call mint if the id is unknown", () => {
+    const tree: TreeNode[] = [request("r1"), folder("f1", [request("c1")])];
+    const mint = vi.fn(mintSeq());
+
+    const result = duplicateNode(tree, "missing", mint);
+
+    expect(result).toEqual(tree);
+    expect(mint).not.toHaveBeenCalled();
+  });
+
+  // TC-007, AC-006 - side-effect-contract: duplicating a folder does not mutate
+  // the input tree (deep-equals a pre-op snapshot).
+  it("should not mutate the input tree if a folder is duplicated", () => {
+    const tree: TreeNode[] = [
+      folder("f1", [request("c1", "one"), folder("sub", [request("b")])]),
+      request("r1"),
+    ];
+    const snapshot = structuredClone(tree);
+
+    duplicateNode(tree, "f1", mintSeq());
+
+    expect(tree).toEqual(snapshot);
+  });
+
+  // AC-006 - side-effect-contract: duplicating a request does not mutate the input.
   it("should not mutate the input tree if a request is duplicated", () => {
     const tree: TreeNode[] = [folder("f1", [request("c1", "one")])];
     const snapshot = structuredClone(tree);
 
-    duplicateRequest(tree, "c1", "new-1");
+    duplicateNode(tree, "c1", mintSeq());
 
     expect(tree).toEqual(snapshot);
   });

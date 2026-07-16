@@ -24,7 +24,7 @@ const ACTION_IDS: ShortcutActionId[] = [
   "close-all-requests",
   "new-request",
   "new-folder",
-  "duplicate-request",
+  "duplicate-node",
   "rename-node",
   "delete-node",
   "open-workspace",

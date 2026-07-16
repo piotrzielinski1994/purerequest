@@ -36,12 +36,22 @@ describe("SHORTCUT_ACTIONS tree-crud actions (AC-009)", () => {
     expect(action!.defaultHotkey).toBe("Mod+Shift+N");
   });
 
-  // AC-009 - behavior: duplicate-request defaults to Mod+D.
-  it("should register duplicate-request with the Mod+D default", () => {
-    const action = findAction("duplicate-request");
+  // AC-009, TC-011 - behavior: duplicate-node defaults to Mod+D, is labelled
+  // "Duplicate" with the request-or-folder description, and the old
+  // duplicate-request id is gone.
+  it("should register duplicate-node with the Mod+D default, 'Duplicate' label, and no legacy duplicate-request", () => {
+    const action = findAction("duplicate-node");
 
     expect(action).toBeDefined();
     expect(action!.defaultHotkey).toBe("Mod+D");
+    expect(action!.name).toBe("Duplicate");
+    expect(action!.description).toBe(
+      "Duplicate the selected request or folder.",
+    );
+    // the legacy request-only id must be gone (renamed, not additive).
+    expect(
+      SHORTCUT_ACTIONS.some((a) => (a.id as string) === "duplicate-request"),
+    ).toBe(false);
   });
 
   // AC-009 - behavior: rename-node defaults to F2.
@@ -64,7 +74,7 @@ describe("SHORTCUT_ACTIONS tree-crud actions (AC-009)", () => {
   it("should give each new action a non-empty name and description", () => {
     const ids: ShortcutActionId[] = [
       "new-folder",
-      "duplicate-request",
+      "duplicate-node",
       "rename-node",
       "delete-node",
     ];
@@ -82,7 +92,7 @@ describe("SHORTCUT_ACTIONS tree-crud actions (AC-009)", () => {
     const effective = resolveShortcuts({});
 
     expect(effective["new-folder"]).toEqual(["Mod+Shift+N"]);
-    expect(effective["duplicate-request"]).toEqual(["Mod+D"]);
+    expect(effective["duplicate-node"]).toEqual(["Mod+D"]);
     expect(effective["rename-node"]).toEqual(["F2"]);
     expect(effective["delete-node"]).toEqual(["Mod+Backspace"]);
   });
@@ -91,7 +101,7 @@ describe("SHORTCUT_ACTIONS tree-crud actions (AC-009)", () => {
   it("should report rename-node as the owner if F2 is recorded for another action", () => {
     const effective = resolveShortcuts({});
 
-    expect(findConflict("F2", "duplicate-request", effective)).toBe(
+    expect(findConflict("F2", "duplicate-node", effective)).toBe(
       "rename-node",
     );
   });
@@ -155,9 +165,9 @@ function renderMainWithProbe(initialActiveRequestId?: string) {
 }
 
 describe("tree-crud shortcut wiring in Main (AC-009)", () => {
-  // AC-009, TC-013 - behavior: with a request selected, duplicate-request adds a
+  // AC-009, TC-013 - behavior: with a request selected, duplicate-node adds a
   // node to the tree.
-  it("should duplicate the selected request if duplicate-request fires", async () => {
+  it("should duplicate the selected request if duplicate-node fires", async () => {
     const user = userEvent.setup();
     renderMainWithProbe("req-profile");
     await screen.findByRole("region", { name: /console/i });
@@ -176,12 +186,12 @@ describe("tree-crud shortcut wiring in Main (AC-009)", () => {
     });
   });
 
-  // AC-009, TC-013 - behavior: with nothing selected, duplicate-request no-ops.
-  it("should not change the tree if duplicate-request fires with no selection", async () => {
+  // AC-009, TC-013 - behavior: with nothing selected, duplicate-node no-ops.
+  it("should not change the tree if duplicate-node fires with no selection", async () => {
     const user = userEvent.setup();
     // RED guard: the action must be registered for this to be a meaningful test
     // (else it passes trivially because the hotkey isn't wired at all).
-    expect(findAction("duplicate-request")).toBeDefined();
+    expect(findAction("duplicate-node")).toBeDefined();
     renderMainWithProbe();
     await screen.findByRole("region", { name: /console/i });
 

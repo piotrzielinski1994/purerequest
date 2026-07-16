@@ -337,7 +337,7 @@ export type WorkspaceContextValue = {
   commitRename: (id: string, name: string) => void;
   cancelRename: () => void;
   newFolder: (target?: MoveTarget) => void;
-  duplicateRequest: (id: string) => void;
+  duplicateNode: (id: string) => void;
   pendingDelete: PendingDelete;
   requestDeleteNode: (id: string) => void;
   confirmPendingDelete: () => void;

@@ -83,7 +83,7 @@ const EXPECTED_MEMBERS = [
   "commitRename",
   "cancelRename",
   "newFolder",
-  "duplicateRequest",
+  "duplicateNode",
   "pendingDelete",
   "requestDeleteNode",
   "confirmPendingDelete",

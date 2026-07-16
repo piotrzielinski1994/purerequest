@@ -1,4 +1,4 @@
-import type { RequestNode, TreeNode } from "@/lib/workspace/model";
+import type { TreeNode } from "@/lib/workspace/model";
 
 export function containsId(node: TreeNode, id: string): boolean {
   if (node.id === id) {
@@ -73,22 +73,34 @@ export function renameNode(
   });
 }
 
-export function duplicateRequest(
+// Recursively re-id a cloned subtree: the top node gets the first `mint()` id
+// (spec: the matched node is minted before its children), every descendant gets
+// its own fresh id. Names are left untouched here - only the top copy is renamed
+// by the caller.
+function reassignIds(node: TreeNode, mint: () => string): TreeNode {
+  const id = mint();
+  if (node.kind !== "folder") {
+    return { ...node, id };
+  }
+  return {
+    ...node,
+    id,
+    children: node.children.map((child) => reassignIds(child, mint)),
+  };
+}
+
+export function duplicateNode(
   nodes: TreeNode[],
   id: string,
-  newId: string,
+  mint: () => string,
 ): TreeNode[] {
   let done = false;
   const recurse = (level: TreeNode[]): TreeNode[] =>
     level.flatMap<TreeNode>((node) => {
-      if (!done && node.id === id && node.kind === "request") {
+      if (!done && node.id === id) {
         done = true;
-        const copy: RequestNode = {
-          ...structuredClone(node),
-          id: newId,
-          name: `${node.name} copy`,
-        };
-        return [node, copy];
+        const copy = reassignIds(structuredClone(node), mint);
+        return [node, { ...copy, name: `${node.name} copy` }];
       }
       if (node.kind === "folder") {
         return [{ ...node, children: recurse(node.children) }];
