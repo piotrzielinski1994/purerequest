@@ -10,6 +10,7 @@ import type {
   TreeNode,
 } from "@/lib/workspace/model";
 import { bodyToDisk, legacyStoredToBody } from "@/lib/workspace/body-codec";
+import { slugify, uniqueSlug } from "@/lib/workspace/slug";
 
 export type FileMap = Record<string, string>;
 
@@ -430,28 +431,6 @@ function tryParse<T>(raw: string): T | undefined {
   } catch {
     return undefined;
   }
-}
-
-function slugify(name: string): string {
-  const slug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return slug || "untitled";
-}
-
-function uniqueSlug(base: string, used: Set<string>): string {
-  if (!used.has(base)) {
-    used.add(base);
-    return base;
-  }
-  let suffix = 2;
-  while (used.has(`${base}-${suffix}`)) {
-    suffix += 1;
-  }
-  const slug = `${base}-${suffix}`;
-  used.add(slug);
-  return slug;
 }
 
 type Ordered = { node: TreeNode; order?: number };
