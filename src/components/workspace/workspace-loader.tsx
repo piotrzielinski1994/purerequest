@@ -13,6 +13,7 @@ import type { FolderPicker } from "@/lib/workspace/folder-picker";
 import type { BrunoCollectionReader } from "@/lib/bruno/reader";
 import type { PostmanCollectionReader } from "@/lib/postman/reader";
 import type { OpenapiReader } from "@/lib/openapi/reader";
+import type { BrunoExportWriter } from "@/lib/bruno/writer";
 import type { HttpClient } from "@/lib/http/model";
 import type { ScriptRunner } from "@/lib/scripts/model";
 import type { TreeNode } from "@/lib/workspace/model";
@@ -53,6 +54,7 @@ export function WorkspaceLoader({
   reader,
   postmanReader,
   openapiReader,
+  brunoWriter,
   httpClient,
   scriptRunner,
 }: {
@@ -61,6 +63,7 @@ export function WorkspaceLoader({
   reader?: BrunoCollectionReader;
   postmanReader?: PostmanCollectionReader;
   openapiReader?: OpenapiReader;
+  brunoWriter?: BrunoExportWriter;
   httpClient?: HttpClient;
   scriptRunner?: ScriptRunner;
 }) {
@@ -131,6 +134,8 @@ export function WorkspaceLoader({
         consoleLines={EMPTY_CONSOLE_LINES}
         httpClient={httpClient}
         scriptRunner={scriptRunner}
+        brunoWriter={brunoWriter}
+        workspaceName={DEFAULT_WORKSPACE_NAME}
       >
         <WorkspaceLayout
           picker={picker}
@@ -162,6 +167,8 @@ export function WorkspaceLoader({
       }
       httpClient={httpClient}
       scriptRunner={scriptRunner}
+      brunoWriter={brunoWriter}
+      workspaceName={workspaceName}
       processEnv={state.processEnv}
       envText={state.envText}
       activeEnvironment={knownEnvironment}
