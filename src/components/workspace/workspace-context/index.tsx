@@ -23,6 +23,10 @@ import { createFakeHttpClient } from "@/lib/http/fake-client";
 import type { HttpClient, ResponseState } from "@/lib/http/model";
 import type { ScriptRunner } from "@/lib/scripts/model";
 import { createFakeScriptRunner } from "@/lib/scripts/fake-runner";
+import {
+  createNoopBrunoWriter,
+  type BrunoExportWriter,
+} from "@/lib/bruno/writer";
 import { parseDotenv } from "@/lib/workspace/environment";
 import { findNode } from "@/lib/workspace/tree-locate";
 import { useToast } from "@/components/ui/toast";
@@ -51,6 +55,7 @@ import { createRequestEdits } from "@/components/workspace/workspace-context/req
 import { createTreeCrud } from "@/components/workspace/workspace-context/tree-crud";
 import { createSend } from "@/components/workspace/workspace-context/send";
 import { createImports } from "@/components/workspace/workspace-context/imports";
+import { createExports } from "@/components/workspace/workspace-context/exports";
 import { createEditors } from "@/components/workspace/workspace-context/editors";
 import { createTokens } from "@/components/workspace/workspace-context/tokens";
 
@@ -89,6 +94,8 @@ type WorkspaceProviderProps = {
   onTreeChange?: (tree: TreeNode[]) => Promise<WriteResult>;
   httpClient?: HttpClient;
   scriptRunner?: ScriptRunner;
+  brunoWriter?: BrunoExportWriter;
+  workspaceName?: string;
   activeEnvironment?: string;
   processEnv?: Record<string, string>;
   envText?: string;
@@ -109,6 +116,8 @@ export function WorkspaceProvider({
   onTreeChange,
   httpClient,
   scriptRunner,
+  brunoWriter,
+  workspaceName = "Workspace",
   activeEnvironment: initialActiveEnvironment,
   processEnv: initialProcessEnv = {},
   envText: initialEnvText = "",
@@ -227,6 +236,14 @@ export function WorkspaceProvider({
       scriptRunnerRef.current = scriptRunner;
     }
   }, [scriptRunner]);
+  const brunoWriterRef = useRef<BrunoExportWriter>(
+    brunoWriter ?? createNoopBrunoWriter(),
+  );
+  useEffect(() => {
+    if (brunoWriter) {
+      brunoWriterRef.current = brunoWriter;
+    }
+  }, [brunoWriter]);
   // Per-request send generation: bumped on each send so a stale result (one
   // resolving after a cancel + re-send) can be ignored. The in-flight wire id
   // lets a Stop cancel exactly the send it belongs to.
@@ -494,6 +511,8 @@ export function WorkspaceProvider({
       showToastRef,
       httpClientRef,
       scriptRunnerRef,
+      brunoWriterRef,
+      workspaceName,
       sendGeneration,
       inFlightRequestId,
       onTabsChangeRef,
@@ -589,6 +608,8 @@ export function WorkspaceProvider({
       createRequestNode,
       selectSingle,
     });
+
+    const { exportBruno } = createExports(internals);
 
     const { saveNodeConfig, saveFolder, saveFolderConfigDoc, setFolderEnvColor } =
       createConfigSaves(internals, persistTree);
@@ -744,6 +765,7 @@ export function WorkspaceProvider({
       importBruno,
       importPostman,
       importOpenapi,
+      exportBruno,
       focusUrlNonce,
       pendingPanelFocus,
       requestPanelFocus,
@@ -753,6 +775,7 @@ export function WorkspaceProvider({
     };
   }, [
     tree,
+    workspaceName,
     isWorkspaceWritable,
     consoleLines,
     expandedFolderIds,

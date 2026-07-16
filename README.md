@@ -140,7 +140,7 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > request tabs `Mod+Alt+W`, close all request tabs `Mod+Shift+W`, new request `Mod+T`, open workspace `Mod+O`, send request
 > `Mod+Enter`, copy as code `Mod+Shift+C`, import cURL `Mod+Shift+I`, import Bruno collection
 > `Mod+Shift+B`, import Postman collection `Mod+Shift+P`, import OpenAPI document `Mod+Shift+O`,
-> command palette `Mod+K`, quick open request `Mod+P`, find `Mod+F`, collapse all folders `Mod+Shift+[`,
+> export as Bruno collection `Mod+Shift+E`, command palette `Mod+K`, quick open request `Mod+P`, find `Mod+F`, collapse all folders `Mod+Shift+[`,
 > expand all folders `Mod+Shift+]`, expand panel `Mod+Alt+=`, shrink panel `Mod+Alt+-`
 > (`Mod` = Cmd on macOS, Ctrl
 > elsewhere). The command palette is an overlay listing every wired action with its shortcut;
@@ -254,6 +254,18 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > non-json request bodies, and non-http (apiKey/oauth2) security are out of scope. Additive; a document with
 > no importable operations adds nothing (and toasts to say so); in `npm run dev` (no native host) the action
 > is a no-op.
+>
+> **Export as Bruno collection** (`Mod+Shift+E` + palette, and a folder row's right-click **Export as
+> Bruno...**) is the inverse of the Bruno import: it emits a Bruno collection directory (`bruno.json`,
+> per-request `*.bru`, per-folder `folder.bru`, `environments/*.bru`, `.env`) with `{{tokens}}`, folder
+> nesting, headers/params/vars/auth/scripts preserved (structure-preserving, **not** the resolved wire
+> form). The export unit is a subtree: a selected folder becomes the collection root, otherwise the whole
+> workspace is exported wrapped in one root named after the workspace. A directory picker chooses the
+> destination parent; the collection is written under `<parent>/<slug(name)>/`. Round-trips through the
+> Bruno importer (`brunoToTree(treeToBrunoFiles(root))` reconstructs the tree, modulo node ids and fields
+> Bruno can't represent - `timeoutMs`, folder env colors, request-level environments, path params).
+> Cancelling the picker is a silent no-op; a write failure toasts. In `npm run dev` (no native host) the
+> action is a no-op.
 >
 > A **workspace** is a folder on disk holding the collection tree + config. By default it lives
 > in a `collection` subfolder of the app data dir (next to `settings.json`), created on first
