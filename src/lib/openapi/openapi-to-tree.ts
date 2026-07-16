@@ -29,6 +29,7 @@ const METHODS: Record<string, HttpMethod> = {
   put: "PUT",
   patch: "PATCH",
   delete: "DELETE",
+  query: "QUERY",
 };
 
 const JSON_MEDIA_TYPE = "application/json";

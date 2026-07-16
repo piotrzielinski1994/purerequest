@@ -75,6 +75,15 @@ describe("toCurl - shape (AC-001)", () => {
 
     expect(out).toBe("curl -X GET 'https://api.example.com/widgets'");
   });
+
+  // TC-011, AC-012 - behavior: a QUERY wire request emits `-X QUERY` (the method
+  // string is interpolated, so it carries through with a body).
+  it("should emit -X QUERY for a QUERY wire request", () => {
+    const out = toCurl(wire({ method: "QUERY", body: '{"q":1}' }));
+
+    expect(out).toContain("-X QUERY");
+    expect(out).toContain("--data-raw '{\"q\":1}'");
+  });
 });
 
 describe("toCurl - body / --data-raw (AC-002)", () => {

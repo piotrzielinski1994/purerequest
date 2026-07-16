@@ -80,6 +80,16 @@ describe("parsePostmanCollection - method / url (AC-001)", () => {
     expect(request.method).toBe("GET");
   });
 
+  // TC-008, AC-009 - behavior: QUERY is a known method, so it maps through (not GET).
+  it("should map a QUERY method to QUERY", () => {
+    const request = parseRequest({
+      method: "QUERY",
+      url: { raw: "https://x.test" },
+    });
+
+    expect(request.method).toBe("QUERY");
+  });
+
   // AC-001, edge §8 - behavior: a url object without `raw` is reconstructed from
   // protocol + host (array joined with ".") + path (array joined with "/").
   it("should reconstruct the url from protocol/host/path if raw is absent", () => {

@@ -209,7 +209,7 @@ export function ConfigEditorForm({
   );
 }
 
-const METHODS: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+const METHODS: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE", "QUERY"];
 const BODY_MODES: BodyMode[] = ["json", "none", "form", "multipart"];
 
 function isKeyValueArray(value: unknown): value is KeyValue[] {

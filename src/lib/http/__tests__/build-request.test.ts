@@ -293,3 +293,34 @@ describe("buildHttpRequest - integration with resolveConfig", () => {
     expect(wire.url).toBe("https://postman-echo.com/get?foo=bar");
   });
 });
+
+describe("buildHttpRequest - QUERY body (AC-006)", () => {
+  const jsonBody = (json: string): RequestNode["body"] => ({
+    active: "json",
+    types: { json, form: [], multipart: [], graphql: { query: "", variables: "" } },
+  });
+
+  // TC-002, AC-006 - behavior: QUERY is NOT bodyless, so the encoded payload is
+  // carried through (body is the json text, not null) and the method survives.
+  it("should carry the body and method for QUERY", () => {
+    const node = request({ id: "r", method: "QUERY", body: jsonBody('{"q":1}') });
+
+    const wire = buildHttpRequest(node, effectiveOf({}));
+
+    expect(wire.method).toBe("QUERY");
+    expect(wire.body).toBe('{"q":1}');
+  });
+
+  // TC-003, AC-006 - behavior: regression guard that QUERY was added WITHOUT
+  // widening the bodyless set - GET and DELETE with bodies still null the body.
+  const bodylessMethods: HttpMethod[] = ["GET", "DELETE"];
+  bodylessMethods.forEach((method) => {
+    it(`should still null the body for ${method} after QUERY is added`, () => {
+      const node = request({ id: "r", method, body: jsonBody('{"q":1}') });
+
+      const wire = buildHttpRequest(node, effectiveOf({}));
+
+      expect(wire.body).toBeNull();
+    });
+  });
+});

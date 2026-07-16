@@ -158,7 +158,7 @@ export const requestSettingsSchema = z
   .object({
     name: z.string().describe("Request name."),
     method: z
-      .enum(["GET", "POST", "PUT", "PATCH", "DELETE"])
+      .enum(["GET", "POST", "PUT", "PATCH", "DELETE", "QUERY"])
       .describe("HTTP method."),
     url: z.string().describe("Request URL (supports {{var}})."),
     body: requestBodySchema

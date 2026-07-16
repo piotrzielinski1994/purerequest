@@ -72,6 +72,15 @@ describe("toFetch - shape (AC-009)", () => {
     expect(out).toMatch(/method:\s*"GET"/);
   });
 
+  // TC-011, AC-012 - behavior: a QUERY wire request emits method "QUERY" (and its
+  // body, since QUERY is not bodyless on the wire).
+  it("should emit the method QUERY and its body for a QUERY request", () => {
+    const out = toFetch(wire({ method: "QUERY", body: '{"q":1}' }));
+
+    expect(out).toMatch(/method:\s*"QUERY"/);
+    expect(out).toMatch(/body:\s*"/);
+  });
+
   // AC-009, TC-002 - edge: a GET with no headers omits BOTH the headers object
   // and the body key.
   it("should omit the headers object and the body key if the request has no headers and no body", () => {

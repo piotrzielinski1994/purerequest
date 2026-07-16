@@ -29,7 +29,7 @@ export type ParsedBru = {
 
 type Block = { name: string; inner: string };
 
-const METHOD_NAMES = new Set(["get", "post", "put", "patch", "delete"]);
+const METHOD_NAMES = new Set(["get", "post", "put", "patch", "delete", "query"]);
 
 // Split a bru document into top-level `name { ... }` blocks, brace-counting so a
 // nested `{`/`}` inside a body block doesn't close the block early. Anything with
