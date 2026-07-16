@@ -8,7 +8,7 @@ import {
 import {
   collectRequestIds,
   containsId,
-  duplicateRequest as applyDuplicate,
+  duplicateNode as applyDuplicate,
   insertNode,
   removeNode,
   renameNode,
@@ -34,7 +34,7 @@ export type TreeCrudApi = {
   ) => void;
   newRequest: (target?: MoveTarget) => void;
   newFolder: (target?: MoveTarget) => void;
-  duplicateRequest: (id: string) => void;
+  duplicateNode: (id: string) => void;
   beginRename: (id: string) => void;
   commitRename: (id: string, name: string) => void;
   cancelRename: () => void;
@@ -238,20 +238,39 @@ export function createTreeCrud(
     );
   };
 
-  const duplicateRequest = (id: string) => {
+  const duplicateNode = (id: string) => {
     const node = findNode(tree, id);
-    if (!node || node.kind !== "request") {
+    if (!node) {
       return;
     }
-    nodeCounter.current += 1;
-    const newId = `new-${nodeCounter.current}`;
-    setOpenRequestIds((current) =>
-      current.includes(newId) ? current : [...current, newId],
-    );
+    // The lib mints the top copy first, then its descendants; capture that first
+    // id to select (folder) or open+activate (request) the copy.
+    let topId: string | null = null;
+    const mint = () => {
+      nodeCounter.current += 1;
+      const minted = `new-${nodeCounter.current}`;
+      if (topId === null) {
+        topId = minted;
+      }
+      return minted;
+    };
+    const next = applyDuplicate(tree, id, mint);
+    if (topId === null) {
+      return;
+    }
     setIsEditorActive(false);
-    setActiveRequestId(newId);
-    selectSingle(newId);
-    persistTree(applyDuplicate(tree, id, newId), "duplicate");
+    if (node.kind === "folder") {
+      selectSingle(topId);
+      setExpandedFolderIds((current) => new Set(current).add(topId!));
+      persistTree(next, "duplicate");
+      return;
+    }
+    setOpenRequestIds((current) =>
+      current.includes(topId!) ? current : [...current, topId!],
+    );
+    setActiveRequestId(topId);
+    selectSingle(topId);
+    persistTree(next, "duplicate");
   };
 
   // The delete target set for a clicked row: the whole multi-selection when the
@@ -369,7 +388,7 @@ export function createTreeCrud(
     createRequestNode,
     newRequest,
     newFolder,
-    duplicateRequest,
+    duplicateNode,
     beginRename,
     commitRename,
     cancelRename,

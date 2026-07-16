@@ -22,7 +22,7 @@ type CrudSurface = ReturnType<typeof useWorkspace> & {
   commitRename: (id: string, name: string) => void;
   cancelRename: () => void;
   newFolder: (target?: MoveTarget) => void;
-  duplicateRequest: (id: string) => void;
+  duplicateNode: (id: string) => void;
   pendingDelete: PendingDelete;
   requestDeleteNode: (id: string) => void;
   confirmPendingDelete: () => void;
@@ -57,7 +57,7 @@ function CrudProbe() {
     beginRename,
     commitRename,
     cancelRename,
-    duplicateRequest,
+    duplicateNode,
     requestDeleteNode,
     confirmPendingDelete,
     cancelPendingDelete,
@@ -95,7 +95,7 @@ function CrudProbe() {
       <span data-testid="has-actions">
         {[
           typeof commitRename === "function",
-          typeof duplicateRequest === "function",
+          typeof duplicateNode === "function",
           typeof newFolder === "function",
           typeof beginRename === "function",
           typeof requestDeleteNode === "function",
@@ -189,10 +189,10 @@ function CrudProbe() {
       >
         commit rename current
       </button>
-      <button type="button" onClick={() => duplicateRequest("req-profile")}>
+      <button type="button" onClick={() => duplicateNode("req-profile")}>
         duplicate profile
       </button>
-      <button type="button" onClick={() => duplicateRequest("folder-users")}>
+      <button type="button" onClick={() => duplicateNode("folder-users")}>
         duplicate users folder
       </button>
       <button type="button" onClick={() => requestDeleteNode("req-session")}>
@@ -789,10 +789,10 @@ describe("WorkspaceProvider multi-select delete", () => {
   });
 });
 
-describe("WorkspaceProvider duplicateRequest (AC-007, TC-011)", () => {
-  // AC-007, TC-011 - side-effect-contract: duplicate inserts a copy after the
-  // original, persists, and opens+activates the copy.
-  it("should insert a copy after the original, persist, and activate the copy", async () => {
+describe("WorkspaceProvider duplicateNode (AC-007, TC-008/009)", () => {
+  // AC-007, TC-009 - side-effect-contract: duplicating a REQUEST inserts a copy
+  // after the original, persists, and opens+activates the copy tab.
+  it("should insert a request copy after the original, persist, and activate the copy", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderProbe({ onTreeChange });
@@ -820,26 +820,52 @@ describe("WorkspaceProvider duplicateRequest (AC-007, TC-011)", () => {
     expect(screen.getByTestId("open-ids").textContent).toContain(activeId);
   });
 
-  // AC-007 - behavior: duplicate on a folder is a no-op (no write, no new node).
-  it("should be a no-op if duplicate is invoked on a folder", async () => {
+  // AC-007, TC-008 - side-effect-contract: duplicating a FOLDER persists once,
+  // inserts a "<name> copy" folder, selects + expands the copy, and opens NO tab
+  // (the previously-active request tab is left untouched).
+  it("should duplicate a folder: persist once, select+expand the copy, and open no tab", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
-    renderProbe({ onTreeChange });
+    // an unrelated request tab is active; duplicating a folder must not change it.
+    renderProbe({
+      onTreeChange,
+      initialActiveRequestId: "req-session",
+      initialOpenRequestIds: ["req-session"],
+    });
 
-    // RED guard: the crud actions must be wired for this no-op to be meaningful
-    // (else it passes trivially because duplicateRequest doesn't exist).
-    expect(screen.getByTestId("has-actions")).toHaveTextContent("yes");
-
-    const requestsBefore = screen.getByTestId("request-count").textContent;
+    const foldersBefore = Number(
+      screen.getByTestId("folder-count").textContent ?? "0",
+    );
 
     await user.click(
       screen.getByRole("button", { name: /duplicate users folder/i }),
     );
 
-    expect(onTreeChange).not.toHaveBeenCalled();
-    expect(screen.getByTestId("request-count")).toHaveTextContent(
-      requestsBefore ?? "",
+    // persisted exactly once.
+    expect(onTreeChange).toHaveBeenCalledTimes(1);
+    // one more folder in the tree, named "Users copy".
+    expect(screen.getByTestId("folder-count")).toHaveTextContent(
+      String(foldersBefore + 1),
     );
+    expect(screen.getByTestId("tree-names").textContent).toContain(
+      "Users copy",
+    );
+
+    // find the copy's fresh id from the persisted tree.
+    const persisted = onTreeChange.mock.calls[0][0];
+    const copy = collect(persisted).find(
+      (node) => node.kind === "folder" && node.name === "Users copy",
+    );
+    if (!copy) {
+      throw new Error("expected a 'Users copy' folder");
+    }
+    // the copy is selected + expanded.
+    expect(screen.getByTestId("selected-id")).toHaveTextContent(copy.id);
+    expect(screen.getByTestId("expanded-ids").textContent).toContain(copy.id);
+
+    // NO request tab was opened: the active tab is still the unrelated request.
+    expect(screen.getByTestId("active-id")).toHaveTextContent("req-session");
+    expect(screen.getByTestId("open-count")).toHaveTextContent("1");
   });
 });
 
