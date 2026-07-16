@@ -6,7 +6,7 @@ import { isRecord } from "@/lib/openapi/parse-openapi";
 // else (paths, tags, info, non-body params) is copied through untouched. Pure -
 // never mutates the input.
 
-const BODY_METHODS = ["get", "post", "put", "patch", "delete"];
+const BODY_METHODS = ["get", "post", "put", "patch", "delete", "query"];
 const JSON_MEDIA_TYPE = "application/json";
 const DEFAULT_SCHEME = "https";
 

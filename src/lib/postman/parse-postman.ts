@@ -75,7 +75,14 @@ type PostmanDoc = {
 
 type PostmanEnvDoc = { name?: unknown; values?: unknown };
 
-const METHODS = new Set<HttpMethod>(["GET", "POST", "PUT", "PATCH", "DELETE"]);
+const METHODS = new Set<HttpMethod>([
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "QUERY",
+]);
 
 function asString(value: unknown): string {
   if (typeof value === "string") {

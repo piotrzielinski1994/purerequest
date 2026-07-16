@@ -19,6 +19,7 @@ const METHODS = new Set<HttpMethod>([
   "PUT",
   "PATCH",
   "DELETE",
+  "QUERY",
 ]);
 
 const DATA_FLAGS = new Set([

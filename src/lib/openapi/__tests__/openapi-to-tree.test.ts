@@ -85,6 +85,18 @@ describe("openapiToTree - operation -> request (AC-002)", () => {
     expect(requests[0].method).toBe("GET");
   });
 
+  // TC-010, AC-011 - behavior: a `query` operation key on a path item maps to a
+  // request node with method QUERY (forward-looking parity).
+  it("should map a query operation key to method QUERY", () => {
+    const root = treeRoot(
+      doc({ paths: { "/search": { query: { summary: "Search" } } } }),
+    );
+    const requests = collectRequests(root.children);
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0].method).toBe("QUERY");
+  });
+
   // AC-002, TC-002 - behavior: name uses summary when present.
   it("should name the request from summary when present", () => {
     const root = treeRoot(

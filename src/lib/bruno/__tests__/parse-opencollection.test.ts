@@ -23,6 +23,21 @@ describe("parseOpenCollection - info / http (AC-011)", () => {
     expect(parsed.url).toBe("https://api.example.com/users");
   });
 
+  // TC-009, AC-010 - behavior: an http.method of QUERY maps through to QUERY.
+  it("should map an http.method of QUERY to QUERY", () => {
+    const parsed = parseOpenCollection(
+      [
+        "info:",
+        "  name: Q",
+        "http:",
+        "  method: query",
+        "  url: https://example.org",
+      ].join("\n"),
+    );
+
+    expect(parsed.method).toBe("QUERY");
+  });
+
   // AC-011 - behavior: http.headers list -> rows; disabled:true -> enabled:false.
   it("should map http.headers to rows with disabled:true becoming enabled:false", () => {
     const parsed = parseOpenCollection(

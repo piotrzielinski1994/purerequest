@@ -27,6 +27,16 @@ describe("parseBru - method / url / headers (AC-001, AC-002)", () => {
     expect(parsed.url).toBe("https://x.test/a");
   });
 
+  // TC-009, AC-010 - behavior: a lowercase `query` method block -> method QUERY.
+  it("should read QUERY from a query method block", () => {
+    const parsed = parseBru(
+      ["query {", "  url: https://example.org", "}"].join("\n"),
+    );
+
+    expect(parsed.method).toBe("QUERY");
+    expect(parsed.url).toBe("https://example.org");
+  });
+
   // AC-001 - behavior: meta.name lands in `name`.
   it("should extract the name from the meta block", () => {
     const parsed = parseBru(

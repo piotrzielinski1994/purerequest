@@ -58,6 +58,21 @@ describe("parseCurl - method/url/headers (AC-005)", () => {
 
     expect(req.method).toBe("GET");
   });
+
+  // TC-007, AC-008 - behavior: -X QUERY is a known method now, so it is kept.
+  it("should keep -X QUERY as the method", () => {
+    const req = expectOk("curl -X QUERY 'https://example.org'");
+
+    expect(req.method).toBe("QUERY");
+    expect(req.url).toBe("https://example.org");
+  });
+
+  // AC-008 - behavior: --request QUERY long form is kept too.
+  it("should keep --request QUERY as the method", () => {
+    const req = expectOk("curl --request QUERY --url 'https://example.org'");
+
+    expect(req.method).toBe("QUERY");
+  });
 });
 
 describe("parseCurl - data flags + method default (AC-006)", () => {

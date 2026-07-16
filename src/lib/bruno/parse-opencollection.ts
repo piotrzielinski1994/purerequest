@@ -54,7 +54,14 @@ const EMPTY: ParsedBru = {
   environments: {},
 };
 
-const METHODS = new Set<HttpMethod>(["GET", "POST", "PUT", "PATCH", "DELETE"]);
+const METHODS = new Set<HttpMethod>([
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "QUERY",
+]);
 
 function asString(value: unknown): string {
   return typeof value === "string" ? value : value === undefined ? "" : String(value);
