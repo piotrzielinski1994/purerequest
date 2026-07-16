@@ -8,6 +8,7 @@ import { BodyPanel } from "@/components/workspace/body-panel";
 import { RequestSettingsForm } from "@/components/workspace/config-editor";
 import {
   AuthPanel,
+  GeneralPanel,
   HeadersPanel,
   ParamsPanel,
   ScriptPanel,
@@ -16,7 +17,13 @@ import {
 import { PathParamsPanel } from "@/components/workspace/path-params-panel";
 import type { TokenHighlightContext } from "@/components/workspace/editable-key-value-table";
 import { useWorkspace } from "@/components/workspace/workspace-context";
+import { DEFAULT_TIMEOUT_MS } from "@/lib/workspace/resolve";
 import type { RequestNode } from "@/lib/workspace/model";
+
+const DEFAULT_TIMEOUT_RESOLVED = {
+  value: DEFAULT_TIMEOUT_MS,
+  from: { scopeId: "default", scopeName: "default" },
+};
 
 // The Params tab nests a Path/Query sub-bar. Query edits the request's own
 // `params.query` AND bidirectionally mirrors the URL `?query` (via
@@ -116,6 +123,9 @@ function RequestTabs({ request }: { request: RequestNode }) {
           <TabsTrigger value="settings" className={PANE_TABS_TRIGGER}>
             Settings
           </TabsTrigger>
+          <TabsTrigger value="raw" className={PANE_TABS_TRIGGER}>
+            Raw
+          </TabsTrigger>
         </TabsList>
       </div>
       <TabsContent value="vars">
@@ -148,7 +158,16 @@ function RequestTabs({ request }: { request: RequestNode }) {
       <TabsContent value="script">
         <ScriptPanel config={request.config} onChange={onConfigChange} />
       </TabsContent>
-      <TabsContent value="settings" className="min-h-0 flex-1">
+      <TabsContent value="settings">
+        <GeneralPanel
+          config={request.config}
+          effectiveTimeout={
+            effectiveConfig?.timeoutMs ?? DEFAULT_TIMEOUT_RESOLVED
+          }
+          onChange={onConfigChange}
+        />
+      </TabsContent>
+      <TabsContent value="raw" className="min-h-0 flex-1">
         <RequestSettingsForm key={request.id} request={request} />
       </TabsContent>
     </Tabs>

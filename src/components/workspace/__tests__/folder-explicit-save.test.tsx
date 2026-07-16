@@ -172,11 +172,11 @@ describe("folder structured panels - explicit save (AC-007)", () => {
     ).toBeInTheDocument();
   });
 
-  // side-effect-contract: the Settings raw-JSON sub-tab owns the active-editor
+  // side-effect-contract: the Raw raw-JSON sub-tab owns the active-editor
   // slot, so editing a structured var, THEN switching to Settings and editing the
   // raw JSON, then saving must persist the SETTINGS JSON value - the structured
   // draft must NOT clobber it (single owner of the editor slot per sub-tab).
-  it("should persist the Settings JSON value, not the structured draft, when both are touched", async () => {
+  it("should persist the Raw JSON value, not the structured draft, when both are touched", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderFolder(onTreeChange);
@@ -190,7 +190,7 @@ describe("folder structured panels - explicit save (AC-007)", () => {
     await user.tab();
 
     // switch to Settings and set the raw JSON to a DIFFERENT value
-    await openFolderSubTab(user, "Settings");
+    await openFolderSubTab(user, "Raw");
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });

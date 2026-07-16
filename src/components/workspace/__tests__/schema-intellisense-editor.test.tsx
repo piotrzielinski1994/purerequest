@@ -78,7 +78,7 @@ function renderPane(onTreeChange = vi.fn().mockResolvedValue({ ok: true })) {
 
 async function openSettings(user: ReturnType<typeof userEvent.setup>) {
   const tablist = screen.getByRole("tablist", { name: /request sections/i });
-  await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+  await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
   await waitFor(() => {
     expect(document.querySelector(".cm-editor")).not.toBeNull();
   });
@@ -111,8 +111,8 @@ async function diagnostics(): Promise<Diagnostic[]> {
   return out;
 }
 
-describe("Settings editor code folding", () => {
-  // behavior: the Settings JSON editor renders a fold gutter with a collapse
+describe("Raw editor code folding", () => {
+  // behavior: the Raw JSON editor renders a fold gutter with a collapse
   // control, and folding a block hides its inner lines from the document text.
   it("should render a fold gutter and collapse a JSON block when its control is clicked", async () => {
     const user = userEvent.setup();
@@ -149,7 +149,7 @@ describe("schema warnings do not block save", () => {
   // AC-004, AC-006 - side-effect-contract: an unknown config key produces a
   // WARNING diagnostic in the live editor, yet save still fires through
   // onTreeChange (the structural parse accepts it; schema lint is advisory).
-  it("should warn but still fire onTreeChange if the Settings JSON has an unknown config key", async () => {
+  it("should warn but still fire onTreeChange if the Raw JSON has an unknown config key", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn().mockResolvedValue({ ok: true });
     renderPane(onTreeChange);
@@ -169,7 +169,7 @@ describe("schema warnings do not block save", () => {
 
   // AC-003, AC-006 - side-effect-contract: a wrong-typed config field produces a
   // WARNING diagnostic yet still saves (valid JSON syntax, advisory schema lint).
-  it("should warn but still fire onTreeChange if the Settings JSON has a wrong-typed config field", async () => {
+  it("should warn but still fire onTreeChange if the Raw JSON has a wrong-typed config field", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn().mockResolvedValue({ ok: true });
     renderPane(onTreeChange);
@@ -189,7 +189,7 @@ describe("schema warnings do not block save", () => {
 
   // AC-006 - side-effect-contract: malformed JSON (syntax error) blocks save - the
   // existing structural gate makes canSave false, so onTreeChange never fires.
-  it("should NOT fire onTreeChange if the Settings JSON is malformed", async () => {
+  it("should NOT fire onTreeChange if the Raw JSON is malformed", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn().mockResolvedValue({ ok: true });
     renderPane(onTreeChange);

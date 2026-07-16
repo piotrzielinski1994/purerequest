@@ -88,7 +88,7 @@ function liveDoc(): string {
 describe("FolderPane", () => {
   // behavior: opening a folder shows a pane with the folder sub-tabs (folders carry
   // no request-only Params tab - query/path params are request-owned now).
-  it("should render Vars/Auth/Headers/Script/Env/Settings sub-tabs", async () => {
+  it("should render Vars/Auth/Headers/Script/Env/Settings/Raw sub-tabs", async () => {
     const user = userEvent.setup();
     renderContent();
 
@@ -106,6 +106,7 @@ describe("FolderPane", () => {
       "Script",
       "Env",
       "Settings",
+      "Raw",
     ]) {
       expect(within(tablist).getByRole("tab", { name })).toBeInTheDocument();
     }
@@ -160,8 +161,8 @@ describe("FolderPane", () => {
     expect(await screen.findByDisplayValue("Accept")).toBeInTheDocument();
   });
 
-  // behavior: the Settings sub-tab shows the folder config as editable JSON
-  it("should show the folder config as raw JSON in the Settings sub-tab", async () => {
+  // behavior: the Raw sub-tab shows the folder config as editable JSON
+  it("should show the folder config as raw JSON in the Raw sub-tab", async () => {
     const user = userEvent.setup();
     renderContent();
 
@@ -171,7 +172,7 @@ describe("FolderPane", () => {
     const tablist = await screen.findByRole("tablist", {
       name: /folder sections/i,
     });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
 
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
@@ -195,7 +196,7 @@ describe("FolderPane", () => {
     const tablist = await screen.findByRole("tablist", {
       name: /folder sections/i,
     });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });

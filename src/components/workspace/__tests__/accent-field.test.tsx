@@ -219,7 +219,7 @@ describe("folder Env tab accent live persist (AC-002)", () => {
   });
 });
 
-describe("folder Settings JSON shows env colors folded in", () => {
+describe("folder Raw JSON shows env colors folded in", () => {
   const openSettingsTab = async (user: ReturnType<typeof userEvent.setup>) => {
     await user.click(
       screen.getByRole("button", { name: /open folder config/i }),
@@ -227,7 +227,7 @@ describe("folder Settings JSON shows env colors folded in", () => {
     const tablist = await screen.findByRole("tablist", {
       name: /folder sections/i,
     });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
     await waitFor(() =>
       expect(document.querySelector(".cm-editor")).not.toBeNull(),
     );
@@ -237,7 +237,7 @@ describe("folder Settings JSON shows env colors folded in", () => {
 
   // the reported bug: a folder colored for prod showed no color in the Settings
   // JSON. The doc is the on-disk shape, so the color must fold into the prod entry.
-  it("should render the env's color inside its environments entry in the Settings JSON", async () => {
+  it("should render the env's color inside its environments entry in the Raw JSON", async () => {
     const user = userEvent.setup();
     renderFolder(
       vi.fn<OnTreeChange>().mockResolvedValue({ ok: true }),
@@ -251,9 +251,9 @@ describe("folder Settings JSON shows env colors folded in", () => {
     expect(text).toContain(`"color": "${RED}"`);
   });
 
-  // saving the Settings JSON persists the folded color back onto the folder's
+  // saving the Raw JSON persists the folded color back onto the folder's
   // environmentColors (the doc round-trips config + colors together).
-  it("should persist an env color edited via the Settings JSON", async () => {
+  it("should persist an env color edited via the Raw JSON", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderFolder(onTreeChange, makeTree({ prod: RED }));

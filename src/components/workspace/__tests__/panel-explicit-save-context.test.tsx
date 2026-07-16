@@ -241,16 +241,16 @@ describe("request structured panels - Cmd+S always toasts", () => {
     expect(onTreeChange).not.toHaveBeenCalled();
   });
 
-  // side-effect-contract: Cmd+S on the raw-JSON Settings sub-tab with NO edits
+  // side-effect-contract: Cmd+S on the raw-JSON Raw sub-tab with NO edits
   // must NOT hit the disk (no onTreeChange) - it should be as instant as a clean
   // structured-tab save. Pins the "noticeable lag before the toast on Settings"
   // bug, where the active editor's save() persisted unconditionally and the toast
   // waited on the tree-write round-trip even though nothing changed.
-  it("should show a Saved toast but not persist if a clean Settings tab is saved", async () => {
+  it("should show a Saved toast but not persist if a clean Raw tab is saved", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderPane(onTreeChange);
-    await openSubTab(user, "Settings");
+    await openSubTab(user, "Raw");
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });

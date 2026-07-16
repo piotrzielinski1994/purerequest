@@ -255,6 +255,28 @@ describe("makeEditorExtensions / makeViewerExtensions", () => {
     expect(withBoth).toBeGreaterThan(withLinter);
   });
 
+  // behavior: withFold binds the fold/unfold-at-cursor shortcuts (Mod+-, Mod+=)
+  // on the EDITABLE editor too, so the Raw / config JSON editor collapses and
+  // expands the block under the caret from the keyboard (not only the read-only
+  // response viewer).
+  it("should bind fold/unfold keyboard shortcuts when withFold is set on the editor", () => {
+    const colors = sentinelEditorColors();
+    const state = EditorState.create({
+      extensions: makeEditorExtensions({
+        colors,
+        isDark: true,
+        withFold: true,
+      }) as never,
+    });
+    const keys = state
+      .facet(keymap)
+      .flat()
+      .map((binding) => binding.key);
+
+    expect(keys).toContain("Mod--");
+    expect(keys).toContain("Mod-=");
+  });
+
   // side-effect-contract: the viewer composition grows when fold is requested.
   it("should grow the viewer extension set when withFold is added", () => {
     const colors = sentinelEditorColors();
