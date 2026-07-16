@@ -97,14 +97,14 @@ function renderPane(onTreeChange = vi.fn().mockResolvedValue({ ok: true })) {
   );
 }
 
-describe("RequestPane Settings sub-tab", () => {
-  // behavior: a Settings sub-tab exists alongside the other request sections
-  it("should expose a Settings sub-tab in the request sections", () => {
+describe("RequestPane Raw sub-tab", () => {
+  // behavior: a Raw sub-tab exists alongside the other request sections
+  it("should expose a Raw sub-tab in the request sections", () => {
     renderPane();
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
     expect(
-      within(tablist).getByRole("tab", { name: "Settings" }),
+      within(tablist).getByRole("tab", { name: "Raw" }),
     ).toBeInTheDocument();
   });
 
@@ -120,14 +120,14 @@ describe("RequestPane Settings sub-tab", () => {
       ...overrides,
     });
 
-  // behavior: the Settings sub-tab shows the WHOLE request (name/method/url + flat
+  // behavior: the Raw sub-tab shows the WHOLE request (name/method/url + flat
   // config fields, plus body/params when non-default) as JSON
-  it("should show the full request as raw JSON in the Settings sub-tab", async () => {
+  it("should show the full request as raw JSON in the Raw sub-tab", async () => {
     const user = userEvent.setup();
     renderPane();
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
 
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
@@ -146,9 +146,9 @@ describe("RequestPane Settings sub-tab", () => {
     );
   });
 
-  // behavior: a JSON body shows as real nested JSON in the Settings JSON (the
+  // behavior: a JSON body shows as real nested JSON in the Raw JSON (the
   // readability win - no escaped "{\n ...}" string).
-  it("should show a JSON body as real nested JSON in the Settings JSON", async () => {
+  it("should show a JSON body as real nested JSON in the Raw JSON", async () => {
     const user = userEvent.setup();
     render(
       <ToastProvider>
@@ -183,7 +183,7 @@ describe("RequestPane Settings sub-tab", () => {
     );
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });
@@ -204,7 +204,7 @@ describe("RequestPane Settings sub-tab", () => {
     renderPane(onTreeChange);
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });
@@ -236,14 +236,14 @@ describe("RequestPane Settings sub-tab", () => {
     });
   });
 
-  // behavior: saving a new body via the Settings JSON re-syncs the Body tab
+  // behavior: saving a new body via the Raw JSON re-syncs the Body tab
   // (the url/method/body override is cleared so the Body tab shows the saved value).
-  it("should re-sync the Body tab if the body is edited via the Settings JSON", async () => {
+  it("should re-sync the Body tab if the body is edited via the Raw JSON", async () => {
     const user = userEvent.setup();
     renderPane(vi.fn().mockResolvedValue({ ok: true }));
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });
@@ -312,12 +312,12 @@ describe("RequestPane Settings sub-tab", () => {
       }),
     ],
     ["malformed JSON", "{ not json"],
-  ])("should block saving if the Settings JSON is %s", async (_label, doc) => {
+  ])("should block saving if the Raw JSON is %s", async (_label, doc) => {
     const user = userEvent.setup();
     renderPane();
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });
@@ -328,14 +328,14 @@ describe("RequestPane Settings sub-tab", () => {
     });
   });
 
-  // behavior: malformed Settings JSON shows a red lint diagnostic (the cue that
+  // behavior: malformed Raw JSON shows a red lint diagnostic (the cue that
   // replaced the disabled Save bar).
-  it("should flag malformed Settings JSON with a lint diagnostic", async () => {
+  it("should flag malformed Raw JSON with a lint diagnostic", async () => {
     const user = userEvent.setup();
     renderPane();
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });
@@ -352,13 +352,13 @@ describe("RequestPane Settings sub-tab", () => {
     expect(diagnosticCount(view.state)).toBeGreaterThan(0);
   });
 
-  // behavior: valid Settings JSON keeps the editor saveable.
-  it("should keep saving enabled if the Settings JSON is valid", async () => {
+  // behavior: valid Raw JSON keeps the editor saveable.
+  it("should keep saving enabled if the Raw JSON is valid", async () => {
     const user = userEvent.setup();
     renderPane();
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });
@@ -371,14 +371,14 @@ describe("RequestPane Settings sub-tab", () => {
   });
 
   // AC-009, spec §5 - behavior: editing the body active mode + form rows via the
-  // Settings JSON and saving persists them onto the request through onTreeChange.
-  it("should persist the body active mode and form rows edited via the Settings JSON", async () => {
+  // Raw JSON and saving persists them onto the request through onTreeChange.
+  it("should persist the body active mode and form rows edited via the Raw JSON", async () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn().mockResolvedValue({ ok: true });
     renderPane(onTreeChange);
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });
@@ -404,12 +404,12 @@ describe("RequestPane Settings sub-tab", () => {
 
   // AC-009 - behavior: a default json request omits body/params from the Settings
   // JSON document (minimal, matches the on-disk omission).
-  it("should omit body and params from the Settings JSON for a default json request", async () => {
+  it("should omit body and params from the Raw JSON for a default json request", async () => {
     const user = userEvent.setup();
     renderPane();
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });
@@ -425,7 +425,7 @@ describe("RequestPane Settings sub-tab", () => {
     renderPane(vi.fn().mockResolvedValue({ ok: true }));
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });
@@ -456,7 +456,7 @@ describe("RequestPane Settings sub-tab", () => {
     );
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });
@@ -478,7 +478,7 @@ describe("RequestPane Settings sub-tab", () => {
     renderPane(vi.fn().mockResolvedValue({ ok: false, error: "disk full" }));
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
-    await user.click(within(tablist).getByRole("tab", { name: "Settings" }));
+    await user.click(within(tablist).getByRole("tab", { name: "Raw" }));
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });
@@ -490,10 +490,10 @@ describe("RequestPane Settings sub-tab", () => {
   });
 });
 
-describe("Request context-menu Edit config opens the Settings sub-tab", () => {
+describe("Request context-menu Edit config opens the Raw sub-tab", () => {
   // behavior: the request row's "Edit config" context-menu item opens the request
-  // and activates its Settings sub-tab (NO separate top-level editor tab).
-  it("should activate the request Settings sub-tab when Edit config is chosen from the row menu", async () => {
+  // and activates its Raw sub-tab (NO separate top-level editor tab).
+  it("should activate the request Raw sub-tab when Edit config is chosen from the row menu", async () => {
     const user = userEvent.setup();
     render(
       <WorkspaceProvider tree={tree} httpClient={createFakeHttpClient()}>
@@ -511,7 +511,7 @@ describe("Request context-menu Edit config opens the Settings sub-tab", () => {
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
     expect(
-      within(tablist).getByRole("tab", { name: "Settings" }),
+      within(tablist).getByRole("tab", { name: "Raw" }),
     ).toHaveAttribute("aria-selected", "true");
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();

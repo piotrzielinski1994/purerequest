@@ -110,7 +110,7 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > a JSON object). Each mode auto-sets its `Content-Type` (an explicit `Content-Type` you set in
 > the Headers tab always wins); switching modes preserves data - form and multipart share their
 > rows, the JSON text and the GraphQL query/variables each keep their own slot. The mode + payload
-> persist to the request's `*.req.json` and the Settings tab JSON.
+> persist to the request's `*.req.json` and the **Raw** tab JSON.
 >
 > Per-installation UI settings (panel split sizes, whether the console is hidden, whether the
 > window was fullscreen, and the set of open request tabs + the active one) persist to a
@@ -292,9 +292,12 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 > `console.log/info/warn/error` output lands in the Console (prefixed `[pre]`/`[post]`),
 > `console.clear()` wipes it; scripts may
 > use `async`/`await`. A throwing **pre** script aborts the send (error in the response pane); a
-> throwing **post** script only logs (the response stays). Config can also be edited as raw JSON
-> (**Edit** in a sidebar row's right-click menu opens a raw-JSON editor in the content
-> area - a **folder** edits its config object, while a **request**'s Settings tab edits the
+> throwing **post** script only logs (the response stays). The inheritable request **timeout** is
+> edited from a structured **Settings** tab (an empty field inherits - its placeholder previews the
+> resolved value + origin, e.g. `30000 (default)` or `5000 (from <folder>)`; a positive integer pins
+> it). Config can also be edited as raw JSON on the **Raw** tab
+> (**Edit** in a sidebar row's right-click menu opens the raw-JSON editor in the content
+> area - a **folder** edits its config object, while a **request**'s Raw tab edits the
 > **whole request** JSON
 > `{name, method, url, body, params, headers, auth, scripts, variables, ...}` (config fields flat
 > at the top level) so everything about it lives in one place (saving a

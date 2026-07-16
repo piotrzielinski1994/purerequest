@@ -32,6 +32,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import type { ScriptStage } from "@/lib/scripts/model";
 import type { Auth, AuthMode, ConfigScope, KeyValue } from "@/lib/workspace/model";
 import { emptyAuth } from "@/lib/workspace/model";
+import type { ResolvedValue } from "@/lib/workspace/resolve";
 import { parseDotenv } from "@/lib/workspace/environment";
 
 const AUTH_TYPE_LABELS: Record<AuthMode, string> = {
@@ -538,6 +539,77 @@ export function EnvPanel({
       </DialogContent>
     </Dialog>
     </>
+  );
+}
+
+// The scalar-config panel (the "Settings" tab). Holds the inheritable
+// `timeoutMs`: an own value shows in the input; an unset scope leaves the input
+// empty and its placeholder previews the RESOLVED effective value + origin
+// (`30000 (default)` with no ancestor, `<value> (from <Scope>)` when inherited),
+// mirroring the "Inherited from X" affordance the other panels use. Empty input
+// strips the key (revert to inherit); a non-positive / non-integer entry is
+// rejected so only a positive whole ms count (or a clear) ever commits.
+export function GeneralPanel({
+  config,
+  effectiveTimeout,
+  onChange,
+}: {
+  config: ConfigScope;
+  effectiveTimeout: ResolvedValue<number>;
+  onChange: (config: ConfigScope) => void;
+}) {
+  const placeholder =
+    effectiveTimeout.from.scopeId === "default"
+      ? `${effectiveTimeout.value} (default)`
+      : `${effectiveTimeout.value} (from ${effectiveTimeout.from.scopeName})`;
+
+  const commit = (raw: string) => {
+    const trimmed = raw.trim();
+    if (trimmed === "") {
+      const next = { ...config };
+      delete next.timeoutMs;
+      onChange(next);
+      return;
+    }
+    if (!/^\d+$/.test(trimmed)) {
+      return;
+    }
+    const parsed = Number(trimmed);
+    if (parsed <= 0) {
+      return;
+    }
+    onChange({ ...config, timeoutMs: parsed });
+  };
+
+  return (
+    <div
+      role="grid"
+      aria-label="General fields"
+      className="grid border-t border-l border-border"
+      style={{ gridTemplateColumns: "8rem 1fr" }}
+    >
+      <div className="contents">
+        <div className={cn(AUTH_CELL, "flex items-center px-2")}>
+          <span className="text-xs text-muted-foreground">Timeout (ms)</span>
+        </div>
+        <div className={cn(AUTH_CELL, "relative")}>
+          <input
+            aria-label="Timeout"
+            value={config.timeoutMs !== undefined ? String(config.timeoutMs) : ""}
+            placeholder={placeholder}
+            inputMode="numeric"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-1p-ignore
+            data-lpignore="true"
+            onChange={(event) => commit(event.target.value)}
+            className={cn(AUTH_INPUT, "px-2")}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 

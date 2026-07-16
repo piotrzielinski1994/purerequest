@@ -8,6 +8,7 @@ import { ConfigEditorForm } from "@/components/workspace/config-editor";
 import {
   AuthPanel,
   EnvPanel,
+  GeneralPanel,
   HeadersPanel,
   ScriptPanel,
   VarsPanel,
@@ -30,7 +31,8 @@ type FolderTab =
   | "headers"
   | "script"
   | "env"
-  | "settings";
+  | "settings"
+  | "raw";
 
 // Registers the folder's structured-config draft on the active-editor seam (so
 // Cmd+S + close-confirm work) and renders the structured panels. Mounted ONLY on
@@ -141,6 +143,13 @@ function FolderStructuredEditor({
       <TabsContent value="script">
         <ScriptPanel config={draft} onChange={setDraft} />
       </TabsContent>
+      <TabsContent value="settings">
+        <GeneralPanel
+          config={draft}
+          effectiveTimeout={highlight.effective.timeoutMs}
+          onChange={setDraft}
+        />
+      </TabsContent>
       <TabsContent value="env" className="min-h-0 flex-1">
         <EnvPanel
           config={draft}
@@ -220,10 +229,13 @@ export function FolderPane() {
           <TabsTrigger value="settings" className={PANE_TABS_TRIGGER}>
             Settings
           </TabsTrigger>
+          <TabsTrigger value="raw" className={PANE_TABS_TRIGGER}>
+            Raw
+          </TabsTrigger>
         </TabsList>
       </div>
-      {tab === "settings" ? (
-        <TabsContent value="settings" className="min-h-0 flex-1">
+      {tab === "raw" ? (
+        <TabsContent value="raw" className="min-h-0 flex-1">
           <ConfigEditorForm
             key={folder.id}
             id={folder.id}

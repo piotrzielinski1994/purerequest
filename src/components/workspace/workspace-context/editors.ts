@@ -55,7 +55,7 @@ export function createEditors(
         current.includes(id) ? current : [...current, id],
       );
       setActiveRequestId(id);
-      setActiveRequestTab("settings");
+      setActiveRequestTab("raw");
       return;
     }
     setEditTarget({ kind: "config", id });

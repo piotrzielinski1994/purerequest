@@ -226,7 +226,8 @@ export type RequestTab =
   | "params"
   | "body"
   | "script"
-  | "settings";
+  | "settings"
+  | "raw";
 export type ResponseTab = "response" | "headers" | "timing" | "protocols";
 
 export type WorkspaceContextValue = {
