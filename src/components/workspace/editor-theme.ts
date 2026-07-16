@@ -146,10 +146,19 @@ type EditorExtensionOpts = {
   withFold?: boolean;
 };
 
+// Collapse/expand the block under the caret from the keyboard. Mod+- folds,
+// Mod+= (the unshifted "+") unfolds - matching the "cmd+-/cmd++" the user asked
+// for while avoiding the shift-dependent "+" that varies by layout.
+const foldAtCursorKeymap = keymap.of([
+  { key: "Mod--", run: foldCode },
+  { key: "Mod-=", run: unfoldCode },
+]);
+
 // JSON editor extensions (editable). Composes json() + chrome + highlight plus
 // the optional pieces each consumer needs (close-bracket, lint, lint gutter,
 // code folding). `withFold` wires collapse/expand: the fold state, the fold
-// gutter (arrows kept INVISIBLE by makeChrome), and the fold keymap (Ctrl-Shift-[ / ]).
+// gutter (arrows kept INVISIBLE by makeChrome), the default fold keymap
+// (Ctrl-Shift-[ / ]) AND the Mod+-/Mod+= fold-at-cursor shortcuts.
 export function makeEditorExtensions(opts: EditorExtensionOpts): Extension[] {
   const { colors, isDark } = opts;
   return [
@@ -158,20 +167,12 @@ export function makeEditorExtensions(opts: EditorExtensionOpts): Extension[] {
     ...(opts.withLinter ? [linter(emptyTolerantJsonLinter())] : []),
     ...(opts.withLintGutter ? [lintGutter()] : []),
     ...(opts.withFold
-      ? [codeFolding(), foldGutter(), keymap.of(foldKeymap)]
+      ? [codeFolding(), foldGutter(), keymap.of(foldKeymap), foldAtCursorKeymap]
       : []),
     makeChrome(colors, isDark),
     makeHighlight(colors),
   ];
 }
-
-// Collapse/expand the block under the caret from the keyboard. Mod+- folds,
-// Mod+= (the unshifted "+") unfolds - matching the "cmd+-/cmd++" the user asked
-// for while avoiding the shift-dependent "+" that varies by layout.
-const foldAtCursorKeymap = keymap.of([
-  { key: "Mod--", run: foldCode },
-  { key: "Mod-=", run: unfoldCode },
-]);
 
 type ViewerExtensionOpts = {
   colors: EditorColors;
