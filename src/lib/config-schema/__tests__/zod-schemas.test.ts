@@ -91,3 +91,25 @@ describe("configScopeSchema runtime behavior", () => {
     expect(result.success).toBe(false);
   });
 });
+
+describe("requestSettingsSchema method enum (AC-004)", () => {
+  const doc = (method: string) => ({
+    name: "Req",
+    method,
+    url: "https://x.test",
+  });
+
+  // TC-004, AC-004 - behavior: QUERY is a valid method (added to the enum).
+  it("should accept method QUERY", () => {
+    const result = requestSettingsSchema.safeParse(doc("QUERY"));
+
+    expect(result.success).toBe(true);
+  });
+
+  // TC-005, AC-004 - behavior: an unknown method (FETCH) is still rejected.
+  it("should reject an unknown method FETCH", () => {
+    const result = requestSettingsSchema.safeParse(doc("FETCH"));
+
+    expect(result.success).toBe(false);
+  });
+});

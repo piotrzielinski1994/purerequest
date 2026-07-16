@@ -361,6 +361,13 @@ mod tests {
     }
 
     #[test]
+    fn should_accept_query_as_a_reqwest_extension_method() {
+        let method = reqwest::Method::from_bytes(b"QUERY").expect("QUERY is a valid method token");
+
+        assert_eq!(method.as_str(), "QUERY");
+    }
+
+    #[test]
     fn should_deserialize_a_null_body_as_none() {
         let json = r#"{
             "method": "GET",

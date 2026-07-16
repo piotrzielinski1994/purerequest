@@ -1,4 +1,10 @@
-export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+export type HttpMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "PATCH"
+  | "DELETE"
+  | "QUERY";
 
 // `enabled` defaults to true when absent (legacy rows + the common case); a row
 // explicitly `enabled: false` is kept on disk but excluded from the sent request.

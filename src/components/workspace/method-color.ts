@@ -6,4 +6,5 @@ export const METHOD_COLOR: Record<HttpMethod, string> = {
   PUT: "text-blue-600 dark:text-blue-400",
   PATCH: "text-purple-600 dark:text-purple-400",
   DELETE: "text-red-600 dark:text-red-400",
+  QUERY: "text-teal-600 dark:text-teal-400",
 };
