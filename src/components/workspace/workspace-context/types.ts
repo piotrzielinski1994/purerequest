@@ -20,6 +20,7 @@ export type PanelGroupHandle = GroupImperativeHandle;
 import type { TokenTarget } from "@/components/workspace/url-token";
 import type { CurlParseResult } from "@/lib/curl/parse-curl";
 import type { BrunoFileMap } from "@/lib/bruno/bruno-to-tree";
+import type { BrunoExportWriter } from "@/lib/bruno/writer";
 import type { PostmanFileMap } from "@/lib/postman/postman-to-tree";
 
 // A promoted-on-save "new request" tab: the pristine request plus where it lands
@@ -35,6 +36,7 @@ export type WorkspaceInternals = {
   // State
   tree: TreeNode[];
   setTree: Dispatch<SetStateAction<TreeNode[]>>;
+  workspaceName: string;
   envText: string;
   setEnvText: Dispatch<SetStateAction<string>>;
   processEnv: ProcessEnv;
@@ -98,6 +100,7 @@ export type WorkspaceInternals = {
   showToastRef: RefObject<(message: string) => void>;
   httpClientRef: RefObject<HttpClient>;
   scriptRunnerRef: RefObject<ScriptRunner>;
+  brunoWriterRef: RefObject<BrunoExportWriter>;
   sendGeneration: RefObject<Map<string, number>>;
   inFlightRequestId: RefObject<Map<string, string>>;
   onTabsChangeRef: RefObject<
@@ -370,6 +373,7 @@ export type WorkspaceContextValue = {
   importBruno: (files: BrunoFileMap, name: string) => void;
   importPostman: (files: PostmanFileMap, name: string) => void;
   importOpenapi: (text: string, name: string) => void;
+  exportBruno: (nodeId?: string) => void;
   focusUrlNonce: number;
   // A pending request to focus a panel after a visibility toggle, and the two
   // ops around it: request a focus (set by the toggle handler), consume it
