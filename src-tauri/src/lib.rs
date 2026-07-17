@@ -10,6 +10,7 @@ mod dissect;
 mod hpack;
 mod logging;
 mod pcap_capture;
+mod quic_crypto;
 mod tap_client;
 
 use serde::{Deserialize, Serialize};
