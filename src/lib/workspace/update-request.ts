@@ -1,7 +1,10 @@
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 
 export type RequestPatch = Partial<
-  Pick<RequestNode, "name" | "url" | "method" | "body" | "params" | "config">
+  Pick<
+    RequestNode,
+    "name" | "url" | "method" | "body" | "params" | "config" | "httpVersion"
+  >
 >;
 
 export function updateRequest(

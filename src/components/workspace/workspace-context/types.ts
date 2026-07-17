@@ -10,6 +10,7 @@ import type {
   BodyMode,
   ConfigScope,
   HttpMethod,
+  HttpVersion,
   KeyValue,
 } from "@/lib/workspace/model";
 import type { RequestPatch } from "@/lib/workspace/update-request";
@@ -128,7 +129,10 @@ export type WorkspaceInternals = {
 };
 
 export type RequestOverride = Partial<
-  Pick<RequestNode, "name" | "url" | "method" | "body" | "params" | "config">
+  Pick<
+    RequestNode,
+    "name" | "url" | "method" | "body" | "params" | "config" | "httpVersion"
+  >
 >;
 
 // `config`/`body`/`params` are objects, so an override is only "dirty" when it
@@ -353,6 +357,7 @@ export type WorkspaceContextValue = {
   setRequestGraphqlVariables: (id: string, variables: string) => void;
   setRequestUrl: (id: string, url: string) => void;
   setRequestMethod: (id: string, method: HttpMethod) => void;
+  setRequestHttpVersion: (id: string, httpVersion: HttpVersion) => void;
   setRequestPathParams: (id: string, pathParams: KeyValue[]) => void;
   setRequestQueryParams: (id: string, params: KeyValue[]) => void;
   setRequestConfig: (id: string, config: ConfigScope) => void;

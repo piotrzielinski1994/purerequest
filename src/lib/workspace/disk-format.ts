@@ -4,6 +4,7 @@ import type {
   Environment,
   FolderNode,
   HttpMethod,
+  HttpVersion,
   KeyValue,
   RequestBody,
   RequestParams,
@@ -47,6 +48,7 @@ type ParsedRequest = ConfigScope & {
   // v5 stores config fields FLAT at the top level (the ConfigScope keys mixed in
   // above); `config` is the legacy (<= v4) nested wrapper, read as a fallback.
   config?: ConfigScope & { params?: unknown };
+  httpVersion?: unknown;
   order?: number;
   pathParams?: Record<string, unknown>;
 };
@@ -496,6 +498,7 @@ function serializeInto(
         name: node.name,
         method: node.method,
         url: node.url,
+        ...(node.httpVersion === "h3" ? { httpVersion: node.httpVersion } : {}),
         ...bodyField(node.body),
         ...paramsField(node.params),
         ...configField(node.config),
@@ -513,7 +516,7 @@ export function serialize(
 ): FileMap {
   const files: FileMap = {
     [MANIFEST]: JSON.stringify(
-      { schemaVersion: 5, name: workspaceName },
+      { schemaVersion: 6, name: workspaceName },
       null,
       2,
     ),
@@ -543,6 +546,7 @@ function parseRequest(
       body: migrateBody(parsed),
       params: migrateParams(parsed),
       config: readConfig(parsed),
+      ...(parsed.httpVersion === "h3" ? { httpVersion: "h3" as HttpVersion } : {}),
     },
   };
 }

@@ -96,6 +96,7 @@ const EXPECTED_MEMBERS = [
   "setRequestGraphqlVariables",
   "setRequestUrl",
   "setRequestMethod",
+  "setRequestHttpVersion",
   "setRequestPathParams",
   "setRequestQueryParams",
   "setRequestConfig",

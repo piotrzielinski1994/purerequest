@@ -3,6 +3,7 @@ import type {
   BodyMode,
   ConfigScope,
   HttpMethod,
+  HttpVersion,
   KeyValue,
 } from "@/lib/workspace/model";
 import { extractPathParams } from "@/lib/http/path-params";
@@ -25,6 +26,7 @@ export type RequestEditsApi = {
   setRequestGraphqlVariables: (id: string, variables: string) => void;
   setRequestUrl: (id: string, url: string) => void;
   setRequestMethod: (id: string, method: HttpMethod) => void;
+  setRequestHttpVersion: (id: string, httpVersion: HttpVersion) => void;
   setRequestPathParams: (id: string, path: KeyValue[]) => void;
   setRequestQueryParams: (id: string, query: KeyValue[]) => void;
   setRequestConfig: (id: string, config: ConfigScope) => void;
@@ -195,6 +197,8 @@ export function createRequestEdits(
   };
   const setRequestMethod = (id: string, method: HttpMethod) =>
     mergeOverride(id, { method });
+  const setRequestHttpVersion = (id: string, httpVersion: HttpVersion) =>
+    mergeOverride(id, { httpVersion });
   const setRequestPathParams = (id: string, path: KeyValue[]) => {
     const node = requestsById.get(id);
     if (!node) {
@@ -355,6 +359,7 @@ export function createRequestEdits(
     setRequestGraphqlVariables,
     setRequestUrl,
     setRequestMethod,
+    setRequestHttpVersion,
     setRequestPathParams,
     setRequestQueryParams,
     setRequestConfig,

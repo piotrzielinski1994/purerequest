@@ -136,7 +136,14 @@ pub(crate) struct HttpRequestPayload {
     pub(crate) headers: Vec<KeyValue>,
     pub(crate) body: Option<String>,
     pub(crate) timeout_ms: u64,
+    #[serde(default = "default_http_version")]
+    #[allow(dead_code)]
+    pub(crate) http_version: String,
     pub(crate) request_id: String,
+}
+
+fn default_http_version() -> String {
+    "auto".to_string()
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -359,6 +366,34 @@ mod tests {
         assert_eq!(parsed.body.as_deref(), Some("{\"a\":1}"));
         assert_eq!(parsed.timeout_ms, 5000);
         assert_eq!(parsed.request_id, "abc-123");
+        // A payload with no httpVersion defaults to "auto" (the tap/reqwest path).
+        assert_eq!(parsed.http_version, "auto");
+    }
+
+    #[test]
+    fn should_deserialize_http_version_h3_when_present_and_default_auto_when_absent() {
+        let with_h3 = r#"{
+            "method": "GET",
+            "url": "https://example.com/",
+            "headers": [],
+            "body": null,
+            "timeoutMs": 5000,
+            "httpVersion": "h3",
+            "requestId": "h3-1"
+        }"#;
+        let parsed: HttpRequestPayload = serde_json::from_str(with_h3).unwrap();
+        assert_eq!(parsed.http_version, "h3");
+
+        let without = r#"{
+            "method": "GET",
+            "url": "https://example.com/",
+            "headers": [],
+            "body": null,
+            "timeoutMs": 5000,
+            "requestId": "auto-1"
+        }"#;
+        let parsed: HttpRequestPayload = serde_json::from_str(without).unwrap();
+        assert_eq!(parsed.http_version, "auto");
     }
 
     #[test]
@@ -418,6 +453,7 @@ mod tests {
             headers: vec![],
             body: None,
             timeout_ms: 5000,
+            http_version: "auto".to_string(),
             request_id: request_id.to_string(),
         }
     }
@@ -453,6 +489,7 @@ mod tests {
                     headers: vec![],
                     body: None,
                     timeout_ms: 5000,
+                    http_version: "auto".to_string(),
                     request_id: "bench-reqwest".to_string(),
                 },
                 CancellationToken::new(),
@@ -471,6 +508,7 @@ mod tests {
                     headers: vec![],
                     body: None,
                     timeout_ms: 5000,
+                    http_version: "auto".to_string(),
                     request_id: "bench-tap".to_string(),
                 },
                 CancellationToken::new(),

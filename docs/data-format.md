@@ -20,14 +20,14 @@ Workspace files (including auth tokens / variable values) are stored
 **plaintext** - treat a workspace folder as sensitive and gitignore secrets
 accordingly.
 
-## Directory layout (schemaVersion 5)
+## Directory layout (schemaVersion 6)
 
 ```
 <workspace>/
   requi.workspace.json        manifest { schemaVersion, name }
   <folder>/folder.json        { name, <config fields...>, order }
   <folder>/.env               KEY=value (per-folder, gitignored; nearest wins)
-  <folder>/<request>.req.json { name, method, url, body, params, <config fields...>, order }
+  <folder>/<request>.req.json { name, method, url, [httpVersion], body, params, <config fields...>, order }
   .env                        root base KEY=value (gitignored; {{process.env.KEY}})
 ```
 
@@ -85,6 +85,14 @@ not an escaped string) or `{ "type": "text", "payload": "<raw>" }`.
 Both are `[{ "key", "value", "enabled"? }]` arrays, like `headers` and
 `variables`. Empty body/param slots are omitted for a minimal diff.
 
+## `httpVersion`
+
+A request-local transport-version choice: `"auto"` (negotiate HTTP/1.1 or HTTP/2
+over TCP - the default) or `"h3"` (force HTTP/3 over QUIC). Flat on the request
+doc like `method`/`url`, and **never inherited**. Written **only when `"h3"`** -
+an `"auto"` request omits the key entirely (minimal diff), and an absent key
+loads as `"auto"`.
+
 ## `order`
 
 The node's position among its siblings (written on a drag-move). Siblings sort
@@ -95,6 +103,8 @@ by it on load; legacy v1 files that lack it fall back to folders-first-then-name
 Legacy workspaces still load and migrate to the current shape on the next save:
 v2 bare-string body; v3 `body`+`bodyMode`+`bodyForm`, `config.params`,
 `pathParams`; pre-array record `variables` / path params; nested `config` object.
+v5→v6 adds the optional `httpVersion` field (absent = `"auto"`), so a v5 doc
+loads unchanged and re-serializes at v6 with no per-request rewrite needed.
 
 ## `.env` namespace
 

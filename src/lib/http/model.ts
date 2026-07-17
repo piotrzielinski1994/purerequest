@@ -1,6 +1,7 @@
 import type {
   Auth,
   HttpMethod,
+  HttpVersion,
   KeyValue,
   RequestResponse,
 } from "@/lib/workspace/model";
@@ -12,6 +13,7 @@ export type HttpRequest = {
   body: string | null;
   auth: Auth;
   timeoutMs: number;
+  httpVersion: HttpVersion;
   requestId: string;
 };
 
