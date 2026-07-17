@@ -288,3 +288,31 @@ Dissection (Rust, `quic_dissect` tests):
 | 2026-07-17 | New QUIC/HTTP-3 send path is **hand-rolled on quinn + h3 with a custom `AsyncUdpSocket` + custom `KeyLog`**, NOT reqwest's experimental `http3` feature. | The byte tap + secret export are exactly the seams the Protocols-tab dissection needs; reqwest's http3 gives neither. Mirrors the existing hand-rolled `tap_client` (ADR: tap client owns the socket to tap the wire). |
 | 2026-07-17 | QUIC dissection lives in a **new `quic_dissect.rs`**, leaving `dissect.rs` as the TCP/TLS decoder. | The QUIC packet model (UDP datagrams, packet spaces, per-space keys, frames) shares almost nothing with the TCP/TLS/HTTP-2 decode; one module per protocol keeps each single-purpose and testable (deletion test). |
 | 2026-07-17 | Full dissection specced as one combined feature with subsystem-1 (transport). | User decision after the split was offered and the size flagged twice. |
+
+## AC traceability (post-implementation)
+
+All ACs green. Rust: `cargo test --lib` = 89 passed / 6 ignored (network/bench/pcap), `cargo clippy --lib` clean. TS: `vitest run` = 2133 passed / 1 skipped, `tsc --noEmit` clean, `eslint .` 0 errors (9 pre-existing warnings). Live decrypt proven end-to-end against a loopback h3 server (keylog → Handshake/1-RTT decrypt → TLS ServerHello + HTTP/3 `:status`/`content-type`); Initial decrypt proven offline against the RFC 9001 Appendix-A vector; real public h3 endpoint via `--ignored`.
+
+| AC | Test(s) |
+| --- | --- |
+| AC-001 | quic_client `should_return_200_body_and_custom_header_if_h3_get_succeeds`, `should_round_trip_body_and_custom_header_if_h3_post_sent` |
+| AC-002 | lib.rs `should_deserialize_http_version_h3_when_present_and_default_auto_when_absent` + routing in `send_http_request` (h3-only branch) + tap suite green |
+| AC-003 | disk-format-http-version.test.ts (6) + lib.rs deserialize test |
+| AC-004 | url-bar-http-version.test.tsx (3) |
+| AC-005 | quic_client `should_return_err_if_the_h3_server_delays_past_the_timeout`, `should_resolve_to_the_cancel_sentinel_if_cancelled_mid_flight` |
+| AC-006 | quic_client `should_return_err_and_not_hang_if_the_udp_port_is_closed` |
+| AC-007 | quic_client `should_return_timings_that_partition_the_total_if_the_h3_send_succeeds` |
+| AC-008 | quic_dissect `should_return_layered_dissection_with_quic_and_udp_layers` |
+| AC-009 | quic_dissect `should_parse_and_decrypt_the_rfc9001_client_initial_packet` (version/DCID/PN byte ranges), `should_byte_locate_the_source_connection_id` (SCID), key-phase field on 1-RTT |
+| AC-010 | quic_crypto `should_derive_rfc9001_initial_keys_for_the_sample_dcid`, `should_reproduce_the_rfc9001_header_protection_mask`, `should_aead_open_the_rfc9001_client_initial_payload` |
+| AC-011 | quic_client `should_decrypt_and_dissect_the_live_h3_session` (asserts a decrypted QUIC packet via keylog) |
+| AC-012 | live test asserts a reassembled **ServerHello** segment (proves keylog Handshake decrypt); ClientHello via the offline A.2 test |
+| AC-013 | live test asserts an HTTP/3 HEADERS frame decoded from a 1-RTT STREAM |
+| AC-014 | qpack tests (static/literal/Huffman) + live test asserts QPACK `:status` **and** `content-type` |
+| AC-015 | quic_dissect `should_mark_1rtt_encrypted_without_keys_and_not_panic`, `should_return_none_if_nothing_was_captured`; qpack truncation/out-of-range tests |
+
+## Deviations from spec (documented)
+
+- **E-2 (largest-acked PN reconstruction)** and **E-5 (key-update tracking)**: not built. A single request never wraps the packet number or triggers a key update, so the machinery would be untested code (YAGNI). The key-phase bit IS decoded + shown; a flipped phase fails the AEAD tag and marks the packet encrypted (honest), never mis-decrypts. Noted in `quic_dissect.rs`'s module comment.
+- **AC-014 dynamic table**: QPACK dynamic-table references are decoded structurally but not value-resolved (pre-disclosed in Risks; a fresh request uses the static table + literals). Noted in `qpack.rs`.
+- **DATA/SETTINGS frames**: decoder branches exist and run, but only HEADERS is asserted by a test (the response HEADERS is the AC-relevant path).

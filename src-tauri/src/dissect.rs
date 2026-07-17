@@ -119,7 +119,7 @@ impl Field {
 
     // A sub-byte bit field within the byte range [offset, offset+length): bit_offset counts from
     // the MSB of the first byte.
-    fn bits(
+    pub(crate) fn bits(
         label: &str,
         value: impl Into<String>,
         meaning: &str,

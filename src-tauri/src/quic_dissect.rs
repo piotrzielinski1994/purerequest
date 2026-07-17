@@ -9,6 +9,14 @@
 // QPACK-decoded HEADERS. Best-effort throughout: missing keys or malformed bytes leave a packet's
 // payload marked encrypted rather than failing the whole dissection (it never panics or returns
 // None once any datagram was captured).
+//
+// Deliberate scope limits (a single request never exercises them, so they'd be untested code):
+// - Packet numbers use the on-wire truncated value directly; no largest-acked reconstruction (the
+//   PN stays small within one request, where truncated == full). The key-phase bit IS decoded and
+//   shown, but a key update mid-connection isn't tracked - a flipped phase would just fail the AEAD
+//   tag and mark the packet encrypted (honest), never mis-decrypt.
+// - QPACK dynamic-table references are structurally decoded but not value-resolved (a fresh request
+//   uses the static table + literals). See qpack.rs.
 #![allow(dead_code)]
 
 use crate::dissect::{Dissection, Field, Layer, Reach, Segment};
@@ -32,6 +40,11 @@ struct ParsedPacket {
     dcid: Vec<u8>,
     scid: Vec<u8>,
     packet_number: Option<u64>,
+    // Byte offset of the packet-number field within `raw`, and its length (1-4) once HP is removed.
+    pn_offset: usize,
+    pn_len: Option<usize>,
+    // The first byte after header-protection removal (carries the decoded key-phase bit).
+    unprotected_first_byte: Option<u8>,
     // Decrypted frame bytes, if the packet could be opened.
     plaintext: Option<Vec<u8>>,
 }
@@ -215,6 +228,9 @@ fn parse_long_packet(
             dcid: Vec::new(),
             scid: Vec::new(),
             packet_number: None,
+            pn_offset: 0,
+            pn_len: None,
+            unprotected_first_byte: None,
             plaintext: None,
         };
         return Some((packet, bytes.len()));
@@ -248,6 +264,9 @@ fn parse_long_packet(
             dcid,
             scid,
             packet_number: None,
+            pn_offset: 0,
+            pn_len: None,
+            unprotected_first_byte: None,
             plaintext: None,
         };
         return Some((packet, bytes.len()));
@@ -277,18 +296,20 @@ fn parse_long_packet(
     };
 
     let raw = bytes[..packet_end].to_vec();
-    let (header_len, packet_number, plaintext) =
-        open_packet(&raw, pn_offset, keys.as_ref(), false);
+    let opened = open_packet(&raw, pn_offset, keys.as_ref(), false);
 
     let packet = ParsedPacket {
         kind,
         raw,
-        header_len,
+        header_len: opened.header_len,
         version: Some(version),
         dcid,
         scid,
-        packet_number,
-        plaintext,
+        packet_number: opened.packet_number,
+        pn_offset,
+        pn_len: opened.pn_len,
+        unprotected_first_byte: opened.unprotected_first_byte,
+        plaintext: opened.plaintext,
     };
     Some((packet, packet_end))
 }
@@ -304,34 +325,54 @@ fn parse_short_packet(
     let keys = secrets.one_rtt_keys(from_client);
     let raw = bytes.to_vec();
     let pn_offset = 1 + dest_cid_len;
-    let (header_len, packet_number, plaintext) = open_packet(&raw, pn_offset, keys.as_ref(), true);
+    let opened = open_packet(&raw, pn_offset, keys.as_ref(), true);
     Some(ParsedPacket {
         kind: PacketKind::OneRtt,
         raw,
-        header_len,
+        header_len: opened.header_len,
         version: None,
         dcid: Vec::new(),
         scid: Vec::new(),
-        packet_number,
-        plaintext,
+        packet_number: opened.packet_number,
+        pn_offset,
+        // The key-phase bit is only meaningful after HP removal, so it's shown only when the
+        // packet was opened (otherwise the bit is still masked and would mislead).
+        pn_len: opened.pn_len,
+        unprotected_first_byte: opened.unprotected_first_byte,
+        plaintext: opened.plaintext,
     })
 }
 
-// Remove header protection + AEAD-open one packet. Returns (unprotected header length, packet
-// number, decrypted frames). Without keys, returns the protected header length + None plaintext.
+// The outcome of removing header protection + AEAD-opening one packet.
+#[derive(Default)]
+struct OpenedPacket {
+    header_len: usize,
+    packet_number: Option<u64>,
+    pn_len: Option<usize>,
+    unprotected_first_byte: Option<u8>,
+    plaintext: Option<Vec<u8>>,
+}
+
+// Remove header protection + AEAD-open one packet (RFC 9001 §5.4). Without keys (or on a too-short
+// sample), returns the protected header offset + None plaintext, so the packet still shows its
+// visible header fields and is marked encrypted.
 fn open_packet(
     raw: &[u8],
     pn_offset: usize,
     keys: Option<&PacketProtection>,
     short_header: bool,
-) -> (usize, Option<u64>, Option<Vec<u8>>) {
+) -> OpenedPacket {
+    let encrypted = OpenedPacket {
+        header_len: pn_offset,
+        ..Default::default()
+    };
     let Some(keys) = keys else {
-        return (pn_offset, None, None);
+        return encrypted;
     };
     // Sample starts 4 bytes into the (assumed 4-byte) packet-number field (RFC 9001 §5.4.2).
     let sample_offset = pn_offset + 4;
     let Some(sample) = raw.get(sample_offset..sample_offset + 16) else {
-        return (pn_offset, None, None);
+        return encrypted;
     };
     let mask = quic_crypto::header_protection_mask(&keys.keys.hp, sample, keys.suite);
 
@@ -343,6 +384,9 @@ fn open_packet(
     }
     let pn_len = ((header[0] & 0x03) + 1) as usize;
     for i in 0..pn_len {
+        if pn_offset + i >= header.len() {
+            return encrypted;
+        }
         header[pn_offset + i] ^= mask[1 + i];
     }
     let mut packet_number = 0u64;
@@ -363,7 +407,13 @@ fn open_packet(
     )
     .ok();
 
-    (header_len, Some(packet_number), plaintext)
+    OpenedPacket {
+        header_len,
+        packet_number: Some(packet_number),
+        pn_len: Some(pn_len),
+        unprotected_first_byte: Some(header[0]),
+        plaintext,
+    }
 }
 
 // ---------- Keys ----------
@@ -659,6 +709,7 @@ fn quic_packet_segment(packet: &ParsedPacket, direction: &str) -> Segment {
             ));
         }
         if !packet.dcid.is_empty() {
+            // DCID length is byte 5; the DCID itself starts at byte 6.
             fields.push(Field::bytes(
                 "Destination Connection ID",
                 hex_compact(&packet.dcid),
@@ -667,13 +718,48 @@ fn quic_packet_segment(packet: &ParsedPacket, direction: &str) -> Segment {
                 packet.dcid.len(),
             ));
         }
+        // SCID length byte, then the SCID, follow the DCID (RFC 9000 §17.2).
+        let scid_offset = 6 + packet.dcid.len() + 1;
+        if !packet.scid.is_empty() {
+            fields.push(Field::bytes(
+                "Source Connection ID",
+                hex_compact(&packet.scid),
+                "The connection ID the sender chose for itself; the peer echoes it as the Destination Connection ID on packets sent back.",
+                scid_offset,
+                packet.scid.len(),
+            ));
+        }
     }
-    if let Some(pn) = packet.packet_number {
+    if let (Some(pn), Some(pn_len)) = (packet.packet_number, packet.pn_len) {
+        // The packet number occupies pn_len bytes starting at the (unprotected) pn offset.
+        fields.push(Field::bytes(
+            "Packet number",
+            pn.to_string(),
+            "The packet's sequence number within its number space, decoded after removing header protection. Its byte length (1-4) is carried in the low 2 bits of the first byte.",
+            packet.pn_offset,
+            pn_len,
+        ));
+    } else if let Some(pn) = packet.packet_number {
         fields.push(Field::fact(
             "Packet number",
             pn.to_string(),
             "The packet's sequence number within its number space (decoded after removing header protection).",
         ));
+    }
+    if !is_long {
+        // Short header: the key-phase bit (0x04 of the first byte) signals which 1-RTT key
+        // generation protects the packet (RFC 9000 §17.3.1); it flips on a key update.
+        if let Some(first) = packet.unprotected_first_byte {
+            fields.push(Field::bits(
+                "Key phase",
+                ((first >> 2) & 1).to_string(),
+                "The 1-RTT key-phase bit: which key generation protects this packet. It toggles on a key update; this view marks packets encrypted rather than mis-decrypting after a flip.",
+                0,
+                1,
+                5,
+                1,
+            ));
+        }
     }
     let decrypt_note = match &packet.plaintext {
         Some(_) => "decrypted",
@@ -973,6 +1059,53 @@ mod tests {
             segments.iter().any(|s| s.title == "TLS ClientHello"),
             "the CRYPTO frame reassembles a ClientHello segment"
         );
+
+        // AC-009: the QUIC transport segment locates the header fields at their true byte ranges.
+        let segment = quic_packet_segment(initial, "sent");
+        let version = segment
+            .fields
+            .iter()
+            .find(|f| f.label == "Version")
+            .expect("a Version field");
+        assert_eq!(version.byte_offset, Some(1), "version is bytes 1-4");
+        assert_eq!(version.byte_length, Some(4));
+        let dcid = segment
+            .fields
+            .iter()
+            .find(|f| f.label == "Destination Connection ID")
+            .expect("a DCID field");
+        assert_eq!(dcid.byte_offset, Some(6), "DCID starts at byte 6");
+        assert_eq!(dcid.byte_length, Some(8), "A.2 DCID is 8 bytes");
+        assert_eq!(dcid.value, "8394c8f03e515708");
+        // The packet number is byte-located (not just a fact), 4 bytes for the A.2 packet.
+        let pn = segment
+            .fields
+            .iter()
+            .find(|f| f.label == "Packet number")
+            .expect("a packet-number field");
+        assert_eq!(pn.byte_length, Some(4), "A.2 uses a 4-byte packet number");
+    }
+
+    // AC-009: a long-header packet with a non-empty SCID exposes it as a byte-located field at the
+    // offset right after the DCID (DCID-len byte + DCID + SCID-len byte).
+    #[test]
+    fn should_byte_locate_the_source_connection_id() {
+        // Handshake long header: first byte 0xe0, version 1, DCID len 4 (aabbccdd), SCID len 2
+        // (1122), then a token-less length varint 0x10 (16 bytes) + a 16-byte (undecryptable) body
+        // that consumes the datagram exactly. We only need the header fields located.
+        let bytes = hx("e000000001 04aabbccdd 021122 10 0102030405060708090a0b0c0d0e0f10");
+        let parsed = parse_datagram(&bytes, None, &SecretSet::empty(), false, 0);
+        assert_eq!(parsed.len(), 1);
+        let segment = quic_packet_segment(&parsed[0], "received");
+        let scid = segment
+            .fields
+            .iter()
+            .find(|f| f.label == "Source Connection ID")
+            .expect("a SCID field");
+        // Offset = 1 (first) + 4 (version) + 1 (dcid len) + 4 (dcid) + 1 (scid len) = 11.
+        assert_eq!(scid.byte_offset, Some(11), "SCID follows the DCID + its length byte");
+        assert_eq!(scid.byte_length, Some(2));
+        assert_eq!(scid.value, "1122");
     }
 
     // TC-015 -> AC-015: with an empty keylog, a 1-RTT (short-header) packet still yields a QUIC

@@ -609,31 +609,48 @@ mod quic_tests {
             "at least one QUIC packet should have been decrypted via the keylog secrets"
         );
 
-        // The TLS layer reassembled at least one handshake message from decrypted CRYPTO frames.
+        // The TLS layer reassembled the SERVER handshake messages from decrypted CRYPTO frames.
+        // A ServerHello can only surface if the Handshake-packet decryption (keylog handshake
+        // secrets) worked - the client Initial alone carries just the ClientHello - so asserting
+        // ServerHello specifically proves the keylog-driven Handshake decrypt, not just Initial.
         let tls_layer = dissection
             .layers
             .iter()
             .find(|layer| layer.name.contains("TLS 1.3 over QUIC"))
             .expect("a TLS-over-QUIC layer");
         assert!(
-            !tls_layer.segments.is_empty(),
-            "decrypted CRYPTO frames should reassemble TLS handshake message segments"
+            tls_layer.segments.iter().any(|s| s.title == "TLS ServerHello"),
+            "decrypted Handshake CRYPTO frames should reassemble a ServerHello, got {:?}",
+            tls_layer.segments.iter().map(|s| &s.title).collect::<Vec<_>>()
         );
 
-        // The HTTP/3 layer decoded a HEADERS frame whose QPACK-decoded fields include :status.
+        // The HTTP/3 layer decoded a HEADERS frame whose QPACK-decoded fields include :status AND
+        // the response content-type header (TC-014).
         let http3_layer = dissection
             .layers
             .iter()
             .find(|layer| layer.name == "Application (HTTP/3)")
             .expect("an HTTP/3 layer");
-        let has_status = http3_layer.segments.iter().any(|segment| {
-            segment.title.contains("HEADERS")
-                && segment.fields.iter().any(|field| field.label == ":status")
-        });
+        let headers_fields: Vec<(&str, &str)> = http3_layer
+            .segments
+            .iter()
+            .filter(|segment| segment.title.contains("HEADERS"))
+            .flat_map(|segment| {
+                segment
+                    .fields
+                    .iter()
+                    .map(|field| (field.label.as_str(), field.value.as_str()))
+            })
+            .collect();
         assert!(
-            has_status,
-            "the 1-RTT response should decode an HTTP/3 HEADERS frame with a QPACK :status field, got layer {:?}",
-            http3_layer.segments.iter().map(|s| &s.title).collect::<Vec<_>>()
+            headers_fields.iter().any(|(label, _)| *label == ":status"),
+            "the 1-RTT response HEADERS should QPACK-decode a :status field, got {headers_fields:?}"
+        );
+        assert!(
+            headers_fields
+                .iter()
+                .any(|(label, value)| *label == "content-type" && *value == "text/plain"),
+            "the response HEADERS should QPACK-decode the content-type header, got {headers_fields:?}"
         );
     }
 
@@ -852,6 +869,7 @@ mod quic_tests {
                             let response = http::Response::builder()
                                 .status(status)
                                 .header("x-proto", "h3")
+                                .header("content-type", "text/plain")
                                 .body(())
                                 .expect("build h3 response");
                             let _ = stream.send_response(response).await;
