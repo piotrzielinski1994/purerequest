@@ -196,6 +196,50 @@ describe("setVar appends to the root .env if the key owns no .env yet (AC-003)",
   });
 });
 
+describe("a send-triggered setVar persist is silent (no Saved toast)", () => {
+  // behavior: persisting a var written by a request script must NOT raise the
+  // "Saved" toast - that toast is reserved for an explicit user save (Cmd+S /
+  // edit). The tree still persists (onTreeChange fires), just without the toast.
+  it("should persist the config.variables write but show no Saved toast when a script setVar fires on send", async () => {
+    const user = userEvent.setup();
+    const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
+    renderProbe({
+      tree: makeTree("{{process.env.BEARER_TOKEN}}"),
+      setVarImpl: (api) => api.requi.setVar("plain", "literal-new"),
+      onTreeChange,
+    });
+
+    await user.click(screen.getByRole("button", { name: /send main/i }));
+
+    await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
+    expect(screen.queryByText(/^saved$/i)).toBeNull();
+  });
+
+  // behavior: a .env write from a send-triggered setVar is likewise silent.
+  it("should persist the .env write but show no Saved toast when a script setVar fires on send", async () => {
+    const user = userEvent.setup();
+    const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
+    const onEnvChange = vi.fn<(text: string) => void>();
+    const tree = makeTree("{{process.env.BEARER_TOKEN}}");
+    const folder = tree[0] as FolderNode;
+    const rootProvidedTree: TreeNode[] = [{ ...folder, dotenv: undefined }];
+
+    renderProbe({
+      tree: rootProvidedTree,
+      setVarImpl: (api) => api.requi.setVar("BEARER_TOKEN", "root-jwt"),
+      onTreeChange,
+      onEnvChange,
+      envText: "BEARER_TOKEN=old-root",
+      processEnv: { BEARER_TOKEN: "old-root" },
+    });
+
+    await user.click(screen.getByRole("button", { name: /send main/i }));
+
+    await waitFor(() => expect(onEnvChange).toHaveBeenCalled());
+    expect(screen.queryByText(/^saved$/i)).toBeNull();
+  });
+});
+
 describe("setVar on a literal row keeps the legacy config-overwrite (AC-004)", () => {
   // TC-003 - behavior: a plain-literal var row is overwritten in config.variables,
   // no .env write.

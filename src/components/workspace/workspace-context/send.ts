@@ -127,10 +127,10 @@ export function createSend(
         { tree, envText },
       );
       if (next.tree !== tree) {
-        persistTree(next.tree, "script");
+        persistTree(next.tree, "script", true);
       }
       if (next.envText !== envText) {
-        saveEnv(next.envText);
+        saveEnv(next.envText, true);
       }
     };
 
