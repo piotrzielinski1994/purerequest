@@ -43,6 +43,25 @@ describe("UrlBar", () => {
     ).toBeInTheDocument();
   });
 
+  // behavior: the Send control is icon-only - it keeps its accessible name
+  // ("Send") for a11y + tests, renders an svg glyph, and shows no "Send" text.
+  it("should render the Send control as an icon with an accessible label and no text", () => {
+    render(
+      <WorkspaceProvider
+        tree={fixtureTree}
+        initialExpandedIds={["folder-auth", "folder-oauth"]}
+        initialActiveRequestId="req-token"
+      >
+        <UrlBar />
+      </WorkspaceProvider>,
+    );
+
+    const bar = screen.getByRole("group", { name: /url bar/i });
+    const send = within(bar).getByRole("button", { name: /send/i });
+    expect(send.querySelector("svg")).not.toBeNull();
+    expect(send.textContent).toBe("");
+  });
+
   // AC-008, E-1 — behavior
   it("should show an empty state when no request is active", () => {
     render(

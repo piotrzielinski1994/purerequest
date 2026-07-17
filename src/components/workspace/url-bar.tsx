@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Send, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -159,18 +160,22 @@ export function UrlBar() {
         <Button
           type="button"
           variant="destructive"
+          aria-label="Stop"
+          title="Stop"
           onClick={() => cancelRequest(activeRequest.id)}
           className="h-full rounded-none border-0 border-l border-l-border"
         >
-          Stop
+          <Square className="size-4" />
         </Button>
       ) : (
         <Button
           type="button"
+          aria-label="Send"
+          title="Send"
           onClick={() => sendRequest(activeRequest.id)}
           className="h-full rounded-none border-0 border-l border-l-border"
         >
-          Send
+          <Send className="size-4" />
         </Button>
       )}
     </div>
