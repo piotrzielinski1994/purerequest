@@ -787,6 +787,36 @@ mod quic_tests {
         assert_eq!(capture.alpn.as_deref(), Some("h3"));
         assert!(capture.quic_version.is_some());
         assert!(!capture.datagrams_in.is_empty());
+
+        // Full path against a REAL server: dissect the captured session and confirm the decrypt +
+        // decode works with a real cipher suite (not the loopback's), producing decoded QUIC packets
+        // and an HTTP/3 :status. This is the end-to-end proof closest to the live app's Send path.
+        let dissection = crate::quic_dissect::dissect_quic(&capture, &Default::default())
+            .expect("a real h3 capture yields a dissection");
+        let quic_layer = dissection
+            .layers
+            .iter()
+            .find(|layer| layer.name == "Transport (QUIC)")
+            .expect("a QUIC transport layer");
+        assert!(
+            quic_layer
+                .segments
+                .iter()
+                .any(|segment| segment.fields.iter().any(|field| field.value == "decrypted")),
+            "a real h3 session should decrypt at least one QUIC packet"
+        );
+        let http3_layer = dissection
+            .layers
+            .iter()
+            .find(|layer| layer.name == "Application (HTTP/3)")
+            .expect("an HTTP/3 layer");
+        assert!(
+            http3_layer.segments.iter().any(|segment| {
+                segment.title.contains("HEADERS")
+                    && segment.fields.iter().any(|field| field.label == ":status")
+            }),
+            "a real h3 response should decode an HTTP/3 HEADERS frame with :status"
+        );
     }
 
     // Loopback QUIC/HTTP-3 server offering ALPN `h3` with an rcgen self-signed cert, registered
