@@ -9,6 +9,7 @@ import {
 import { useState } from "react";
 import { Folder, Plus, Settings, X } from "lucide-react";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
+import { TabLabel } from "@/components/workspace/tab-label";
 import {
   EDITOR_TAB_ID,
   SETTINGS_TAB_ID,
@@ -116,7 +117,7 @@ function SortableTab({
               className="size-2 shrink-0 rounded-full bg-foreground"
             />
           )}
-          <span className="truncate">{label}</span>
+          <TabLabel>{label}</TabLabel>
           <button
             type="button"
             aria-label={closeLabel}
@@ -192,7 +193,7 @@ function SortableEditorTab({
           className="size-2 shrink-0 rounded-full bg-foreground"
         />
       )}
-      <span className="truncate">{label}</span>
+      <TabLabel>{label}</TabLabel>
       <button
         type="button"
         aria-label="Close config editor"

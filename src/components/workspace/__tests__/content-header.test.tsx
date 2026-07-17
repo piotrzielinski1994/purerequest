@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -367,6 +367,133 @@ describe("ContentHeader", () => {
     expect(
       within(tablist).getByLabelText(/unsaved changes/i),
     ).toBeInTheDocument();
+  });
+
+  // behavior: a request tab caps its label width and clips the overflow at rest
+  // (jsdom can't measure layout, so we pin the structural contract: the label
+  // container carries the width cap + clip, and the text stays on one line).
+  it("should cap the tab label width and clip the overflow at rest", () => {
+    render(
+      <WorkspaceProvider
+        tree={fixtureTree}
+        initialOpenRequestIds={["req-profile"]}
+        initialActiveRequestId="req-profile"
+      >
+        <ContentHeader />
+      </WorkspaceProvider>,
+    );
+
+    const tablist = screen.getByRole("tablist", { name: /open requests/i });
+    const container = tablist.querySelector('[data-slot="tab-label"]');
+    expect(container).not.toBeNull();
+    expect((container as HTMLElement).className).toContain("max-w-40");
+    expect((container as HTMLElement).className).toContain("overflow-hidden");
+
+    const text = within(container as HTMLElement).getByText("profile");
+    expect(text.className).not.toContain("text-ellipsis");
+    expect(text.className).toContain("whitespace-nowrap");
+    expect(text.className).toContain("transition-transform");
+  });
+
+  // behavior: the editor tab label uses the same capped, scrollable label.
+  it("should cap the editor tab label width and clip the overflow at rest", async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkspaceProvider
+        tree={fixtureTree}
+        initialExpandedIds={["folder-auth", "folder-oauth"]}
+        initialActiveRequestId="req-profile"
+      >
+        <SidebarTree />
+        <ContentHeader />
+      </WorkspaceProvider>,
+    );
+
+    const tree = screen.getByRole("tree", { name: /collection/i });
+    fireEvent.contextMenu(
+      within(tree).getByRole("treeitem", { name: "Users" }),
+    );
+    await user.click(await screen.findByRole("menuitem", { name: /^edit$/i }));
+
+    const tablist = screen.getByRole("tablist", { name: /open requests/i });
+    const editorTab = within(tablist).getByRole("tab", { name: "Users" });
+    const container = editorTab.querySelector('[data-slot="tab-label"]');
+    expect(container).not.toBeNull();
+    expect((container as HTMLElement).className).toContain("max-w-40");
+  });
+
+  // behavior: hovering an overflowing label translates the text by exactly the
+  // overflow so its end is revealed; leaving resets it to 0. jsdom reports 0 for
+  // scrollWidth/clientWidth, so the measurements are stubbed to force overflow.
+  it("should scroll the label by the overflow on hover and reset on leave when the text overflows", () => {
+    const clientWidth = vi
+      .spyOn(HTMLElement.prototype, "clientWidth", "get")
+      .mockReturnValue(100);
+    const scrollWidth = vi
+      .spyOn(HTMLElement.prototype, "scrollWidth", "get")
+      .mockReturnValue(160);
+    try {
+      render(
+        <WorkspaceProvider
+          tree={fixtureTree}
+          initialOpenRequestIds={["req-profile"]}
+          initialActiveRequestId="req-profile"
+        >
+          <ContentHeader />
+        </WorkspaceProvider>,
+      );
+
+      const tablist = screen.getByRole("tablist", { name: /open requests/i });
+      const container = tablist.querySelector(
+        '[data-slot="tab-label"]',
+      ) as HTMLElement;
+      const text = within(container).getByText("profile");
+
+      expect(text.style.transform).toBe("translateX(-0px)");
+
+      fireEvent.pointerEnter(container);
+      expect(text.style.transform).toBe("translateX(-60px)");
+      expect(text.style.transitionDuration).toBe(`${(60 / 90) * 1000}ms`);
+
+      fireEvent.pointerLeave(container);
+      expect(text.style.transform).toBe("translateX(-0px)");
+    } finally {
+      clientWidth.mockRestore();
+      scrollWidth.mockRestore();
+    }
+  });
+
+  // behavior: a label that fits (no overflow) never moves on hover.
+  it("should not move the label on hover when the text fits", () => {
+    const clientWidth = vi
+      .spyOn(HTMLElement.prototype, "clientWidth", "get")
+      .mockReturnValue(200);
+    const scrollWidth = vi
+      .spyOn(HTMLElement.prototype, "scrollWidth", "get")
+      .mockReturnValue(80);
+    try {
+      render(
+        <WorkspaceProvider
+          tree={fixtureTree}
+          initialOpenRequestIds={["req-profile"]}
+          initialActiveRequestId="req-profile"
+        >
+          <ContentHeader />
+        </WorkspaceProvider>,
+      );
+
+      const tablist = screen.getByRole("tablist", { name: /open requests/i });
+      const container = tablist.querySelector(
+        '[data-slot="tab-label"]',
+      ) as HTMLElement;
+      const text = within(container).getByText("profile");
+
+      fireEvent.pointerEnter(container);
+      expect(text.style.transform).toBe("translateX(-0px)");
+    } finally {
+      clientWidth.mockRestore();
+      scrollWidth.mockRestore();
+    }
   });
 
   // AC-007 — behavior
