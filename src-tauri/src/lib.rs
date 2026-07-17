@@ -10,6 +10,7 @@ mod dissect;
 mod hpack;
 mod logging;
 mod pcap_capture;
+mod qpack;
 mod quic_client;
 // The QUIC crypto primitives are validated by their own RFC-vector tests now; the QUIC
 // dissector (later sub-task) is their production consumer, so they read as dead until then.

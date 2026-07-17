@@ -270,6 +270,12 @@ fn decode_string(block: &[u8], offset: &mut usize) -> Option<String> {
     String::from_utf8(raw.to_vec()).ok()
 }
 
+// QPACK (RFC 9204) uses the identical RFC 7541 Appendix-B Huffman code, so its decoder reuses this
+// one rather than duplicating the 257-entry table.
+pub fn huffman_decode_public(input: &[u8]) -> Option<String> {
+    huffman_decode(input)
+}
+
 // Appendix B - canonical Huffman decode. Reads bits MSB-first, matching the prefix-free code table;
 // leftover bits must be all-ones EOS padding (< 8 bits). None on an invalid code or embedded EOS.
 fn huffman_decode(input: &[u8]) -> Option<String> {
