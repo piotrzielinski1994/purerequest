@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Trash2 } from "lucide-react";
 import type { Extension } from "@codemirror/state";
 import { CodeEditor } from "@/components/workspace/code-editor";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -88,7 +89,8 @@ function ConsoleLine({
 }
 
 export function Console() {
-  const { consoleLines, pendingPanelFocus, consumePanelFocus } = useWorkspace();
+  const { consoleLines, clearConsole, pendingPanelFocus, consumePanelFocus } =
+    useWorkspace();
   const { consoleViewerExtensions, editorColors } = useEditorExtensions();
   const sectionRef = useRef<HTMLElement>(null);
   const tokenColors: TokenColors = {
@@ -116,8 +118,18 @@ export function Console() {
       aria-label="Console"
       className="flex h-full flex-col bg-muted/30 font-mono text-xs outline-none"
     >
-      <div className="border-b px-3 py-1.5 tracking-wide text-muted-foreground uppercase">
-        Console
+      <div className="flex items-center border-b pr-1 pl-3 tracking-wide text-muted-foreground uppercase">
+        <span className="py-1.5">Console</span>
+        <button
+          type="button"
+          aria-label="Clear console"
+          title="Clear console"
+          disabled={consoleLines.length === 0}
+          onClick={clearConsole}
+          className="ml-auto px-2 py-1.5 text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+        >
+          <Trash2 className="size-3.5" />
+        </button>
       </div>
       <ScrollArea className="flex-1">
         <ul className="p-2">

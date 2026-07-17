@@ -639,6 +639,7 @@ export function WorkspaceProvider({
       tree,
       isWorkspaceWritable,
       consoleLines,
+      clearConsole: () => setConsoleLines([]),
       expandedFolderIds,
       selectedNodeId,
       openRequestIds,

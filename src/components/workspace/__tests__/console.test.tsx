@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { Console } from "@/components/workspace/console";
@@ -94,5 +95,47 @@ describe("Console", () => {
 
     const numberSpan = await screen.findByText("42");
     expect(numberSpan).toHaveStyle({ color: NUMBER });
+  });
+
+  // behavior: the console header has a right-pinned Clear icon button that wipes
+  // every console line when clicked.
+  it("should clear all console lines when the Clear button is clicked", async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkspaceProvider
+        tree={fixtureTree}
+        consoleLines={["[12:00:00] Ready.", "[12:00:01] Loaded."]}
+        initialExpandedIds={[]}
+      >
+        <Console />
+      </WorkspaceProvider>,
+    );
+
+    const region = screen.getByRole("region", { name: /console/i });
+    expect(within(region).getAllByRole("listitem")).toHaveLength(2);
+
+    const clear = within(region).getByRole("button", { name: /clear console/i });
+    expect(clear.querySelector("svg")).not.toBeNull();
+    await user.click(clear);
+
+    expect(within(region).queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  // behavior: with no console lines, the Clear button is still shown but disabled.
+  it("should render the Clear button disabled when the console is empty", () => {
+    render(
+      <WorkspaceProvider
+        tree={fixtureTree}
+        consoleLines={[]}
+        initialExpandedIds={[]}
+      >
+        <Console />
+      </WorkspaceProvider>,
+    );
+
+    const region = screen.getByRole("region", { name: /console/i });
+    expect(
+      within(region).getByRole("button", { name: /clear console/i }),
+    ).toBeDisabled();
   });
 });

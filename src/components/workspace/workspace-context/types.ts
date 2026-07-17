@@ -240,6 +240,7 @@ export type WorkspaceContextValue = {
   // instead of a create-your-first-thing prompt.
   isWorkspaceWritable: boolean;
   consoleLines: string[];
+  clearConsole: () => void;
   expandedFolderIds: Set<string>;
   selectedNodeId: string | null;
   // The sidebar multi-selection (node ids). Empty until the user Cmd/Shift-clicks
