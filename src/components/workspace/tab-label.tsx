@@ -1,46 +1,38 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 
 const MAX_SCROLL_SPEED_PX_PER_S = 90;
 
 export function TabLabel({ children }: { children: React.ReactNode }) {
   const containerRef = useRef<HTMLSpanElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
-  const [offset, setOffset] = useState(0);
-  const [durationMs, setDurationMs] = useState(0);
+  const [overflow, setOverflow] = useState(0);
 
-  const startScroll = () => {
+  useLayoutEffect(() => {
     const container = containerRef.current;
     const text = textRef.current;
     if (!container || !text) {
       return;
     }
-    const overflow = text.scrollWidth - container.clientWidth;
-    if (overflow <= 0) {
-      return;
-    }
-    setOffset(overflow);
-    setDurationMs((overflow / MAX_SCROLL_SPEED_PX_PER_S) * 1000);
-  };
+    const next = Math.max(0, text.scrollWidth - container.clientWidth);
+    setOverflow((prev) => (prev === next ? prev : next));
+  }, [children]);
 
-  const endScroll = () => {
-    setOffset(0);
-  };
+  const style = {
+    "--tab-shift": `-${overflow}px`,
+    transitionDuration: `${(overflow / MAX_SCROLL_SPEED_PX_PER_S) * 1000}ms`,
+  } as CSSProperties;
 
   return (
     <span
       ref={containerRef}
       data-slot="tab-label"
-      onPointerEnter={startScroll}
-      onPointerLeave={endScroll}
       className="block max-w-40 overflow-hidden"
     >
       <span
         ref={textRef}
-        style={{
-          transform: `translateX(-${offset}px)`,
-          transitionDuration: `${durationMs}ms`,
-        }}
-        className="inline-block whitespace-nowrap transition-transform ease-linear"
+        style={style}
+        className="inline-block whitespace-nowrap transition-transform ease-linear group-hover:transform-[translateX(var(--tab-shift))]"
       >
         {children}
       </span>

@@ -103,7 +103,7 @@ function SortableTab({
             openContextMenuOnKey(event, contextMenuBindings);
           }}
           className={cn(
-            "flex h-full cursor-grab touch-none items-center gap-1.5 border-r px-3 text-sm hover:bg-accent active:cursor-grabbing",
+            "group flex h-full cursor-grab touch-none items-center gap-1.5 border-r px-3 text-sm hover:bg-accent active:cursor-grabbing",
             isDragging && "opacity-50",
             isActive
               ? "-mb-px h-[calc(100%+1px)] bg-accent text-foreground shadow-[inset_0_-2px_0_0_var(--primary)]"
@@ -179,7 +179,7 @@ function SortableEditorTab({
       onClick={onActivate}
       onKeyDown={(event) => listeners?.onKeyDown?.(event)}
       className={cn(
-        "flex h-full cursor-grab touch-none items-center gap-1 border-r px-3 text-sm hover:bg-accent active:cursor-grabbing",
+        "group flex h-full cursor-grab touch-none items-center gap-1 border-r px-3 text-sm hover:bg-accent active:cursor-grabbing",
         isDragging && "opacity-50",
         isActive
           ? "-mb-px h-[calc(100%+1px)] bg-accent text-foreground shadow-[inset_0_-2px_0_0_var(--primary)]"

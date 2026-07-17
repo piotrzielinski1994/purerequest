@@ -422,10 +422,34 @@ describe("ContentHeader", () => {
     expect((container as HTMLElement).className).toContain("max-w-40");
   });
 
-  // behavior: hovering an overflowing label translates the text by exactly the
-  // overflow so its end is revealed; leaving resets it to 0. jsdom reports 0 for
-  // scrollWidth/clientWidth, so the measurements are stubbed to force overflow.
-  it("should scroll the label by the overflow on hover and reset on leave when the text overflows", () => {
+  // behavior: the whole tab chip is the hover trigger (a `group`), and the label
+  // text reveals on group-hover - so hovering anywhere on the card scrolls the
+  // text, not only hovering the text itself.
+  it("should trigger the label reveal from the whole tab card via group-hover", () => {
+    render(
+      <WorkspaceProvider
+        tree={fixtureTree}
+        initialOpenRequestIds={["req-profile"]}
+        initialActiveRequestId="req-profile"
+      >
+        <ContentHeader />
+      </WorkspaceProvider>,
+    );
+
+    const tablist = screen.getByRole("tablist", { name: /open requests/i });
+    const chip = within(tablist).getByRole("tab", { name: "profile" });
+    expect(chip.className).toContain("group");
+
+    const text = within(chip).getByText("profile");
+    expect(text.className).toContain(
+      "group-hover:transform-[translateX(var(--tab-shift))]",
+    );
+  });
+
+  // behavior: an overflowing label sets --tab-shift to exactly its overflow so
+  // the group-hover transform reveals the tail; the transition duration scales
+  // with the overflow. jsdom reports 0 for scroll/clientWidth, so they're stubbed.
+  it("should set the shift var to the overflow and scale the duration when the text overflows", () => {
     const clientWidth = vi
       .spyOn(HTMLElement.prototype, "clientWidth", "get")
       .mockReturnValue(100);
@@ -449,22 +473,16 @@ describe("ContentHeader", () => {
       ) as HTMLElement;
       const text = within(container).getByText("profile");
 
-      expect(text.style.transform).toBe("translateX(-0px)");
-
-      fireEvent.pointerEnter(container);
-      expect(text.style.transform).toBe("translateX(-60px)");
+      expect(text.style.getPropertyValue("--tab-shift")).toBe("-60px");
       expect(text.style.transitionDuration).toBe(`${(60 / 90) * 1000}ms`);
-
-      fireEvent.pointerLeave(container);
-      expect(text.style.transform).toBe("translateX(-0px)");
     } finally {
       clientWidth.mockRestore();
       scrollWidth.mockRestore();
     }
   });
 
-  // behavior: a label that fits (no overflow) never moves on hover.
-  it("should not move the label on hover when the text fits", () => {
+  // behavior: a label that fits leaves the shift var at 0 so group-hover is a no-op.
+  it("should keep the shift var at zero when the text fits", () => {
     const clientWidth = vi
       .spyOn(HTMLElement.prototype, "clientWidth", "get")
       .mockReturnValue(200);
@@ -488,8 +506,7 @@ describe("ContentHeader", () => {
       ) as HTMLElement;
       const text = within(container).getByText("profile");
 
-      fireEvent.pointerEnter(container);
-      expect(text.style.transform).toBe("translateX(-0px)");
+      expect(text.style.getPropertyValue("--tab-shift")).toBe("-0px");
     } finally {
       clientWidth.mockRestore();
       scrollWidth.mockRestore();
