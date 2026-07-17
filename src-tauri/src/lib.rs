@@ -10,6 +10,10 @@ mod dissect;
 mod hpack;
 mod logging;
 mod pcap_capture;
+mod quic_client;
+// The QUIC crypto primitives are validated by their own RFC-vector tests now; the QUIC
+// dissector (later sub-task) is their production consumer, so they read as dead until then.
+#[allow(dead_code)]
 mod quic_crypto;
 mod tap_client;
 
@@ -137,7 +141,6 @@ pub(crate) struct HttpRequestPayload {
     pub(crate) body: Option<String>,
     pub(crate) timeout_ms: u64,
     #[serde(default = "default_http_version")]
-    #[allow(dead_code)]
     pub(crate) http_version: String,
     pub(crate) request_id: String,
 }
@@ -211,6 +214,23 @@ async fn send_http_request(request: HttpRequestPayload) -> Result<HttpResponsePa
     let _guard = CancelGuard {
         request_id: request.request_id.clone(),
     };
+
+    // HTTP/3 is an explicit per-request opt-in over a separate transport (QUIC/UDP), so it
+    // routes to its own send path before the TCP tap/reqwest selection. Dissection of the
+    // captured QUIC session is attached by a later sub-task.
+    if request.http_version == "h3" {
+        let method = request.method.clone();
+        let url = request.url.clone();
+        let (response, _quic) = quic_client::send_via_quic(request, token).await?;
+        log::info!(
+            "recv {} {} ({} in {}ms)",
+            method,
+            url,
+            response.status,
+            response.time_ms
+        );
+        return Ok(response);
+    }
 
     if use_tap_client() {
         let method = request.method.clone();
