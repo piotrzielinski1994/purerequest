@@ -14,8 +14,8 @@ mod qpack;
 mod quic_client;
 // The QUIC crypto primitives are validated by their own RFC-vector tests now; the QUIC
 // dissector (later sub-task) is their production consumer, so they read as dead until then.
-#[allow(dead_code)]
 mod quic_crypto;
+mod quic_dissect;
 mod tap_client;
 
 use serde::{Deserialize, Serialize};
@@ -222,7 +222,18 @@ async fn send_http_request(request: HttpRequestPayload) -> Result<HttpResponsePa
     if request.http_version == "h3" {
         let method = request.method.clone();
         let url = request.url.clone();
-        let (response, _quic) = quic_client::send_via_quic(request, token).await?;
+        // Best-effort L2-L4 packet capture (OFF unless REQUI_PCAP=1), same as the tap path - the
+        // side-car is protocol-agnostic, so it fills the QUIC dissection's lower layers when on.
+        let capture_handle = pcap_capture::start_unfiltered(Duration::from_secs(30));
+        let (mut response, quic) = quic_client::send_via_quic(request, token).await?;
+        let packets = match capture_handle {
+            Some(handle) => {
+                let raw = handle.finish();
+                pcap_capture::filter_to_connection(raw, quic.local_addr, quic.peer_addr)
+            }
+            None => pcap_capture::PacketCapture::default(),
+        };
+        response.dissection = quic_dissect::dissect_quic(&quic, &packets);
         log::info!(
             "recv {} {} ({} in {}ms)",
             method,

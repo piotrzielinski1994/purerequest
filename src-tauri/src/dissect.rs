@@ -86,7 +86,7 @@ pub struct Field {
 }
 
 impl Field {
-    fn fact(label: &str, value: impl Into<String>, meaning: &str) -> Self {
+    pub(crate) fn fact(label: &str, value: impl Into<String>, meaning: &str) -> Self {
         Self {
             label: label.to_string(),
             value: value.into(),
@@ -95,7 +95,7 @@ impl Field {
         }
     }
 
-    fn bytes(
+    pub(crate) fn bytes(
         label: &str,
         value: impl Into<String>,
         meaning: &str,
@@ -373,6 +373,15 @@ fn transport_layer(capture: &Capture, sample: Option<&CapturedPacket>) -> Layer 
 // ---------- OSI layer 3: Network (IP) ----------
 
 fn network_layer(capture: &Capture, sample: Option<&CapturedPacket>) -> Layer {
+    network_layer_from(capture.peer_addr, capture.local_addr, sample)
+}
+
+// Address-driven network layer, shared with the QUIC dissector (which has its own capture type).
+pub(crate) fn network_layer_from(
+    peer_addr: Option<std::net::SocketAddr>,
+    local_addr: Option<std::net::SocketAddr>,
+    sample: Option<&CapturedPacket>,
+) -> Layer {
     if let Some(segment) = sample.and_then(decode_ip_segment) {
         return Layer {
             osi: 3,
@@ -384,7 +393,7 @@ fn network_layer(capture: &Capture, sample: Option<&CapturedPacket>) -> Layer {
         };
     }
     let mut fields = Vec::new();
-    let reach = match capture.peer_addr {
+    let reach = match peer_addr {
         Some(peer) => {
             let ip_version = if peer.is_ipv6() { "IPv6" } else { "IPv4" };
             fields.push(Field::fact(
@@ -397,7 +406,7 @@ fn network_layer(capture: &Capture, sample: Option<&CapturedPacket>) -> Layer {
                 peer.ip().to_string(),
                 "The server's IP address, resolved from the host name.",
             ));
-            if let Some(local) = capture.local_addr {
+            if let Some(local) = local_addr {
                 fields.push(Field::fact(
                     "Local address",
                     local.ip().to_string(),
@@ -432,7 +441,7 @@ fn network_layer(capture: &Capture, sample: Option<&CapturedPacket>) -> Layer {
 
 // ---------- OSI layer 2: Data Link (Ethernet/Wi-Fi) ----------
 
-fn data_link_layer(sample: Option<&CapturedPacket>, unavailable_reason: Option<&str>) -> Layer {
+pub(crate) fn data_link_layer(sample: Option<&CapturedPacket>, unavailable_reason: Option<&str>) -> Layer {
     if let Some(segment) = sample.and_then(decode_link_segment) {
         return Layer {
             osi: 2,
@@ -468,7 +477,7 @@ fn data_link_layer(sample: Option<&CapturedPacket>, unavailable_reason: Option<&
 
 // ---------- OSI layer 1: Physical - not observable by software (even Wireshark stops at L2) ----------
 
-fn physical_layer() -> Layer {
+pub(crate) fn physical_layer() -> Layer {
     Layer {
         osi: 1,
         name: "Physical".to_string(),

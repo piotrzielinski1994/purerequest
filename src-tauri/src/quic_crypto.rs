@@ -37,11 +37,25 @@ impl hkdf::KeyType for HkdfLen {
     }
 }
 
-// TLS 1.3 HKDF-Expand-Label (RFC 8446 §7.1) with a zero-length context, as QUIC uses
-// it. `label` is the bare QUIC label (e.g. `quic key`); the `tls13 ` prefix is added here.
-pub fn hkdf_expand_label(secret: &[u8], label: &[u8], length: usize) -> Vec<u8> {
-    let prk = hkdf::Prk::new_less_safe(hkdf::HKDF_SHA256, secret);
+// TLS 1.3 HKDF-Expand-Label (RFC 8446 §7.1) with a zero-length context, as QUIC uses it. `label`
+// is the bare QUIC label (e.g. `quic key`); the `tls13 ` prefix is added here. `algorithm` selects
+// the suite hash - SHA-256 for the initial-secret + AES-128/ChaCha20 suites, SHA-384 for AES-256.
+pub fn hkdf_expand_label_hash(
+    secret: &[u8],
+    label: &[u8],
+    length: usize,
+    algorithm: hkdf::Algorithm,
+) -> Vec<u8> {
+    let prk = hkdf::Prk::new_less_safe(algorithm, secret);
     expand_from_prk(&prk, label, length)
+}
+
+// The HKDF hash a suite's key schedule uses.
+fn suite_hash(suite: Suite) -> hkdf::Algorithm {
+    match suite {
+        Suite::Aes256Gcm => hkdf::HKDF_SHA384,
+        Suite::Aes128Gcm | Suite::ChaCha20Poly1305 => hkdf::HKDF_SHA256,
+    }
 }
 
 // RFC 9001 §5.2: HKDF-Extract(initial_salt, dcid) then Expand-Label with
@@ -53,6 +67,15 @@ pub fn initial_secrets(dcid: &[u8]) -> (Vec<u8>, Vec<u8>) {
     (client, server)
 }
 
+// RFC 9001 §5.2: the Initial packet-protection keys for one direction, derived from the client's
+// Destination Connection ID. Initial packets always use AEAD_AES_128_GCM (SHA-256 key schedule),
+// so no secret from the key log is needed - the DCID alone is enough.
+pub fn initial_keys_for(dcid: &[u8], from_client: bool) -> PacketKeys {
+    let (client, server) = initial_secrets(dcid);
+    let secret = if from_client { client } else { server };
+    derive_packet_keys(&secret, Suite::Aes128Gcm)
+}
+
 // RFC 9001 §5.1: derive key/iv/hp from a traffic secret. Key + hp lengths follow the
 // suite (AES-128 → 16, AES-256 / ChaCha20 → 32); iv is always 12.
 pub fn derive_packet_keys(secret: &[u8], suite: Suite) -> PacketKeys {
@@ -60,10 +83,11 @@ pub fn derive_packet_keys(secret: &[u8], suite: Suite) -> PacketKeys {
         Suite::Aes128Gcm => 16,
         Suite::Aes256Gcm | Suite::ChaCha20Poly1305 => 32,
     };
+    let hash = suite_hash(suite);
     PacketKeys {
-        key: hkdf_expand_label(secret, b"quic key", key_len),
-        iv: hkdf_expand_label(secret, b"quic iv", 12),
-        hp: hkdf_expand_label(secret, b"quic hp", key_len),
+        key: hkdf_expand_label_hash(secret, b"quic key", key_len, hash),
+        iv: hkdf_expand_label_hash(secret, b"quic iv", 12, hash),
+        hp: hkdf_expand_label_hash(secret, b"quic hp", key_len, hash),
     }
 }
 

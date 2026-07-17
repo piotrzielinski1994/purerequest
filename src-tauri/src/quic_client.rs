@@ -18,8 +18,7 @@ const MAX_REDIRECTS: usize = 10;
 
 // Byte-level record of one QUIC/HTTP-3 send: the negotiated transport params, the tapped
 // UDP datagrams in/out, and the SSLKEYLOGFILE-format secret lines. Parallel to the tap
-// path's `Capture`; the QUIC dissector (later sub-task) reads these fields.
-#[allow(dead_code)]
+// path's `Capture`; the QUIC dissector reads these fields.
 #[derive(Debug, Default, Clone)]
 pub struct QuicCapture {
     pub peer_addr: Option<SocketAddr>,
@@ -566,6 +565,75 @@ mod quic_tests {
                 .iter()
                 .any(|header| header.key.eq_ignore_ascii_case("x-proto") && header.value == "h3"),
             "the h3 response header x-proto: h3 should be present"
+        );
+    }
+
+    // TC-013/TC-014 -> AC-011/012/013/014 - behavior: the FULL live decrypt path. After a real
+    // loopback h3 send, `dissect_quic` uses the captured datagrams + keylog secrets to decrypt the
+    // Handshake packets (reassembling TLS handshake messages) and the 1-RTT packets (decoding the
+    // HTTP/3 HEADERS frame, QPACK-decoded to include `:status`). This is the end-to-end proof that
+    // the keylog-driven decrypt works against a live session, complementing the offline RFC 9001
+    // A.2 Initial-packet vector in quic_dissect's own tests.
+    #[tokio::test]
+    async fn should_decrypt_and_dissect_the_live_h3_session() {
+        let addr = spawn_loopback_h3_server(Duration::ZERO).await;
+
+        let (_response, capture) = send_via_quic(
+            get_request(&format!("https://localhost:{}/", addr.port()), "quic-dissect"),
+            CancellationToken::new(),
+        )
+        .await
+        .expect("h3 send should succeed");
+
+        // The keylog must have captured the handshake + application secrets (the seam the
+        // dissector decrypts with); without them the live decrypt claim is untested.
+        assert!(
+            !capture.keylog.is_empty(),
+            "the rustls KeyLog should have captured TLS secrets for the session"
+        );
+
+        let dissection = crate::quic_dissect::dissect_quic(&capture, &Default::default())
+            .expect("a captured h3 session yields a dissection");
+
+        // The QUIC transport layer decoded packets, and at least one carried a decrypted payload.
+        let quic_layer = dissection
+            .layers
+            .iter()
+            .find(|layer| layer.name == "Transport (QUIC)")
+            .expect("a QUIC transport layer");
+        assert!(
+            quic_layer
+                .segments
+                .iter()
+                .any(|segment| segment.fields.iter().any(|field| field.value == "decrypted")),
+            "at least one QUIC packet should have been decrypted via the keylog secrets"
+        );
+
+        // The TLS layer reassembled at least one handshake message from decrypted CRYPTO frames.
+        let tls_layer = dissection
+            .layers
+            .iter()
+            .find(|layer| layer.name.contains("TLS 1.3 over QUIC"))
+            .expect("a TLS-over-QUIC layer");
+        assert!(
+            !tls_layer.segments.is_empty(),
+            "decrypted CRYPTO frames should reassemble TLS handshake message segments"
+        );
+
+        // The HTTP/3 layer decoded a HEADERS frame whose QPACK-decoded fields include :status.
+        let http3_layer = dissection
+            .layers
+            .iter()
+            .find(|layer| layer.name == "Application (HTTP/3)")
+            .expect("an HTTP/3 layer");
+        let has_status = http3_layer.segments.iter().any(|segment| {
+            segment.title.contains("HEADERS")
+                && segment.fields.iter().any(|field| field.label == ":status")
+        });
+        assert!(
+            has_status,
+            "the 1-RTT response should decode an HTTP/3 HEADERS frame with a QPACK :status field, got layer {:?}",
+            http3_layer.segments.iter().map(|s| &s.title).collect::<Vec<_>>()
         );
     }
 
