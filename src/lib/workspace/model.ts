@@ -6,6 +6,10 @@ export type HttpMethod =
   | "DELETE"
   | "QUERY";
 
+// The request's transport-version choice. `auto` negotiates HTTP/1.1 or HTTP/2 over
+// TCP (today's behaviour); `h3` forces HTTP/3 over QUIC. Absent on a node means `auto`.
+export type HttpVersion = "auto" | "h3";
+
 // `enabled` defaults to true when absent (legacy rows + the common case); a row
 // explicitly `enabled: false` is kept on disk but excluded from the sent request.
 export type KeyValue = { key: string; value: string; enabled?: boolean };
@@ -211,8 +215,16 @@ export type RequestNode = {
   body: RequestBody;
   params: RequestParams;
   config: ConfigScope;
+  httpVersion?: HttpVersion;
   response?: RequestResponse;
 };
+
+// A request's effective transport version: the stored value, or `auto` when absent
+// (the on-disk default - an omitted field means auto). One source of truth for the
+// default so no call site hardcodes it.
+export function requestHttpVersion(node: RequestNode): HttpVersion {
+  return node.httpVersion ?? "auto";
+}
 
 // Empty body/params for a fresh request (and the default both the disk layer and
 // migration fall back to). Keeps every construction site on one source of truth.

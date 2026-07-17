@@ -12,6 +12,7 @@ const PROBE_REQUEST: HttpRequest = {
   body: null,
   auth: emptyAuth(),
   timeoutMs: 5000,
+  httpVersion: "auto",
   requestId: "probe",
 };
 

@@ -1,6 +1,6 @@
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import type { Auth, KeyValue, RequestNode } from "@/lib/workspace/model";
-import { keyValuesToRecord } from "@/lib/workspace/model";
+import { keyValuesToRecord, requestHttpVersion } from "@/lib/workspace/model";
 import type { HttpRequest } from "@/lib/http/model";
 import { interpolate } from "@/lib/http/interpolate";
 import { encodeBody } from "@/lib/http/body-encode";
@@ -80,6 +80,7 @@ export function buildHttpRequest(
       body: null,
       auth,
       timeoutMs: effective.timeoutMs.value,
+      httpVersion: requestHttpVersion(node),
       requestId: crypto.randomUUID(),
     };
   }
@@ -99,6 +100,7 @@ export function buildHttpRequest(
     body,
     auth,
     timeoutMs: effective.timeoutMs.value,
+    httpVersion: requestHttpVersion(node),
     requestId: crypto.randomUUID(),
   };
 }

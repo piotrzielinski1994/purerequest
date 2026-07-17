@@ -12,10 +12,15 @@ import { useWorkspace } from "@/components/workspace/workspace-context";
 import { HighlightedInput } from "@/components/workspace/highlighted-input";
 import { cn } from "@/lib/utils";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
-import type { HttpMethod } from "@/lib/workspace/model";
-import { keyValuesToRecord } from "@/lib/workspace/model";
+import type { HttpMethod, HttpVersion } from "@/lib/workspace/model";
+import { keyValuesToRecord, requestHttpVersion } from "@/lib/workspace/model";
 
 const METHODS: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE", "QUERY"];
+
+const HTTP_VERSIONS: { value: HttpVersion; label: string }[] = [
+  { value: "auto", label: "Auto" },
+  { value: "h3", label: "HTTP/3" },
+];
 
 function UrlField({
   url,
@@ -74,6 +79,7 @@ export function UrlBar() {
     activeEnvironment,
     setRequestUrl,
     setRequestMethod,
+    setRequestHttpVersion,
     sendRequest,
     cancelRequest,
     focusUrlNonce,
@@ -137,6 +143,28 @@ export function UrlBar() {
           {METHODS.map((method) => (
             <SelectItem key={method} value={method}>
               {method}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
+        value={requestHttpVersion(activeRequest)}
+        onValueChange={(version) =>
+          setRequestHttpVersion(activeRequest.id, version as HttpVersion)
+        }
+      >
+        <SelectTrigger
+          aria-label="HTTP version"
+          className="h-full! w-fit rounded-none border-0 border-r border-r-border bg-transparent font-mono text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
+        >
+          {HTTP_VERSIONS.find(
+            (version) => version.value === requestHttpVersion(activeRequest),
+          )?.label ?? "Auto"}
+        </SelectTrigger>
+        <SelectContent position="popper">
+          {HTTP_VERSIONS.map((version) => (
+            <SelectItem key={version.value} value={version.value}>
+              {version.label}
             </SelectItem>
           ))}
         </SelectContent>

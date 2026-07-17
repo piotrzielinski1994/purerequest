@@ -57,11 +57,12 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 
 ## Features
 
-- **Requests** - method + URL bar, structured Vars / Auth / Headers / Params / Body / Script
-  tabs plus a raw-JSON editor; **Send** issues a real HTTP request (resolved config applied),
-  **Stop** cancels one in flight.
+- **Requests** - method + HTTP-version (Auto / HTTP/3) selectors, URL bar, structured
+  Vars / Auth / Headers / Params / Body / Script tabs plus a raw-JSON editor; **Send** issues a
+  real HTTP request (resolved config applied), **Stop** cancels one in flight.
 - **Response** - status, human-readable time/size, body with a JSONPath-ish **Filter**, headers,
-  a **Timing** waterfall, and a Wireshark-style **Protocols** OSI dissection of the wire.
+  a **Timing** waterfall, and a Wireshark-style **Protocols** OSI dissection of the wire (TCP+TLS
+  for HTTP/1.1+2; full QUIC packet/TLS/HTTP-3 decode for HTTP/3).
 - **Collection** - a file-based workspace tree: create / rename / duplicate / delete / drag-move
   folders and requests, with multi-select and full keyboard navigation.
 - **Config & variables** - inheritable variables, environments, headers, auth, scripts, and
@@ -103,8 +104,12 @@ src/
   test/setup.ts         Vitest + Testing Library setup
 src-tauri/              Rust desktop shell (send_http_request/cancel_http_request, tauri.conf.json)
   src/tap_client.rs     hand-rolled hyper + tokio-rustls send client (owns socket + TLS, taps wire bytes)
+  src/quic_client.rs    HTTP/3 send client on quinn + h3 (tapping UDP socket + rustls KeyLog)
+  src/quic_crypto.rs    RFC 9001 QUIC crypto (HKDF, header protection, AEAD) for packet decryption
+  src/quic_dissect.rs   decodes a captured QUIC session into the layered Protocols-tab dissection
+  src/qpack.rs          RFC 9204 QPACK decoder for HTTP/3 header blocks (used by quic_dissect.rs)
   src/pcap_capture.rs   optional libpcap/BPF side-car (REQUI_PCAP=1) capturing L2-L4 packet bytes
-  src/dissect.rs        decodes captured bytes into the layered Protocols-tab dissection
+  src/dissect.rs        decodes captured bytes into the layered Protocols-tab dissection (TCP/TLS/HTTP-2)
   src/hpack.rs          RFC 7541 HPACK decoder for HTTP/2 header blocks (used by dissect.rs)
 tests/
   e2e/                  Playwright specs (*.e2e.ts) against the dev-browser build

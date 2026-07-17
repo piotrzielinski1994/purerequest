@@ -620,6 +620,7 @@ mod tap_tests {
             headers: vec![],
             body: None,
             timeout_ms: 5000,
+            http_version: "auto".to_string(),
             request_id: request_id.to_string(),
         }
     }
@@ -688,6 +689,7 @@ mod tap_tests {
             }],
             body: Some("payload-123".to_string()),
             timeout_ms: 5000,
+            http_version: "auto".to_string(),
             request_id: "tap-post".to_string(),
         };
 

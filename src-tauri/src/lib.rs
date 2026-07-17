@@ -10,6 +10,12 @@ mod dissect;
 mod hpack;
 mod logging;
 mod pcap_capture;
+mod qpack;
+mod quic_client;
+// The QUIC crypto primitives are validated by their own RFC-vector tests now; the QUIC
+// dissector (later sub-task) is their production consumer, so they read as dead until then.
+mod quic_crypto;
+mod quic_dissect;
 mod tap_client;
 
 use serde::{Deserialize, Serialize};
@@ -135,7 +141,13 @@ pub(crate) struct HttpRequestPayload {
     pub(crate) headers: Vec<KeyValue>,
     pub(crate) body: Option<String>,
     pub(crate) timeout_ms: u64,
+    #[serde(default = "default_http_version")]
+    pub(crate) http_version: String,
     pub(crate) request_id: String,
+}
+
+fn default_http_version() -> String {
+    "auto".to_string()
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -203,6 +215,34 @@ async fn send_http_request(request: HttpRequestPayload) -> Result<HttpResponsePa
     let _guard = CancelGuard {
         request_id: request.request_id.clone(),
     };
+
+    // HTTP/3 is an explicit per-request opt-in over a separate transport (QUIC/UDP), so it
+    // routes to its own send path before the TCP tap/reqwest selection. Dissection of the
+    // captured QUIC session is attached by a later sub-task.
+    if request.http_version == "h3" {
+        let method = request.method.clone();
+        let url = request.url.clone();
+        // Best-effort L2-L4 packet capture (OFF unless REQUI_PCAP=1), same as the tap path - the
+        // side-car is protocol-agnostic, so it fills the QUIC dissection's lower layers when on.
+        let capture_handle = pcap_capture::start_unfiltered(Duration::from_secs(30));
+        let (mut response, quic) = quic_client::send_via_quic(request, token).await?;
+        let packets = match capture_handle {
+            Some(handle) => {
+                let raw = handle.finish();
+                pcap_capture::filter_to_connection(raw, quic.local_addr, quic.peer_addr)
+            }
+            None => pcap_capture::PacketCapture::default(),
+        };
+        response.dissection = quic_dissect::dissect_quic(&quic, &packets);
+        log::info!(
+            "recv {} {} ({} in {}ms)",
+            method,
+            url,
+            response.status,
+            response.time_ms
+        );
+        return Ok(response);
+    }
 
     if use_tap_client() {
         let method = request.method.clone();
@@ -358,6 +398,34 @@ mod tests {
         assert_eq!(parsed.body.as_deref(), Some("{\"a\":1}"));
         assert_eq!(parsed.timeout_ms, 5000);
         assert_eq!(parsed.request_id, "abc-123");
+        // A payload with no httpVersion defaults to "auto" (the tap/reqwest path).
+        assert_eq!(parsed.http_version, "auto");
+    }
+
+    #[test]
+    fn should_deserialize_http_version_h3_when_present_and_default_auto_when_absent() {
+        let with_h3 = r#"{
+            "method": "GET",
+            "url": "https://example.com/",
+            "headers": [],
+            "body": null,
+            "timeoutMs": 5000,
+            "httpVersion": "h3",
+            "requestId": "h3-1"
+        }"#;
+        let parsed: HttpRequestPayload = serde_json::from_str(with_h3).unwrap();
+        assert_eq!(parsed.http_version, "h3");
+
+        let without = r#"{
+            "method": "GET",
+            "url": "https://example.com/",
+            "headers": [],
+            "body": null,
+            "timeoutMs": 5000,
+            "requestId": "auto-1"
+        }"#;
+        let parsed: HttpRequestPayload = serde_json::from_str(without).unwrap();
+        assert_eq!(parsed.http_version, "auto");
     }
 
     #[test]
@@ -417,6 +485,7 @@ mod tests {
             headers: vec![],
             body: None,
             timeout_ms: 5000,
+            http_version: "auto".to_string(),
             request_id: request_id.to_string(),
         }
     }
@@ -452,6 +521,7 @@ mod tests {
                     headers: vec![],
                     body: None,
                     timeout_ms: 5000,
+                    http_version: "auto".to_string(),
                     request_id: "bench-reqwest".to_string(),
                 },
                 CancellationToken::new(),
@@ -470,6 +540,7 @@ mod tests {
                     headers: vec![],
                     body: None,
                     timeout_ms: 5000,
+                    http_version: "auto".to_string(),
                     request_id: "bench-tap".to_string(),
                 },
                 CancellationToken::new(),

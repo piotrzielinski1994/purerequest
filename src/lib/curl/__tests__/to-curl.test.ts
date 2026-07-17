@@ -22,6 +22,7 @@ const wire = (
   body: null,
   auth: authOf({ active: "none" }),
   timeoutMs: 30000,
+  httpVersion: "auto",
   requestId: "rid",
   ...over,
 });
