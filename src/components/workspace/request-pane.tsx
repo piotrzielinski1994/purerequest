@@ -18,6 +18,7 @@ import { PathParamsPanel } from "@/components/workspace/path-params-panel";
 import type { TokenHighlightContext } from "@/components/workspace/editable-key-value-table";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import { DEFAULT_TIMEOUT_MS } from "@/lib/workspace/resolve";
+import { requestHttpVersion } from "@/lib/workspace/model";
 import type { RequestNode } from "@/lib/workspace/model";
 
 const DEFAULT_TIMEOUT_RESOLVED = {
@@ -84,6 +85,7 @@ function RequestTabs({ request }: { request: RequestNode }) {
     processEnv,
     activeEnvironment,
     setRequestConfig,
+    setRequestHttpVersion,
   } = useWorkspace();
   const highlight = {
     effective: effectiveConfig,
@@ -165,6 +167,10 @@ function RequestTabs({ request }: { request: RequestNode }) {
             effectiveConfig?.timeoutMs ?? DEFAULT_TIMEOUT_RESOLVED
           }
           onChange={onConfigChange}
+          httpVersion={requestHttpVersion(request)}
+          onHttpVersionChange={(version) =>
+            setRequestHttpVersion(request.id, version)
+          }
         />
       </TabsContent>
       <TabsContent value="raw" className="min-h-0 flex-1">

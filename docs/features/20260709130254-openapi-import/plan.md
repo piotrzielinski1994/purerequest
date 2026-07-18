@@ -75,7 +75,7 @@ Bruno / Postman readers. No `.env` merge (OpenAPI carries none).
 
 - Picker cancelled / reader error -> reader null -> handler no-op.
 - Invalid / non-3.x doc / no operations -> `openapiToTree` `[]` or empty-guard -> no insert, no persist.
-- `{name}` path templating -> `:name` (a `{user-id}` -> `:user-id`; ReqUI `:name` matches leading word
+- `{name}` path templating -> `:name` (a `{user-id}` -> `:user-id`; purerequest `:name` matches leading word
   chars - documented rough edge).
 - Server url trailing `/` stripped so `{{baseUrl}}` + `/path` never doubles the slash.
 - Server-variable template `{x}` filled from `variables.x.default`, else left literal.
@@ -128,7 +128,7 @@ React (Vitest + RTL):
   mitigate with explicit per-shape tests + total lenient parsing (best-effort defaults, never throw).
 - **`$ref` resolution scope creep**: v1 resolves only local `#/` pointers with a cycle guard; external /
   URL refs are out (treated absent). A ref chain deeper than the guard stops - documented, not a bug.
-- **`{name}` -> `:name` with non-word chars** (`{user-id}`): the rewrite produces `:user-id` but ReqUI's
+- **`{name}` -> `:name` with non-word chars** (`{user-id}`): the rewrite produces `:user-id` but purerequest's
   `:name` substitution matches only leading word chars - the url is readable/sendable, param row present;
   documented rough edge, not blocking.
 - **Empty-credential auth**: root auth seeds the *mode* (bearer/basic) with blank token/password (OpenAPI
@@ -144,7 +144,7 @@ Append-only. One row per architectural/design decision made while working this t
 | 2026-07-09 | Versions = OpenAPI **3.0 + 3.1 only**; Swagger 2.0 deferred | User decision. 2.0 (2014) is a distinct shape (`definitions`/`basePath`/`in:body`); mixing it doubles parser work. A `swagger:"2.0"` doc -> `null` (no-op) so a follow-up can add it additively. |
 | 2026-07-09 | Grouping = **by tag only** (untagged ops flat at root) | User decision. Tags are OpenAPI's own grouping mechanism (= Swagger-UI). OpenAPI has no directory tree to mirror (unlike Bruno), so path-segment nesting was rejected. |
 | 2026-07-09 | Body seed = **explicit examples only** (no schema synthesis) | User decision. A schema-to-skeleton walker is significant extra code for a v1; explicit `example`/`examples`/`schema.example` covers the common case. Synthesis deferrable additively. |
-| 2026-07-09 | Servers -> **environments** (+ a `baseUrl` variable) | User decision. Each server becomes a switchable `Environment` (mirrors ReqUI's env model); the first also seeds a root `baseUrl` var so `{{baseUrl}}` always resolves even with one server. |
+| 2026-07-09 | Servers -> **environments** (+ a `baseUrl` variable) | User decision. Each server becomes a switchable `Environment` (mirrors purerequest's env model); the first also seeds a root `baseUrl` var so `{{baseUrl}}` always resolves even with one server. |
 | 2026-07-09 | Surface = **single-file picker** (no file map, no `.env` merge) | An OpenAPI doc is one self-contained file (servers/envs live inside it) - unlike Postman's multi-select (env sidecar) or Bruno's dir walk. `OpenapiReader` yields `{name, text}`. |
 | 2026-07-09 | Default hotkey `Mod+Shift+O` | Free (only `Mod+O` = open-workspace); `O` = OpenAPI, parallels `Mod+Shift+B` (Bruno) / `Mod+Shift+P` (Postman) / `Mod+Shift+I` (cURL). |
-| 2026-07-09 | Path templating `{name}` rewritten to ReqUI `:name` | ReqUI's path-param model + substitution use `:name`; without the rewrite `{id}` would be an unrecognised literal and path params wouldn't populate the grid. `{{var}}` tokens are untouched (shared syntax). |
+| 2026-07-09 | Path templating `{name}` rewritten to purerequest `:name` | purerequest's path-param model + substitution use `:name`; without the rewrite `{id}` would be an unrecognised literal and path params wouldn't populate the grid. `{{var}}` tokens are untouched (shared syntax). |

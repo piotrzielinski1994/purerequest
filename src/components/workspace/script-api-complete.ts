@@ -8,7 +8,7 @@ import type { ScriptStage } from "@/lib/scripts/model";
 // The injected script API surface, by namespace. `req` exists in BOTH stages
 // (a post script reads the sent request) - pre offers the full read+write set,
 // post the read-only getters (a post setter would mutate a discarded draft). `res`
-// is post-only; `requi`/`console` exist in both stages.
+// is post-only; `purerequest`/`console` exist in both stages.
 const REQUI = ["getVar", "setVar", "getProcessEnv", "getEnvName"];
 const CONSOLE = ["log", "info", "warn", "error", "clear"];
 const REQ_READ = ["getUrl", "getMethod", "getHeader", "getHeaders", "getBody"];
@@ -33,7 +33,7 @@ const RES = [
 ];
 
 export function apiMembers(object: string, stage: ScriptStage): string[] {
-  if (object === "requi") {
+  if (object === "purerequest") {
     return REQUI;
   }
   if (object === "console") {
@@ -48,7 +48,7 @@ export function apiMembers(object: string, stage: ScriptStage): string[] {
   return [];
 }
 
-const TOP_LEVEL: Completion[] = ["requi", "req", "res", "console"].map(
+const TOP_LEVEL: Completion[] = ["purerequest", "req", "res", "console"].map(
   (label) => ({ label, type: "namespace" }),
 );
 

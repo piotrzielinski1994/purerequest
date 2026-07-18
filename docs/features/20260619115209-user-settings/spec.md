@@ -40,7 +40,7 @@ What this feature does **not** deliver:
 
 ### User Story
 
-As a developer using ReqUI daily, I want the app to remember how I sized my panels (and
+As a developer using purerequest daily, I want the app to remember how I sized my panels (and
 whether the console is hidden) so that every launch reopens in the layout I left, instead
 of resetting to defaults.
 

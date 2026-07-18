@@ -125,7 +125,7 @@ already exist** (`config.variables`, folded root->leaf by `resolveConfig`, subst
 
 ```
 +----------------------------------------+
-| ReqUI                    [ • prod  v ] |
+| purerequest                    [ • prod  v ] |
 +----------------------------------------+
 ```
 
@@ -161,7 +161,7 @@ On-disk (read-only inputs the app never writes back except existing config round
 
 ```
 <workspace>/
-  requi.workspace.json
+  purerequest.workspace.json
   api/folder.json   { name, order, config: {
                         variables: { baseUrl: "https://default" },
                         environments: {

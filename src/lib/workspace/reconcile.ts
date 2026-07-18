@@ -1,7 +1,7 @@
 import type { FileMap } from "@/lib/workspace/disk-format";
 
 const MANAGED_FILE =
-  /(?:^|\/)folder\.json$|\.req\.json$|^requi\.workspace\.json$/;
+  /(?:^|\/)folder\.json$|\.req\.json$|^purerequest\.workspace\.json$/;
 
 export type ReconcilePlan = { write: FileMap; remove: string[] };
 

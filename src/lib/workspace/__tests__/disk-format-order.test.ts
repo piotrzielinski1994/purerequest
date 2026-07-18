@@ -145,7 +145,7 @@ describe("disk-format deserialize order field", () => {
   // AC-011 - behavior: deserialize sorts siblings by order ascending
   it("should sort siblings by ascending order if order fields are present", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 2, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 2, name: "W" }),
       "a.req.json": JSON.stringify({
         name: "A",
         method: "GET",
@@ -180,7 +180,7 @@ describe("disk-format deserialize order field", () => {
   // AC-011 - behavior: legacy v1 files without order fall back to folders-first-then-name
   it("should fall back to folders-first-then-name if order fields are missing", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 1, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 1, name: "W" }),
       "zoo/folder.json": JSON.stringify({ name: "Zoo", config: {} }),
       "alpha/folder.json": JSON.stringify({ name: "Alpha", config: {} }),
       "yak.req.json": JSON.stringify({
@@ -208,7 +208,7 @@ describe("disk-format deserialize order field", () => {
   // AC-011 - behavior: ordered nodes sort before order-missing nodes
   it("should place order-missing nodes after ordered ones if order is mixed", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 2, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 2, name: "W" }),
       "ordered.req.json": JSON.stringify({
         name: "Ordered",
         method: "GET",
@@ -237,7 +237,7 @@ describe("disk-format manifest schemaVersion 6", () => {
   it("should emit a manifest with schemaVersion 6", () => {
     const map = serialize([], "My API");
 
-    const manifestRaw = map["requi.workspace.json"];
+    const manifestRaw = map["purerequest.workspace.json"];
     expect(manifestRaw).toBeDefined();
     expect(JSON.parse(manifestRaw)).toMatchObject({
       schemaVersion: 6,

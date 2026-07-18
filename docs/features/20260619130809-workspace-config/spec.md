@@ -144,7 +144,7 @@ type EffectiveConfig = {
 
 ```
 <workspace-root>/
-  requi.workspace.json          { "schemaVersion": 1, "name": "My API" }
+  purerequest.workspace.json          { "schemaVersion": 1, "name": "My API" }
   <folder-slug>/
     folder.json                 { "name": "...", "config": { ... } }
     <request-slug>.req.json      { "name": "...", "method": "...", "url": "...",
@@ -153,7 +153,7 @@ type EffectiveConfig = {
   <request-slug>.req.json        (root-level request)
 ```
 
-- `requi.workspace.json` marks a directory as a workspace (its presence = importable).
+- `purerequest.workspace.json` marks a directory as a workspace (its presence = importable).
 - A folder's config lives in a reserved `folder.json`; everything else in the directory
   is a child (`*.req.json` = request, sub-directory = folder).
 - **Identity**: `id` is derived from the path on load (stable across reloads). On save,
@@ -174,7 +174,7 @@ type EffectiveConfig = {
 | AC-006 | Resolution works for a request nested >= 3 folders deep with overrides at multiple levels | Must |
 | AC-007 | Serializing a tree to the disk format then deserializing it yields an equivalent tree (round-trip), ids stable | Must |
 | AC-008 | Deserializing a workspace folder builds the tree: directories -> folders (config from `folder.json`), `*.req.json` -> requests | Must |
-| AC-009 | A directory without `requi.workspace.json` is rejected as "not a workspace"; a malformed `folder.json`/request file fails that node gracefully without crashing the load | Must |
+| AC-009 | A directory without `purerequest.workspace.json` is rejected as "not a workspace"; a malformed `folder.json`/request file fails that node gracefully without crashing the load | Must |
 | AC-010 | All disk access goes through the `WorkspaceFs` port; the suite runs against an in-memory fake (no Tauri) | Must |
 | AC-011 | On launch, if `settings.json` has a valid `workspacePath`, the app reads that folder and the sidebar tree reflects it (replacing mock data) | Must |
 | AC-012 | `serialize(tree)` produces a disk file map that `deserialize` reads back to an equivalent tree (round-trip); no disk write is wired (deferred) | Must |
@@ -195,7 +195,7 @@ type EffectiveConfig = {
   ids identical. (AC-007)
 - **TC-005 (load from fake FS):** seed the in-memory FS with a workspace layout -> deserialize
   -> tree matches; header/var config read from `folder.json`. (AC-008,010)
-- **TC-006 (not a workspace / corrupt):** FS dir without `requi.workspace.json` -> error
+- **TC-006 (not a workspace / corrupt):** FS dir without `purerequest.workspace.json` -> error
   result, no throw; one malformed `*.req.json` -> that request skipped/flagged, rest load. (AC-009)
 - **TC-007 (load on launch):** settings `workspacePath` set to a folder seeded in the fake
   FS -> on mount the tree renders the loaded workspace; `workspacePath` unset -> empty
@@ -247,7 +247,7 @@ testable; layers 1-3 run fully under jsdom/node.
 | E-3 | Folder sets auth, request `{inherit}` | Effective = folder auth (AC-003) |
 | E-4 | No scope sets auth/timeout | Defaults: auth `{none}`, timeout documented default; provenance = "default" |
 | E-5 | Header name case differs (`Accept` vs `accept`) | Merge by case-insensitive name; deepest wins; original casing of winner kept |
-| E-6 | Dir missing `requi.workspace.json` | Not-a-workspace error result |
+| E-6 | Dir missing `purerequest.workspace.json` | Not-a-workspace error result |
 | E-7 | Malformed `folder.json` / `*.req.json` | Node skipped + surfaced; load continues (AC-009) |
 | E-8 | Two children slug-collide on save | Disambiguate slug (suffix) so no overwrite; deterministic |
 | E-9 | Empty workspace (only manifest) | Loads an empty tree; valid |

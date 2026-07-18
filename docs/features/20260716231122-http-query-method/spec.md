@@ -21,11 +21,11 @@
 
 ## Overview
 
-Add the HTTP `QUERY` method as a first-class, selectable method throughout ReqUI.
+Add the HTTP `QUERY` method as a first-class, selectable method throughout purerequest.
 
 QUERY is a new, standardized HTTP verb (RFC 10008, June 2026): a **safe, idempotent** request method that **carries a request body**. It fills the gap between GET (safe/idempotent, no body) and POST (has body, neither safe nor idempotent) - the canonical use is a large/complex read-only search whose parameters are too big for a URL. See <https://datatracker.ietf.org/doc/rfc10008/>.
 
-Today ReqUI's supported methods are a closed set: `GET | POST | PUT | PATCH | DELETE`. This feature widens that set to include `QUERY` end-to-end: pick it, send it (with a body), see it badged, validate it, and import it from every supported format. Exports already interpolate the raw method string, so they carry QUERY through with no code change.
+Today purerequest's supported methods are a closed set: `GET | POST | PUT | PATCH | DELETE`. This feature widens that set to include `QUERY` end-to-end: pick it, send it (with a body), see it badged, validate it, and import it from every supported format. Exports already interpolate the raw method string, so they carry QUERY through with no code change.
 
 ## Acceptance Criteria
 

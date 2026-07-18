@@ -235,7 +235,7 @@ function collectEnvironments(
     }));
 }
 
-// Map a Bruno collection file-map into a single ReqUI root folder wrapping the
+// Map a Bruno collection file-map into a single purerequest root folder wrapping the
 // whole collection. Mirrors `disk-format.deserialize`'s level build, dispatching
 // the per-file parser by extension (.bru markup vs OpenCollection YAML).
 export function brunoToTree(

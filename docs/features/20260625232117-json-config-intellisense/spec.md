@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-The three places in ReqUI where configuration is edited as raw JSON in a CodeMirror
+The three places in purerequest where configuration is edited as raw JSON in a CodeMirror
 editor have **fixed, known shapes** but today offer no schema awareness: typing into them
 gives syntax highlighting + a JSON-parse linter and nothing else. No key completion, no
 type/enum validation, no docs. This feature adds editor IntelliSense - **autocomplete,

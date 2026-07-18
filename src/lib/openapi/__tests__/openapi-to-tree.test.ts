@@ -126,7 +126,7 @@ describe("openapiToTree - operation -> request (AC-002)", () => {
 
 describe("openapiToTree - url (AC-003)", () => {
   // AC-003, TC-003 - behavior: with a server, url = {{baseUrl}} + path and the
-  // OpenAPI {name} template is rewritten to ReqUI :name.
+  // OpenAPI {name} template is rewritten to purerequest :name.
   it("should build {{baseUrl}} + path with {name} rewritten to :name", () => {
     const root = treeRoot(
       doc({

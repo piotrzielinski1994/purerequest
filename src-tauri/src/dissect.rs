@@ -358,12 +358,12 @@ fn transport_layer(capture: &Capture, sample: Option<&CapturedPacket>) -> Layer 
     fields.push(Field::fact(
         "Header bytes",
         "not captured",
-        "The real TCP header (sequence/ack numbers, window, SYN/ACK/FIN flags, checksum) lives in the kernel. Reading those bytes needs privileged packet capture (set REQUI_PCAP=1 and run with BPF access); otherwise only the socket endpoints above are shown.",
+        "The real TCP header (sequence/ack numbers, window, SYN/ACK/FIN flags, checksum) lives in the kernel. Reading those bytes needs privileged packet capture (set PUREREQUEST_PCAP=1 and run with BPF access); otherwise only the socket endpoints above are shown.",
     ));
     Layer {
         osi: 4,
         name: "Transport (TCP)".to_string(),
-        summary: "TCP endpoints (set REQUI_PCAP=1 for header bytes)".to_string(),
+        summary: "TCP endpoints (set PUREREQUEST_PCAP=1 for header bytes)".to_string(),
         reach: Reach::Facts,
         fields,
         segments: Vec::new(),
@@ -416,7 +416,7 @@ pub(crate) fn network_layer_from(
             fields.push(Field::fact(
                 "Header bytes",
                 "not captured",
-                "The real IP header (TTL, flags, fragment offset, protocol, checksum) is set by the kernel. Decoding those bytes needs privileged packet capture (set REQUI_PCAP=1 with BPF access); otherwise only the addresses are shown.",
+                "The real IP header (TTL, flags, fragment offset, protocol, checksum) is set by the kernel. Decoding those bytes needs privileged packet capture (set PUREREQUEST_PCAP=1 with BPF access); otherwise only the addresses are shown.",
             ));
             Reach::Facts
         }
@@ -432,7 +432,7 @@ pub(crate) fn network_layer_from(
     Layer {
         osi: 3,
         name: "Network (IP)".to_string(),
-        summary: "IP addresses (set REQUI_PCAP=1 for header bytes)".to_string(),
+        summary: "IP addresses (set PUREREQUEST_PCAP=1 for header bytes)".to_string(),
         reach,
         fields,
         segments: Vec::new(),
@@ -452,7 +452,7 @@ pub(crate) fn data_link_layer(sample: Option<&CapturedPacket>, unavailable_reaso
             segments: vec![segment],
         };
     }
-    // Capture was attempted (REQUI_PCAP=1) but couldn't start - surface why.
+    // Capture was attempted (PUREREQUEST_PCAP=1) but couldn't start - surface why.
     let frames_field = match unavailable_reason {
         Some(reason) => Field::fact(
             "Frames",
@@ -462,7 +462,7 @@ pub(crate) fn data_link_layer(sample: Option<&CapturedPacket>, unavailable_reaso
         None => Field::fact(
             "Frames",
             "not captured here",
-            "MAC addresses and Ethernet/Wi-Fi frame headers live below the IP stack. They ARE observable - this is exactly what Wireshark shows - but only via a privileged packet-capture path (libpcap/npcap plus root, a kernel driver, or BPF access). Set REQUI_PCAP=1 and run with BPF access to decode this layer; otherwise ReqUI stays a normal unprivileged app and skips it.",
+            "MAC addresses and Ethernet/Wi-Fi frame headers live below the IP stack. They ARE observable - this is exactly what Wireshark shows - but only via a privileged packet-capture path (libpcap/npcap plus root, a kernel driver, or BPF access). Set PUREREQUEST_PCAP=1 and run with BPF access to decode this layer; otherwise purerequest stays a normal unprivileged app and skips it.",
         ),
     };
     Layer {

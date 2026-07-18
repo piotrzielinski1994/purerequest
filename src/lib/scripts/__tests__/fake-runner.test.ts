@@ -8,7 +8,7 @@ import type { ScriptApi } from "@/lib/scripts/model";
 
 function makeApi(overrides: Partial<ScriptApi> = {}): ScriptApi {
   return {
-    requi: {
+    purerequest: {
       getVar: () => undefined,
       setVar: () => {},
       getProcessEnv: () => undefined,
@@ -28,9 +28,9 @@ function makeApi(overrides: Partial<ScriptApi> = {}): ScriptApi {
 describe("createFakeScriptRunner", () => {
   // side-effect-contract: the injected impl is invoked against the host api.
   it("should invoke the impl against the host api", async () => {
-    const setVar = vi.fn<NonNullable<ScriptApi["requi"]>["setVar"]>();
+    const setVar = vi.fn<NonNullable<ScriptApi["purerequest"]>["setVar"]>();
     const api = makeApi({
-      requi: {
+      purerequest: {
         getVar: () => undefined,
         setVar,
         getProcessEnv: () => undefined,
@@ -38,7 +38,7 @@ describe("createFakeScriptRunner", () => {
       },
     });
     const runner = createFakeScriptRunner((a) => {
-      a.requi.setVar("token", "abc");
+      a.purerequest.setVar("token", "abc");
     });
 
     const outcome = await runner.run("", api);
@@ -75,12 +75,12 @@ describe("createFakeScriptRunner", () => {
     const order: string[] = [];
     const runner = createFakeScriptRunner(async (a) => {
       await Promise.resolve();
-      a.requi.setVar("a", "done");
+      a.purerequest.setVar("a", "done");
       order.push("impl");
     });
-    const setVar = vi.fn<NonNullable<ScriptApi["requi"]>["setVar"]>();
+    const setVar = vi.fn<NonNullable<ScriptApi["purerequest"]>["setVar"]>();
     const api = makeApi({
-      requi: {
+      purerequest: {
         getVar: () => undefined,
         setVar,
         getProcessEnv: () => undefined,

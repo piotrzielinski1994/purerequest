@@ -1,7 +1,7 @@
 [package]
-name = "requi"
+name = "purerequest"
 version = "0.1.0"
-description = "ReqUI - a keyboard-driven, file-based desktop HTTP client"
+description = "purerequest - a keyboard-driven, file-based desktop HTTP client"
 authors = ["Piotr Zieliński"]
 edition = "2021"
 
@@ -11,7 +11,7 @@ edition = "2021"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "requi_lib"
+name = "purerequest_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

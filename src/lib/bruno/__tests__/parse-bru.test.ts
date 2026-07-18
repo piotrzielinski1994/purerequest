@@ -430,14 +430,14 @@ describe("parseBru - params / vars / scripts (AC-005)", () => {
         '  console.log("hi");',
         "}",
         "script:post-response {",
-        '  requi.setVar("t", res.getJson().token);',
+        '  purerequest.setVar("t", res.getJson().token);',
         "}",
       ].join("\n"),
     );
 
     expect(parsed.scripts?.pre).toContain('console.log("hi");');
     expect(parsed.scripts?.post).toContain(
-      'requi.setVar("t", res.getJson().token);',
+      'purerequest.setVar("t", res.getJson().token);',
     );
   });
 });

@@ -634,7 +634,7 @@ fn transport_layer(out: &[ParsedPacket], inc: &[ParsedPacket], capture: &QuicCap
 
 // OSI 4 (lower): UDP - datagram facts from the tap. The kernel UDP header bytes aren't decoded
 // here (the pcap sample decoder is TCP-only today); the datagram counts + endpoints are the honest
-// facts, so this layer is Facts, matching how the TCP path reports endpoints without REQUI_PCAP.
+// facts, so this layer is Facts, matching how the TCP path reports endpoints without PUREREQUEST_PCAP.
 fn udp_layer(capture: &QuicCapture) -> Layer {
     let mut fields = vec![Field::fact(
         "Protocol",
@@ -667,7 +667,7 @@ fn udp_layer(capture: &QuicCapture) -> Layer {
     Layer {
         osi: 4,
         name: "Transport (UDP)".to_string(),
-        summary: "UDP endpoints (set REQUI_PCAP=1 for header bytes)".to_string(),
+        summary: "UDP endpoints (set PUREREQUEST_PCAP=1 for header bytes)".to_string(),
         reach: Reach::Facts,
         fields,
         segments: Vec::new(),

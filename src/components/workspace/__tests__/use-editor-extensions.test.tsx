@@ -231,12 +231,12 @@ describe("useEditorExtensions", () => {
       });
 
       openSearchPanel(view);
-      // `.cm-requi-find` is our styled panel specifically - CodeMirror's DEFAULT
+      // `.cm-purerequest-find` is our styled panel specifically - CodeMirror's DEFAULT
       // panel also uses an aria-label="Find" input, so we key on the panel class to
       // prove find is wired to OUR FindBar, not just any search panel.
       await waitFor(() => {
         expect(
-          parent.querySelector(".cm-requi-find"),
+          parent.querySelector(".cm-purerequest-find"),
           `${setKey} did not open the shared FindBar`,
         ).not.toBeNull();
       });
@@ -247,7 +247,7 @@ describe("useEditorExtensions", () => {
 
   // AC-005 — regression guard: the `.env` set is a key-value table surface, NOT a
   // CodeMirror editor, so it deliberately does NOT wire OUR find. Even though CM can
-  // still surface its own default search panel, our styled `.cm-requi-find` must be
+  // still surface its own default search panel, our styled `.cm-purerequest-find` must be
   // absent - proving editorFind was not added to this set. Pins the scoping decision
   // so a future edit doesn't quietly wire our FindBar into it.
   it("should NOT wire the shared FindBar into the env extension set", async () => {
@@ -270,7 +270,7 @@ describe("useEditorExtensions", () => {
 
     openSearchPanel(view);
     await Promise.resolve();
-    expect(parent.querySelector(".cm-requi-find")).toBeNull();
+    expect(parent.querySelector(".cm-purerequest-find")).toBeNull();
 
     view.destroy();
   });

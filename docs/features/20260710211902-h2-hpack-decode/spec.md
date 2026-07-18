@@ -37,7 +37,7 @@ Out (deferred / not needed):
 - Reassembling a header block split across HEADERS + CONTINUATION frames into one decode call (each
   frame's fragment is decoded against the shared per-direction dynamic table; a fragment cut
   mid-representation stops gracefully - CONTINUATION spanning is rare for the single request/response
-  ReqUI issues).
+  purerequest issues).
 - Any change to the send path, TLS/lower layers, or the response payload shape beyond richer
   HTTP/2 `Field`s.
 

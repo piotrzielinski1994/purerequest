@@ -3,7 +3,7 @@ import type { BodyMode, KeyValue, RequestBody } from "@/lib/workspace/model";
 // A fixed, deterministic boundary token. The script/test env forbids
 // Math.random; a long fixed token keeps multipart output stable + testable and
 // is unlikely to collide with text-part content.
-const MULTIPART_BOUNDARY = "----requiFormBoundary7MA4YWxkTrZu0gW";
+const MULTIPART_BOUNDARY = "----purerequestFormBoundary7MA4YWxkTrZu0gW";
 
 const CONTENT_TYPE: Record<Exclude<BodyMode, "none">, string> = {
   json: "application/json",

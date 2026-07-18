@@ -155,7 +155,7 @@ describe("WorkspaceLoader", () => {
     );
 
     await waitFor(() =>
-      expect(workspaces["/ws/fresh"]?.["requi.workspace.json"]).toBeDefined(),
+      expect(workspaces["/ws/fresh"]?.["purerequest.workspace.json"]).toBeDefined(),
     );
     const written = Object.keys(workspaces["/ws/fresh"] ?? {});
     expect(written.some((path) => path.endsWith("folder.json"))).toBe(true);
@@ -250,7 +250,7 @@ describe("WorkspaceLoader", () => {
   // AC-009, E-7 - behavior: partial load surfaces skipped files in the console
   it("should load the good nodes and surface a skipped malformed file", async () => {
     const files = {
-      "requi.workspace.json": JSON.stringify({
+      "purerequest.workspace.json": JSON.stringify({
         schemaVersion: 1,
         name: "Partial",
       }),

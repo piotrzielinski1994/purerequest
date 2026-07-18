@@ -1,4 +1,4 @@
-# ReqUI
+# purerequest
 
 Briefing for Claude Code. Read [README.md](README.md) first - setup, commands, repo layout. This file lists conventions and the non-obvious bits not visible from reading individual files.
 
@@ -10,7 +10,7 @@ Briefing for Claude Code. Read [README.md](README.md) first - setup, commands, r
 ## Running the app
 
 - Always shut the app down when finished - never leave it running in the background.
-- `TaskStop` (or killing `npm start`) only stops the `npm`/`tauri dev`/`vite` node procs; the spawned native `target/debug/requi` window keeps running detached. Kill all of them: `pkill -f "target/debug/requi"` AND `pkill -f "node_modules/.bin/tauri"` AND `pkill -f "requi/node_modules/.bin/vite"`, then confirm with `pgrep -fl "tauri dev|target/debug/requi"`.
+- `TaskStop` (or killing `npm start`) only stops the `npm`/`tauri dev`/`vite` node procs; the spawned native `target/debug/purerequest` window keeps running detached. Kill all of them: `pkill -f "target/debug/purerequest"` AND `pkill -f "node_modules/.bin/tauri"` AND `pkill -f "purerequest/node_modules/.bin/vite"`, then confirm with `pgrep -fl "tauri dev|target/debug/purerequest"`.
 
 ## Workspace data format
 
@@ -18,7 +18,7 @@ Briefing for Claude Code. Read [README.md](README.md) first - setup, commands, r
 
 ## UI / design
 
-- Read [docs/design.md](docs/design.md) before any UI change - it's the visual contract (shared with the `dbui` repo). Key rule: **no rounded corners anywhere** (`--radius` and every `--radius-*` pinned to `0rem` in `index.css`); don't raise them or add `rounded-full`/`rounded-xs`/`rounded-[..]` (token-based `rounded-{sm,md,lg}` are tolerated since they resolve to 0, but prefer stripping). Status dots are the one exception (a `size-2` filled circle). Inputs carry the autofill opt-out attrs (see `ui/input.tsx`).
+- Read [docs/design.md](docs/design.md) before any UI change - it's the visual contract (shared with the `purequery` repo). Key rule: **no rounded corners anywhere** (`--radius` and every `--radius-*` pinned to `0rem` in `index.css`); don't raise them or add `rounded-full`/`rounded-xs`/`rounded-[..]` (token-based `rounded-{sm,md,lg}` are tolerated since they resolve to 0, but prefer stripping). Status dots are the one exception (a `size-2` filled circle). Inputs carry the autofill opt-out attrs (see `ui/input.tsx`).
 
 ## Learning from conversation
 

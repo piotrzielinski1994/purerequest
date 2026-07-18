@@ -19,7 +19,7 @@ export type DeserializeResult =
   | { ok: true; tree: TreeNode[]; skipped: string[] }
   | { ok: false; error: string };
 
-const MANIFEST = "requi.workspace.json";
+const MANIFEST = "purerequest.workspace.json";
 
 // A folder accent is a `#rrggbb` or `#rrggbbaa` hex; the optional alpha pair is
 // the user's border opacity. Anything else on disk is dropped.

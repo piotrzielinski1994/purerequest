@@ -333,7 +333,7 @@ describe("parsePostmanCollection - event scripts (AC-006)", () => {
           event: [
             {
               listen: "prerequest",
-              script: { exec: ["const a = 1;", "requi.setVar('a', String(a));"] },
+              script: { exec: ["const a = 1;", "purerequest.setVar('a', String(a));"] },
             },
             {
               listen: "test",
@@ -346,7 +346,7 @@ describe("parsePostmanCollection - event scripts (AC-006)", () => {
     const request = firstRequest(root);
 
     expect(request.config.scripts?.pre).toBe(
-      "const a = 1;\nrequi.setVar('a', String(a));",
+      "const a = 1;\npurerequest.setVar('a', String(a));",
     );
     expect(request.config.scripts?.post).toBe("pm.test('ok', () => {});");
   });

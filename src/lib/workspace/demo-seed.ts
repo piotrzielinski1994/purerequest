@@ -570,7 +570,7 @@ export const DEMO_RESPONSE: HttpResponse = {
             label: "Frames",
             value: "not captured here",
             meaning:
-              "MAC addresses and Ethernet/Wi-Fi frame headers live below the IP stack. They ARE observable - this is exactly what Wireshark shows - but only via a privileged packet-capture path (libpcap/npcap plus root, a kernel driver, or BPF access). ReqUI stays a normal unprivileged desktop app and does not install a capture driver or request root, so it doesn't decode this layer. That's a deliberate choice, not a hard limit.",
+              "MAC addresses and Ethernet/Wi-Fi frame headers live below the IP stack. They ARE observable - this is exactly what Wireshark shows - but only via a privileged packet-capture path (libpcap/npcap plus root, a kernel driver, or BPF access). purerequest stays a normal unprivileged desktop app and does not install a capture driver or request root, so it doesn't decode this layer. That's a deliberate choice, not a hard limit.",
           },
         ],
         segments: [],

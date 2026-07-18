@@ -150,7 +150,7 @@ describe("disk-format path params sanitize (AC-008, E-7)", () => {
   // (which would make a bare "garbage -> undefined" assertion tautological). These
   // feed a legacy v3 doc (top-level pathParams) to prove the tolerant legacy read.
   const reqJsonWith = (pathParams: unknown): FileMap => ({
-    "requi.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
+    "purerequest.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
     "get.req.json": JSON.stringify({
       name: "Get",
       method: "GET",

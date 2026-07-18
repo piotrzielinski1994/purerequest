@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { useState } from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { GeneralPanel } from "@/components/workspace/config-panels";
@@ -167,5 +167,81 @@ describe("GeneralPanel rejects invalid entries", () => {
       true,
     );
     expect(onChange).toHaveBeenLastCalledWith({ timeoutMs: 15 });
+  });
+});
+
+describe("GeneralPanel HTTP version selector (TC-010, AC-004)", () => {
+  // behavior: the version selector only renders when the panel is given a
+  // version+setter (the request Settings tab); the folder Settings tab omits
+  // them, so no version control shows there.
+  it("should not render a version selector if no httpVersion is provided", () => {
+    render(
+      <GeneralPanel
+        config={{}}
+        effectiveTimeout={DEFAULT_EFFECTIVE}
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("combobox", { name: /http version/i }),
+    ).toBeNull();
+  });
+
+  // behavior: given httpVersion, the trigger shows the Auto label for an auto
+  // request.
+  it("should render the version selector showing Auto for an auto request", () => {
+    render(
+      <GeneralPanel
+        config={{}}
+        effectiveTimeout={DEFAULT_EFFECTIVE}
+        onChange={vi.fn()}
+        httpVersion="auto"
+        onHttpVersionChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("combobox", { name: /http version/i }),
+    ).toHaveTextContent(/auto/i);
+  });
+
+  // behavior: the trigger reflects a stored h3 version.
+  it("should reflect a stored h3 version on the trigger", () => {
+    render(
+      <GeneralPanel
+        config={{}}
+        effectiveTimeout={DEFAULT_EFFECTIVE}
+        onChange={vi.fn()}
+        httpVersion="h3"
+        onHttpVersionChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("combobox", { name: /http version/i }),
+    ).toHaveTextContent(/http\/3/i);
+  });
+
+  // side-effect-contract: picking HTTP/3 calls the setter with "h3".
+  it("should call onHttpVersionChange with h3 if the HTTP/3 option is picked", async () => {
+    const user = userEvent.setup();
+    const onHttpVersionChange = vi.fn();
+    render(
+      <GeneralPanel
+        config={{}}
+        effectiveTimeout={DEFAULT_EFFECTIVE}
+        onChange={vi.fn()}
+        httpVersion="auto"
+        onHttpVersionChange={onHttpVersionChange}
+      />,
+    );
+
+    await user.click(screen.getByRole("combobox", { name: /http version/i }));
+    await user.click(await screen.findByRole("option", { name: /http\/3/i }));
+
+    await waitFor(() =>
+      expect(onHttpVersionChange).toHaveBeenCalledWith("h3"),
+    );
   });
 });

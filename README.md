@@ -1,4 +1,4 @@
-# ReqUI
+# purerequest
 
 A minimal, keyboard-driven, fully configurable, file-based desktop HTTP client.
 
@@ -57,8 +57,9 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 
 ## Features
 
-- **Requests** - method + HTTP-version (Auto / HTTP/3) selectors, URL bar, structured
-  Vars / Auth / Headers / Params / Body / Script tabs plus a raw-JSON editor; **Send** issues a
+- **Requests** - method selector, URL bar, structured
+  Vars / Auth / Headers / Params / Body / Script tabs plus a Settings tab
+  (timeout, HTTP version Auto / HTTP/3) and a raw-JSON editor; **Send** issues a
   real HTTP request (resolved config applied), **Stop** cancels one in flight.
 - **Response** - status, human-readable time/size, body with a JSONPath-ish **Filter**, headers,
   a **Timing** waterfall, and a Wireshark-style **Protocols** OSI dissection of the wire (TCP+TLS
@@ -108,7 +109,7 @@ src-tauri/              Rust desktop shell (send_http_request/cancel_http_reques
   src/quic_crypto.rs    RFC 9001 QUIC crypto (HKDF, header protection, AEAD) for packet decryption
   src/quic_dissect.rs   decodes a captured QUIC session into the layered Protocols-tab dissection
   src/qpack.rs          RFC 9204 QPACK decoder for HTTP/3 header blocks (used by quic_dissect.rs)
-  src/pcap_capture.rs   optional libpcap/BPF side-car (REQUI_PCAP=1) capturing L2-L4 packet bytes
+  src/pcap_capture.rs   optional libpcap/BPF side-car (PUREREQUEST_PCAP=1) capturing L2-L4 packet bytes
   src/dissect.rs        decodes captured bytes into the layered Protocols-tab dissection (TCP/TLS/HTTP-2)
   src/hpack.rs          RFC 7541 HPACK decoder for HTTP/2 header blocks (used by dissect.rs)
 tests/

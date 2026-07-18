@@ -46,7 +46,7 @@ const draftOf = (): ReqDraft => ({
   headerOverrides: {},
 });
 
-describe("buildScriptApi - requi", () => {
+describe("buildScriptApi - purerequest", () => {
   it("should read a runtime var before the resolved value if both are set", () => {
     const eff = effective({
       variables: { token: { value: "resolved", from: PROV } },
@@ -55,7 +55,7 @@ describe("buildScriptApi - requi", () => {
     ctx.runtimeVars.set("token", "runtime");
     const api = buildScriptApi(ctx);
 
-    expect(api.requi.getVar("token")).toBe("runtime");
+    expect(api.purerequest.getVar("token")).toBe("runtime");
   });
 
   it("should fall back to the resolved value if no runtime var is set", () => {
@@ -64,7 +64,7 @@ describe("buildScriptApi - requi", () => {
     });
     const api = buildScriptApi(preCtx(eff, draftOf()));
 
-    expect(api.requi.getVar("token")).toBe("resolved");
+    expect(api.purerequest.getVar("token")).toBe("resolved");
   });
 
   // A var whose value is a {{...}} token is interpolated before it reaches a
@@ -82,7 +82,7 @@ describe("buildScriptApi - requi", () => {
     };
     const api = buildScriptApi(ctx);
 
-    expect(api.requi.getVar("CULTURE")).toBe("en-CA");
+    expect(api.purerequest.getVar("CULTURE")).toBe("en-CA");
   });
 
   it("should interpolate a var that references another var", () => {
@@ -94,14 +94,14 @@ describe("buildScriptApi - requi", () => {
     });
     const api = buildScriptApi(preCtx(eff, draftOf()));
 
-    expect(api.requi.getVar("url")).toBe("https://api/v1");
+    expect(api.purerequest.getVar("url")).toBe("https://api/v1");
   });
 
   it("should record a setVar to both the runtime map and the var-writes list", () => {
     const ctx = preCtx(effective(), draftOf());
     const api = buildScriptApi(ctx);
 
-    api.requi.setVar("a", "1");
+    api.purerequest.setVar("a", "1");
 
     expect(ctx.runtimeVars.get("a")).toBe("1");
     expect(ctx.varWrites).toEqual([{ name: "a", value: "1" }]);
@@ -114,8 +114,8 @@ describe("buildScriptApi - requi", () => {
       envName: "local",
     });
 
-    expect(api.requi.getProcessEnv("KEY")).toBe("secret");
-    expect(api.requi.getEnvName()).toBe("local");
+    expect(api.purerequest.getProcessEnv("KEY")).toBe("secret");
+    expect(api.purerequest.getEnvName()).toBe("local");
   });
 });
 
@@ -159,7 +159,7 @@ describe("buildScriptApi - req", () => {
     const ctx = preCtx(effective(), draft);
     const api = buildScriptApi(ctx);
 
-    api.requi.setVar("tok", "abc");
+    api.purerequest.setVar("tok", "abc");
 
     expect(api.req?.getUrl()).toBe("https://x/abc");
   });

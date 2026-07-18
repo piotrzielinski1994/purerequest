@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-ReqUI is billed as keyboard-driven, but an audit found three surfaces that are
+purerequest is billed as keyboard-driven, but an audit found three surfaces that are
 mouse-only:
 
 1. **Sidebar collection tree** - rows are `<div role="treeitem" tabIndex={0}>` with

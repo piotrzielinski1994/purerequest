@@ -52,7 +52,7 @@ What this feature does **not** deliver:
 
 ### User Story
 
-As a keyboard-driven ReqUI user, I want a command palette I can summon with a shortcut, type
+As a keyboard-driven purerequest user, I want a command palette I can summon with a shortcut, type
 to filter actions, arrow through the matches, and run one with Enter - seeing each action's
 shortcut next to it - so I can discover and trigger any action without leaving the keyboard or
 memorizing every binding.

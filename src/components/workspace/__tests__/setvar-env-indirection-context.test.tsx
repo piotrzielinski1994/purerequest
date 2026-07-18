@@ -117,7 +117,7 @@ describe("setVar follows a pure process.env pointer to the folder .env (AC-001/0
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderProbe({
       tree: makeTree("{{process.env.BEARER_TOKEN}}"),
-      setVarImpl: (api) => api.requi.setVar("BEARER_TOKEN", "new-jwt"),
+      setVarImpl: (api) => api.purerequest.setVar("BEARER_TOKEN", "new-jwt"),
       onTreeChange,
     });
 
@@ -151,7 +151,7 @@ describe("setVar follows a pure process.env pointer to the ROOT .env (AC-002)", 
 
     renderProbe({
       tree: rootProvidedTree,
-      setVarImpl: (api) => api.requi.setVar("BEARER_TOKEN", "root-jwt"),
+      setVarImpl: (api) => api.purerequest.setVar("BEARER_TOKEN", "root-jwt"),
       onTreeChange,
       onEnvChange,
       envText: "BEARER_TOKEN=old-root",
@@ -180,7 +180,7 @@ describe("setVar appends to the root .env if the key owns no .env yet (AC-003)",
 
     renderProbe({
       tree: treeMissingKey,
-      setVarImpl: (api) => api.requi.setVar("BEARER_TOKEN", "appended-jwt"),
+      setVarImpl: (api) => api.purerequest.setVar("BEARER_TOKEN", "appended-jwt"),
       onTreeChange,
       onEnvChange,
       envText: "",
@@ -205,7 +205,7 @@ describe("a send-triggered setVar persist is silent (no Saved toast)", () => {
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     renderProbe({
       tree: makeTree("{{process.env.BEARER_TOKEN}}"),
-      setVarImpl: (api) => api.requi.setVar("plain", "literal-new"),
+      setVarImpl: (api) => api.purerequest.setVar("plain", "literal-new"),
       onTreeChange,
     });
 
@@ -226,7 +226,7 @@ describe("a send-triggered setVar persist is silent (no Saved toast)", () => {
 
     renderProbe({
       tree: rootProvidedTree,
-      setVarImpl: (api) => api.requi.setVar("BEARER_TOKEN", "root-jwt"),
+      setVarImpl: (api) => api.purerequest.setVar("BEARER_TOKEN", "root-jwt"),
       onTreeChange,
       onEnvChange,
       envText: "BEARER_TOKEN=old-root",
@@ -249,7 +249,7 @@ describe("setVar on a literal row keeps the legacy config-overwrite (AC-004)", (
     const onEnvChange = vi.fn<(text: string) => void>();
     renderProbe({
       tree: makeTree("{{process.env.BEARER_TOKEN}}"),
-      setVarImpl: (api) => api.requi.setVar("plain", "literal-new"),
+      setVarImpl: (api) => api.purerequest.setVar("plain", "literal-new"),
       onTreeChange,
       onEnvChange,
     });

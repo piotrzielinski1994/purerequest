@@ -122,7 +122,7 @@ describe("disk-format round-trip", () => {
   // body-codec - behavior: a legacy (v2) bare-string body still deserializes.
   it("should deserialize a legacy bare-string body (pre-v3 workspace)", () => {
     const legacy: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 2, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 2, name: "W" }),
       "token.req.json": JSON.stringify({
         name: "Token",
         method: "POST",
@@ -199,10 +199,10 @@ describe("disk-format round-trip", () => {
 
 describe("disk-format serialize", () => {
   // AC-012 - behavior
-  it("should emit a requi.workspace.json manifest with schemaVersion 6 and the workspace name", () => {
+  it("should emit a purerequest.workspace.json manifest with schemaVersion 6 and the workspace name", () => {
     const map = serialize([], "My API");
 
-    const manifestRaw = map["requi.workspace.json"];
+    const manifestRaw = map["purerequest.workspace.json"];
     expect(manifestRaw).toBeDefined();
     expect(JSON.parse(manifestRaw)).toMatchObject({
       schemaVersion: 6,
@@ -294,7 +294,7 @@ describe("disk-format folder dotenv (AC-001, TC-003)", () => {
   // AC-002 - behavior: a folder .env at any depth deserializes into its node.
   it("should collect a nested folder .env into the deep folder node", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
       "api/folder.json": JSON.stringify({ name: "Api", config: {}, order: 0 }),
       "api/v2/folder.json": JSON.stringify({
         name: "V2",
@@ -328,7 +328,7 @@ describe("disk-format deserialize", () => {
   // AC-008, TC-005 - behavior
   it("should build a tree from a hand-built workspace file map", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({
+      "purerequest.workspace.json": JSON.stringify({
         schemaVersion: 1,
         name: "Hand Built",
       }),
@@ -397,7 +397,7 @@ describe("disk-format deserialize", () => {
   // AC-009, E-7, TC-006 - behavior
   it("should skip a malformed request file and still load the rest of the tree", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({
+      "purerequest.workspace.json": JSON.stringify({
         schemaVersion: 1,
         name: "Partial",
       }),
@@ -423,7 +423,7 @@ describe("disk-format deserialize", () => {
   // AC-009, E-7 - behavior
   it("should skip a malformed folder.json and still load sibling nodes", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({
+      "purerequest.workspace.json": JSON.stringify({
         schemaVersion: 1,
         name: "Partial",
       }),
@@ -449,7 +449,7 @@ describe("disk-format deserialize", () => {
   // E-9 - behavior
   it("should load an empty tree if the workspace only has a manifest", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({
+      "purerequest.workspace.json": JSON.stringify({
         schemaVersion: 1,
         name: "Empty",
       }),

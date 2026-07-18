@@ -28,7 +28,7 @@ Rejected alternatives (see Decision Log in plan):
   `tree`, and the `persistTree`/`saveEnv` write-core are each read+written by tree CRUD *and*
   tabs-close *and* editor-save *and* send), so real provider separation needs a god base-provider
   anyway and forces rewriting all 22 consumers + ~101 tests. High risk, large diff.
-- **dbui-style peel-off** of only independent slices (console lines, dialog flags): lowest
+- **purequery-style peel-off** of only independent slices (console lines, dialog flags): lowest
   ambition, leaves the 1300-line `value` memo intact. Doesn't pay down the debt.
 
 ## Why (the coupling that dictates the shape)
@@ -92,6 +92,6 @@ concern - they are not rewritten.
 ## Dependencies
 
 - No new libraries. Plain React `createContext` + `useContext`, mirroring the established repo
-  idiom (`settings-context.tsx`, `theme-context.tsx`) and dbui's factory-of-closures style.
+  idiom (`settings-context.tsx`, `theme-context.tsx`) and purequery's factory-of-closures style.
 - Existing `@/lib/workspace/*`, `@/lib/http/*`, `@/lib/scripts/*`, `@/lib/*/…-to-tree` helpers are
   imported by the new module files instead of the monolith - moved, not changed.

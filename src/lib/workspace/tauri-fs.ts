@@ -15,7 +15,7 @@ import {
 } from "@/lib/workspace/reconcile";
 
 const MANAGED_FILE =
-  /(?:^|\/)folder\.json$|\.req\.json$|^requi\.workspace\.json$/;
+  /(?:^|\/)folder\.json$|\.req\.json$|^purerequest\.workspace\.json$/;
 
 // Read-only inputs captured into the FileMap but NOT matched by MANAGED_FILE,
 // so reconcile never removes them: the workspace-root `.env` and any per-folder

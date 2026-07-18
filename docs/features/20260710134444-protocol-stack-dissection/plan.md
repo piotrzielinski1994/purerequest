@@ -32,7 +32,7 @@ TCP+TLS+handshake; `to_headers` at response-headers arrival; download around the
 - `src-tauri/src/tap_client.rs` (new) - `send_via_tap`, `TapStream`, `Capture`, redirect loop,
   decompression, timing wiring. Owns all the new logic.
 - `src-tauri/src/lib.rs` - add `mod tap_client;`; in `send_http_request`, branch on the
-  `REQUI_TAP_CLIENT` flag: tap path calls `tap_client::send_via_tap`, else the existing reqwest
+  `PUREREQUEST_TAP_CLIENT` flag: tap path calls `tap_client::send_via_tap`, else the existing reqwest
   path. Keep the `CancellationToken` registry + `CancelGuard` shared (pass the token in).
 - `src-tauri/Cargo.toml` - add direct deps (see spec §6) pinned to the lock versions; install the
   `ring` rustls crypto provider once (via `rustls::crypto::ring::default_provider().install_default()`
@@ -42,8 +42,8 @@ TCP+TLS+handshake; `to_headers` at response-headers arrival; download around the
 
 ### Flag
 
-`fn use_tap_client() -> bool { std::env::var("REQUI_TAP_CLIENT").map(|v| v != "0").unwrap_or(true) }`
-- default ON; set `REQUI_TAP_CLIENT=0` to force the legacy reqwest path. Both compiled always.
+`fn use_tap_client() -> bool { std::env::var("PUREREQUEST_TAP_CLIENT").map(|v| v != "0").unwrap_or(true) }`
+- default ON; set `PUREREQUEST_TAP_CLIENT=0` to force the legacy reqwest path. Both compiled always.
 
 ### Tap seam
 
@@ -71,7 +71,7 @@ it with that cert trusted (test-only root). `partition` unit tests already exist
 
 ## Acceptance verification
 
-- `cd src-tauri && cargo test` green with the flag both ON (default) and `REQUI_TAP_CLIENT=0`.
+- `cd src-tauri && cargo test` green with the flag both ON (default) and `PUREREQUEST_TAP_CLIENT=0`.
 - `cargo clippy` clean (no `unwrap` on fallible network paths).
 - Existing reqwest tests still pass (flag-off path) - proves AC-011 + no regression.
 - Frontend `npm test` untouched by this sub-task (no TS change) - run once to confirm no drift.

@@ -170,7 +170,7 @@ describe("send loop - pre setVar persistence + runtime (TC-004 / AC-002 / AC-003
     const client = createFakeHttpClient();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     const runner = createFakeScriptRunner((api: ScriptApi) => {
-      api.requi.setVar("token", "abc");
+      api.purerequest.setVar("token", "abc");
       api.req?.setUrl("https://t/{{token}}");
     });
     renderProbe({
@@ -247,7 +247,7 @@ describe("send loop - post reads res + setVar (TC-006 / AC-004 / AC-006)", () =>
       seen.status = api.res?.getStatus();
       const json = api.res?.getJson() as { id: number } | undefined;
       seen.id = json?.id;
-      api.requi.setVar("id", String(json?.id));
+      api.purerequest.setVar("id", String(json?.id));
     });
     renderProbe({
       tree: makeTree({ post: "/* post */" }),
@@ -474,9 +474,9 @@ describe("send loop - edge cases (spec §9)", () => {
     const client = createFakeHttpClient();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     const runner = createFakeScriptRunner((api: ScriptApi) => {
-      api.requi.setVar("a", "1");
-      api.requi.setVar("b", "2");
-      api.requi.setVar("c", "3");
+      api.purerequest.setVar("a", "1");
+      api.purerequest.setVar("b", "2");
+      api.purerequest.setVar("c", "3");
     });
     renderProbe({
       tree: makeTree({ pre: "/* pre */" }),
@@ -549,7 +549,7 @@ describe("send loop - edge cases (spec §9)", () => {
     });
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     const runner = createFakeScriptRunner((api: ScriptApi) => {
-      api.requi.setVar("saved", "yes");
+      api.purerequest.setVar("saved", "yes");
       throw new Error("late boom");
     });
     renderProbe({

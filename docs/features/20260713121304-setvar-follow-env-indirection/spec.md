@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-Today a script `requi.setVar(name, value)` (and its `bru.*`/`pm.*` aliases) persists by
+Today a script `purerequest.setVar(name, value)` (and its `bru.*`/`pm.*` aliases) persists by
 overwriting the **row value** of the nearest scope whose `config.variables` already defines
 `name` (see `var-write.ts` `findVarWriteTarget` + `setNodeVar`). The write matches on **key
 name only** and never inspects the existing value.
@@ -41,11 +41,11 @@ the pointer to its real source (the owning `.env`) and writes the value there.
   behaviour exactly: overwrite the `config.variables` row literally at the nearest defining
   scope, else create it on the request. This covers plain literals, `{{someOtherVar}}`
   pointers, and embedded/multi-token values like `Bearer {{process.env.X}}`.
-- **AC-005** - Within-run reads stay correct: after `setVar`, a later `requi.getVar(name)` in the
+- **AC-005** - Within-run reads stay correct: after `setVar`, a later `purerequest.getVar(name)` in the
   same script run returns the new value (the existing `runtimeVars` live-read path is unchanged;
   the indirection only changes the **persistence** target, not the in-run store).
 - **AC-006** - Applies uniformly to `pre` and `post` stages, and to all aliases that map onto
-  `requi.setVar` (`bru.setVar`, `pm.*.set`).
+  `purerequest.setVar` (`bru.setVar`, `pm.*.set`).
 
 ## 3. User test cases
 

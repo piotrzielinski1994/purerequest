@@ -16,7 +16,7 @@ import {
   resolveRef,
 } from "@/lib/openapi/parse-openapi";
 
-// An OpenAPI 3.x document -> a ReqUI subtree: one request per operation, grouped
+// An OpenAPI 3.x document -> a purerequest subtree: one request per operation, grouped
 // into per-tag folders (untagged operations sit directly under the root), servers
 // folded into a `baseUrl` variable + environments, and the global security scheme
 // seeded onto the root's auth. Total: parse failures / no-operation docs yield [].
@@ -224,7 +224,7 @@ function bodyOf(root: Record<string, unknown>, requestBody: unknown): RequestBod
   return body;
 }
 
-// OpenAPI path templating `/users/{id}` -> ReqUI `/users/:id`. `{{token}}` in a
+// OpenAPI path templating `/users/{id}` -> purerequest `/users/:id`. `{{token}}` in a
 // server-derived prefix is added separately, so only the path is rewritten here.
 function toReqUiPath(path: string): string {
   return path.replace(/\{([^}]+)\}/g, ":$1");

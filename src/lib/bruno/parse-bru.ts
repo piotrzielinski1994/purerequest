@@ -7,7 +7,7 @@ import type {
 } from "@/lib/workspace/model";
 import { authOf } from "@/lib/workspace/model";
 
-// A single `.bru` file parsed into the fields ReqUI needs. Total function -
+// A single `.bru` file parsed into the fields purerequest needs. Total function -
 // never throws; missing blocks leave the optionals undefined / collections empty.
 export type ParsedBru = {
   name?: string;

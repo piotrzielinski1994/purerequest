@@ -6,12 +6,12 @@
 
 ## 1. Overview
 
-ReqUI already imports a single request from a cURL string. This feature adds importing a whole
+purerequest already imports a single request from a cURL string. This feature adds importing a whole
 **Bruno collection** - a folder tree of `.bru` files (Bruno's plain-text markup) - into the current
 workspace as a **new top-level folder**. Additive, like cURL import: it never replaces or clobbers
 the open workspace; the imported subtree persists through the existing `onTreeChange` write path.
 
-Bruno is the file-based API client ReqUI mirrors (Bruno-style variables, `{{var}}` interpolation,
+Bruno is the file-based API client purerequest mirrors (Bruno-style variables, `{{var}}` interpolation,
 `folder.bru`-style per-folder config, environments). So the on-disk shapes map cleanly.
 
 ### Scope
@@ -20,7 +20,7 @@ Bruno is the file-based API client ReqUI mirrors (Bruno-style variables, `{{var}
   folder picker, reads a Bruno collection directory in **either on-disk format** - the legacy `.bru`
   markup (`.bru` files + `bruno.json` + `environments/*.bru`) **or** the newer **OpenCollection YAML**
   (`*.yml` request files + `opencollection.yml`/`folder.yml` + `environments/*.yml`) - parses it into a
-  ReqUI `TreeNode[]` subtree, inserts it as one new top-level folder, opens/selects it, and persists.
+  purerequest `TreeNode[]` subtree, inserts it as one new top-level folder, opens/selects it, and persists.
   Three pure modules do the work: a `.bru` parser, an OpenCollection-YAML parser (both yielding the same
   `ParsedBru` shape), and a file-map -> tree mapper that dispatches per file extension.
 
@@ -40,7 +40,7 @@ Bruno is the file-based API client ReqUI mirrors (Bruno-style variables, `{{var}
 - **Import target = a new top-level folder** named from `bruno.json` (`name`) - or the picked dir name -
   inserted at workspace root, persisted via the existing `onTreeChange`/`persistTree` path. Mirrors
   cURL import's "create a new node, never touch the active request" rule, scaled to a subtree.
-- **Environments fold into config.** ReqUI stores environments inside node `config.environments`
+- **Environments fold into config.** purerequest stores environments inside node `config.environments`
   (ADR 2026-06-20), not in `environments/*` files, so Bruno `environments/<name>.bru` `vars` blocks
   map onto the imported root folder's `config.environments.<name>`.
 - **Lenient parse, like the cURL importer.** Unknown/unsupported blocks (`tests`, `assert`, `docs`,
@@ -244,7 +244,7 @@ Input = `BrunoFileMap` (collection-relative path -> text), built by the reader. 
 - **`.bru` with no method block** (folder.bru-shaped file at request position): treated as a folder
   config carrier where applicable, else a request defaulting to method GET, url "" (lenient).
 - **Disabled rows (`~key`)** in headers/params/form -> `enabled:false` (kept, excluded from send, same
-  as ReqUI's own disabled rows).
+  as purerequest's own disabled rows).
 - **Body type ambiguity** (multiple body blocks, no `body:` selector): pick the method block's declared
   type; if none declared, the first present body block wins.
 - **`@file` multipart values / `body:graphql`:** skipped (no file parts) - a value beginning with `@`

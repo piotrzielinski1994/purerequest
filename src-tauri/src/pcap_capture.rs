@@ -28,9 +28,9 @@ pub const LINKTYPE_ETHERNET: i32 = 1;
 pub const LINKTYPE_LOOP: i32 = 108;
 
 // Runtime gate. Live packet capture is OFF by default: it needs elevated privileges (BPF access)
-// and is purely additive. `REQUI_PCAP=1` opts in.
+// and is purely additive. `PUREREQUEST_PCAP=1` opts in.
 pub fn is_enabled() -> bool {
-    std::env::var("REQUI_PCAP").map(|v| v == "1").unwrap_or(false)
+    std::env::var("PUREREQUEST_PCAP").map(|v| v == "1").unwrap_or(false)
 }
 
 // A handle to a running capture thread. Dropping/joining it stops the capture and returns what
@@ -169,10 +169,10 @@ fn run_capture(
 ) -> PacketCapture {
     use pcap::{Capture, Device};
 
-    // An explicit device override (REQUI_PCAP_DEVICE, e.g. "lo0") wins over auto-detection.
+    // An explicit device override (PUREREQUEST_PCAP_DEVICE, e.g. "lo0") wins over auto-detection.
     // Otherwise pick the interface carrying real outbound traffic (see `pick_default_device` -
     // NOT `Device::lookup()`, which on macOS often returns a bogus addr-less `ap1`).
-    let device_name = std::env::var("REQUI_PCAP_DEVICE").ok();
+    let device_name = std::env::var("PUREREQUEST_PCAP_DEVICE").ok();
     let device = match device_name {
         Some(name) => Device::from(name.as_str()),
         None => match pick_default_device() {
@@ -300,10 +300,10 @@ mod tests {
 
     // LIVE capture end-to-end: arm capture on lo0, run a real loopback TCP exchange, assert real
     // packets were captured, filtered to the 4-tuple, and decode to sane TCP ports. Fully local
-    // (no network egress). Ignored by default - needs REQUI_PCAP=1 + BPF access. Run:
-    //   REQUI_PCAP=1 REQUI_PCAP_DEVICE=lo0 cargo test --lib pcap_capture -- --ignored --nocapture live_capture
+    // (no network egress). Ignored by default - needs PUREREQUEST_PCAP=1 + BPF access. Run:
+    //   PUREREQUEST_PCAP=1 PUREREQUEST_PCAP_DEVICE=lo0 cargo test --lib pcap_capture -- --ignored --nocapture live_capture
     #[test]
-    #[ignore = "needs REQUI_PCAP=1 + REQUI_PCAP_DEVICE=lo0 + BPF access; captures live loopback"]
+    #[ignore = "needs PUREREQUEST_PCAP=1 + PUREREQUEST_PCAP_DEVICE=lo0 + BPF access; captures live loopback"]
     fn should_capture_live_loopback_end_to_end() {
         use std::io::{Read, Write};
         use std::net::{TcpListener, TcpStream};

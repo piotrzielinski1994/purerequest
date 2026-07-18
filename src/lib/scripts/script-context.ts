@@ -85,7 +85,7 @@ export function buildScriptApi(ctx: ScriptContext): ScriptApi {
     raw === undefined ? undefined : interpolate(raw, liveVars(), ctx.processEnv);
 
   const api: ScriptApi = {
-    requi: {
+    purerequest: {
       getVar: (name) =>
         resolveVar(ctx.runtimeVars.get(name) ?? ctx.effective.variables[name]?.value),
       setVar: (name, value) => {

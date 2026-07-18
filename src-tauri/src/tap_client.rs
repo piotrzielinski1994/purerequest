@@ -982,7 +982,7 @@ mod tap_tests {
         assert!(capture.tls_version.is_some(), "negotiated TLS version should be captured");
     }
 
-    // TC-011 -> AC-011: the runtime flag `REQUI_TAP_CLIENT` selection lives in lib.rs's
+    // TC-011 -> AC-011: the runtime flag `PUREREQUEST_TAP_CLIENT` selection lives in lib.rs's
     // send_http_request, not in tap_client, so it is unobservable from these module
     // tests. Flag cutover is verified via lib.rs send_http_request tests + manual run.
 

@@ -6,9 +6,9 @@
 
 ## 1. Overview
 
-ReqUI already imports a single request from a cURL string and a whole **Bruno collection** (a folder
+purerequest already imports a single request from a cURL string and a whole **Bruno collection** (a folder
 of `.bru`/`.yml` files) as a new top-level folder. This feature adds importing a **Postman collection**
-(`*.postman_collection.json`, schema v2.1) - the most common export format ReqUI cannot read yet - into
+(`*.postman_collection.json`, schema v2.1) - the most common export format purerequest cannot read yet - into
 the current workspace as a **new top-level folder**. Additive, like Bruno/cURL import: it never replaces
 or clobbers the open workspace; the imported subtree persists through the existing `onTreeChange` write
 path.
@@ -22,7 +22,7 @@ parser, not the file-map fold.
 
 - **In:** an `Import Postman collection` action (command palette + default hotkey `Mod+Shift+P`) that
   opens a native **multi-select file picker** (`*.json`), reads the picked files, parses the v2.1
-  collection into a ReqUI `TreeNode[]` subtree, inserts it as one new top-level folder, opens/selects it,
+  collection into a purerequest `TreeNode[]` subtree, inserts it as one new top-level folder, opens/selects it,
   and persists. Two pure modules do the work: a Postman-JSON parser
   (`parse-postman.ts`) and a file-map -> tree mapper (`postman-to-tree.ts`) that picks the collection +
   environment files and folds them together. Plus a `pm.*` script alias in the QuickJS runner so imported
@@ -51,7 +51,7 @@ parser, not the file-map fold.
 - **Lenient parse, like the Bruno importer.** Invalid JSON or a non-collection-shaped file yields no
   collection (import is a no-op / that file is ignored), never a throw; unknown/unsupported fields are
   skipped.
-- **`{{var}}` needs no transform** - Postman and ReqUI share the `{{name}}` token syntax.
+- **`{{var}}` needs no transform** - Postman and purerequest share the `{{name}}` token syntax.
 - **First collection wins.** If the picked dir holds several `*.postman_collection.json` files, the first
   (path-sorted) is imported; the rest are ignored (documented limitation).
 
@@ -84,14 +84,14 @@ A Postman collection JSON:
 
 ### 3a. Item -> node
 
-| Postman item                                   | ReqUI node                                                    |
+| Postman item                                   | purerequest node                                                    |
 | ---------------------------------------------- | ------------------------------------------------------------- |
 | `{ name, item: [...], variable?, auth?, event? }` | `FolderNode` (name; config from `variable`/`auth`/`event`; children = walk `item`) |
 | `{ name, request: {...}, event? }`             | `RequestNode` (see 3b; `event` -> `config.scripts`)           |
 
 ### 3b. Request object -> RequestNode fields
 
-| Postman `request`                                          | ReqUI                                                              |
+| Postman `request`                                          | purerequest                                                              |
 | ---------------------------------------------------------- | ------------------------------------------------------------------ |
 | `method`                                                   | `method` (upper-cased; non-standard -> `GET`)                      |
 | `header: [{ key, value, disabled? }]`                      | `config.headers` (`disabled:true` -> `enabled:false`)              |
@@ -124,11 +124,11 @@ A Postman collection JSON:
 ## 4. `pm.*` script alias (QuickJS runner)
 
 Imported Postman scripts call `pm.*`. Like Bruno's `bru.*`, alias the reachable surface onto the existing
-host API (ReqUI has one variable space + no filesystem), enough for pasted/imported Postman scripts to run
+host API (purerequest has one variable space + no filesystem), enough for pasted/imported Postman scripts to run
 instead of `ReferenceError`-ing:
 
 - `pm.variables.get/set`, `pm.environment.get/set`, `pm.collectionVariables.get/set`, `pm.globals.get/set`
-  -> `requi.getVar`/`requi.setVar`.
+  -> `purerequest.getVar`/`purerequest.setVar`.
 - Post stage (`__hasRes`): `pm.response = { code, responseTime, json(), text(), headers:{ get(n) } }`
   mapping to `res.getStatus`/`getResponseTime`/`getJson`/`getBody`/`getHeader`.
 - `pm.test(name, fn)` runs `fn()` and swallows a thrown assertion (a failing assertion doesn't abort the
@@ -193,7 +193,7 @@ instead of `ReferenceError`-ing:
   `Mod+Shift+P`) and, when run, invokes the reader and imports a picked collection (no-op when the picker
   returns null).
 - **AC-012:** the QuickJS runner aliases `pm.*`: `pm.variables`/`pm.environment`/`pm.collectionVariables`/
-  `pm.globals` `.get`/`.set` map onto the host `requi.getVar`/`setVar`; in the post stage
+  `pm.globals` `.get`/`.set` map onto the host `purerequest.getVar`/`setVar`; in the post stage
   `pm.response.code`/`.json()`/`.text()`/`.headers.get()` map onto `res.*`; `pm.test(name, fn)` runs `fn`
   without a thrown assertion aborting the script.
 

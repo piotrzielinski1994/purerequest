@@ -22,9 +22,9 @@ therefore covers both `npm start` (native) and `npm run dev` (browser).
 
 - **In:** execute resolved `scripts.pre` before send + `scripts.post` after response; a
   sandboxed JS runtime (QuickJS-WASM via `quickjs-emscripten`, async variant) behind a
-  `ScriptRunner` port; a script context API (`requi` / `req` / `res` / `console`); pre-script
+  `ScriptRunner` port; a script context API (`purerequest` / `req` / `res` / `console`); pre-script
   mutation of url/method/headers/body (which then flow through the existing
-  interpolation + body-encode + auth pipeline); `requi.setVar` persisting to disk; `console.*`
+  interpolation + body-encode + auth pipeline); `purerequest.setVar` persisting to disk; `console.*`
   output appended to the existing Console panel; a throwing **pre** script aborts the send (error
   in the response pane), a throwing **post** script reports to the console but keeps the response;
   a script wall-clock timeout (killable via QuickJS interrupt handler); `async`/`await` support in
@@ -60,23 +60,23 @@ therefore covers both `npm start` (native) and `npm run dev` (browser).
   already-received response stays visible.
 - **Async:** **support `async`/`await`** in user scripts (QuickJS async variant +
   `executePendingJobs`).
-- **API naming:** `req` / `res` (Bruno-identical) + a **`requi`** variable namespace (on-brand,
+- **API naming:** `req` / `res` (Bruno-identical) + a **`purerequest`** variable namespace (on-brand,
   in place of Bruno's `bru`). Fields are accessed via **Bruno-style `getX`/`setX` methods**
   (plain function calls - easy to marshal across the WASM boundary, no property proxies).
 
 ## 2. Script context API
 
 The runtime exposes these globals. `req` exists in **both** stages (in **post** it reflects the
-request as actually sent, including any pre mutation), `res` only in **post**; `requi` + `console`
+request as actually sent, including any pre mutation), `res` only in **post**; `purerequest` + `console`
 exist in both. A post-script's `req` setters have no effect on the already-sent request.
 
 ```
-requi.getVar(name)            -> string | undefined   resolved variable (incl. a value set
+purerequest.getVar(name)            -> string | undefined   resolved variable (incl. a value set
                                                        earlier in this same script run)
-requi.setVar(name, value)                              persist to nearest-defining scope, else
+purerequest.setVar(name, value)                              persist to nearest-defining scope, else
                                                        the request's own config.variables
-requi.getProcessEnv(name)     -> string | undefined   reads .env (`{{process.env.X}}` namespace)
-requi.getEnvName()            -> string | null        active environment name
+purerequest.getProcessEnv(name)     -> string | undefined   reads .env (`{{process.env.X}}` namespace)
+purerequest.getEnvName()            -> string | null        active environment name
 
 req.getUrl()  / req.setUrl(v)                          getUrl returns the {{var}}-interpolated url
                                                        (incl. vars set earlier this run); setUrl
@@ -112,8 +112,8 @@ console.log / info / warn / error(...args)              appended to the Console 
 2. PRE (if effective.scripts.pre non-empty):
      - build a mutable reqDraft { method, url, body, headerOverrides:{} } seeded from the node
        + resolved headers, and a runtimeVars map + a varWrites list
-     - run pre script against { requi, req, console }
-         requi.setVar -> records to runtimeVars (for THIS send) AND varWrites (to persist)
+     - run pre script against { purerequest, req, console }
+         purerequest.setVar -> records to runtimeVars (for THIS send) AND varWrites (to persist)
          req.setX     -> mutates reqDraft
          console.*    -> pushes a console line
      - if the script ERRORS  -> set responseState = { error } , DO NOT send, return
@@ -128,7 +128,7 @@ console.log / info / warn / error(...args)              appended to the Console 
 4. send (existing client.send + generation/cancel machinery)
 5. on success:
      POST (if effective.scripts.post non-empty):
-       - run post script against { requi, req, res, console } (res read-only over the response;
+       - run post script against { purerequest, req, res, console } (res read-only over the response;
          req reflects the sent request - getters useful, setters no-op)
        - if the script ERRORS -> push a console line, KEEP the response state = success
        - apply varWrites to the tree + persist
@@ -163,7 +163,7 @@ type ScriptRunner = {
   never throws.
 - **Fake adapter** `createFakeScriptRunner(impl?)` (`src/lib/scripts/fake-runner.ts`): runs an
   injected `(api) => void | Promise<void>` directly against the host `api` (so send-loop tests
-  drive `req.setUrl`/`requi.setVar`/`console.log`/throw without WASM), or a no-op default.
+  drive `req.setUrl`/`purerequest.setVar`/`console.log`/throw without WASM), or a no-op default.
 - Threaded as a `WorkspaceProvider` prop (loader -> provider), held in a ref with the fake as the
   fallback - identical to `httpClient`. The QuickJS adapter is created in `routes/index.tsx`
   alongside the Tauri http client.
@@ -180,7 +180,7 @@ for Vite to serve.
   node's `config.variables[name] = value` (immutable update, reuses `updateNodeConfig`).
 - A script run collects `(name,value)` writes; after the script completes the send loop folds all
   of them into one tree (chaining `setNodeVar`) and calls `persistTree(next, "script")` once.
-- Within a single script, `requi.getVar` reads the runtime value first (so a `setVar` then
+- Within a single script, `purerequest.getVar` reads the runtime value first (so a `setVar` then
   `getVar` in the same script sees the new value), then the resolved value.
 
 ## 6. UI
@@ -189,7 +189,7 @@ No new tab or view. Surfaces reused:
 
 - **Script tab** (`config-panels.tsx` `ScriptPanel`): already edits `pre`/`post` (textareas,
   commit-on-blur). Unchanged behavior; it now drives real execution. (A short helper hint listing
-  the available `requi`/`req`/`res`/`console` API may be added above the editor - cosmetic, not
+  the available `purerequest`/`req`/`res`/`console` API may be added above the editor - cosmetic, not
   an AC.)
 - **Console panel** (`console.tsx`): `console.*` from scripts append lines (prefixed
   `[pre]`/`[post]`); script errors and the pre-abort also append a line.
@@ -213,10 +213,10 @@ No new tab or view. Surfaces reused:
   a pre-script `req.setUrl/setMethod/setHeader/setBody` changes the corresponding field of the
   wire request, and the set value is still `{{var}}`-interpolated + body-encoded + auth-applied by
   `buildHttpRequest` (e.g. `req.setHeader("X-Token","{{token}}")` sends the resolved token).
-- **AC-002:** `requi.setVar(name, value)` persists the variable to disk via the existing tree
+- **AC-002:** `purerequest.setVar(name, value)` persists the variable to disk via the existing tree
   write path; the write lands in the **nearest scope that already defines** `name`
   (`findVarWriteTarget`), or the **request's own** `config.variables` if none does.
-- **AC-003:** A value set by `requi.setVar` in a **pre** script is visible to that same request's
+- **AC-003:** A value set by `purerequest.setVar` in a **pre** script is visible to that same request's
   interpolation in the same send (runtime layer), and a value set in a **post** script is visible
   to the **next** request that resolves it (via the persisted tree) - i.e. request chaining works.
 - **AC-004:** When `effective.scripts.post` is non-empty, it executes after the response arrives
@@ -238,8 +238,8 @@ No new tab or view. Surfaces reused:
 
 ## 8. Test cases
 
-- **TC-001** (Rust/sandbox unit, AC-008/AC-009): QuickJS adapter - `run("requi.setVar('a','1')",
-  api)` calls the host `setVar("a","1")` and returns `{ok:true}`; `run("await Promise.resolve(); requi.setVar('a', String(1+1))", api)` sets `a="2"` (async path); `run("nope()", api)` ->
+- **TC-001** (Rust/sandbox unit, AC-008/AC-009): QuickJS adapter - `run("purerequest.setVar('a','1')",
+  api)` calls the host `setVar("a","1")` and returns `{ok:true}`; `run("await Promise.resolve(); purerequest.setVar('a', String(1+1))", api)` sets `a="2"` (async path); `run("nope()", api)` ->
   `{ok:false, error}`; `run("while(true){}", api, {timeoutMs:50})` -> `{ok:false}` within the
   timeout (does not hang); `run("window.x", api)` -> `{ok:false}` (no `window`).
 - **TC-002** (unit, AC-002): `findVarWriteTarget` - var defined on a parent folder returns that
@@ -249,13 +249,13 @@ No new tab or view. Surfaces reused:
   `req.setUrl("https://changed/{{v}}"); req.setHeader("X-A","1")`; send via a fake http client
   that records the wire; assert the wire `url` is the interpolated changed url and header `X-A` is
   present.
-- **TC-004** (send-loop integ, AC-002/AC-003): fake pre impl `requi.setVar("token","abc")`; after
+- **TC-004** (send-loop integ, AC-002/AC-003): fake pre impl `purerequest.setVar("token","abc")`; after
   send, the tree node's `config.variables.token === "abc"` (persisted) and the SAME send's wire
   reflects `{{token}}` -> `abc` (runtime layer).
 - **TC-005** (send-loop integ, AC-005): fake pre impl that throws; assert `client.send` was NOT
   called, `responseState` is `error` with the message, and a console line was added.
 - **TC-006** (send-loop integ, AC-004/AC-006): fake post impl reads `res.getStatus()`/`getJson()`
-  and `requi.setVar("id", String(res.getJson().id))`; assert the var persisted and the response
+  and `purerequest.setVar("id", String(res.getJson().id))`; assert the var persisted and the response
   state is still `success`. A second case where post throws: response stays `success`, console
   error line present.
 - **TC-007** (send-loop integ, AC-007): fake impl calls `console.log("hi")`; assert a `[pre] hi`
@@ -273,7 +273,7 @@ No new tab or view. Surfaces reused:
 - **`req.setHeader` colliding with an auto Content-Type / auth header:** header overrides merge
   into `effective.headers` by name (case-insensitive, same as `resolveHeaders`); the existing
   "explicit Content-Type wins" + auth-as-header logic in `buildHttpRequest` is unchanged.
-- **`requi.setVar` to a name used in `config.environments`:** writes only to `config.variables`
+- **`purerequest.setVar` to a name used in `config.environments`:** writes only to `config.variables`
   (the plain namespace); the env block is untouched (documented limitation).
 - **Cancel during a pre-script:** the generation guard (already in `sendRequest`) is checked after
   the pre-script resolves; a changed generation aborts the send before `client.send`.

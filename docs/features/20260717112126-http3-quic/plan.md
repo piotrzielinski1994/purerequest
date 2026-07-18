@@ -18,7 +18,7 @@ there without wasting the live-capture work.
 
 | Category | Requirement |
 | --- | --- |
-| Environment variables | none new (`REQUI_PCAP` optional, already exists; `REQUI_TAP_CLIENT` untouched) |
+| Environment variables | none new (`PUREREQUEST_PCAP` optional, already exists; `PUREREQUEST_TAP_CLIENT` untouched) |
 | Registry images | N/A |
 | Cloud quotas | N/A |
 | Network reachability | tests use a **loopback** QUIC/h3 server (bind `127.0.0.1:0`); no external egress. Optional `--ignored` real-endpoint test hits a public h3 site (parity with the existing `--ignored real_https` tap test) |
@@ -47,7 +47,7 @@ Create/modify (TS, `src/`):
 - `lib/http/build-request.ts` - thread `node.httpVersion` into both `HttpRequest` returns.
 - `lib/workspace/disk-format.ts` - serialize `httpVersion` on the request doc (omit when `"auto"`); read it in `parseRequest` (absent → `"auto"`); bump manifest `schemaVersion` `5 → 6`.
 - `lib/http/tauri-client.ts` - pass `httpVersion` in the `invoke` payload.
-- `components/workspace/url-bar.tsx` - version `Select` (Auto / HTTP/3) beside the method dropdown.
+- `components/workspace/config-panels.tsx` - version `Select` (Auto / HTTP/3) in the request Settings tab (`GeneralPanel`), beside the timeout field.
 - `components/workspace/workspace-context/*` - a `setRequestHttpVersion(id, v)` action + wherever `setRequestMethod` is defined/exposed (types.ts, index.tsx).
 - Construction sites need **no edit** (optional field, absent = auto); only `tree-crud.ts` new-request stays as-is. Read via `requestHttpVersion(node)` where the value is needed (build-request, url-bar).
 
@@ -69,18 +69,18 @@ No change to `dissect.rs`, `hpack.rs`, `tap_client.rs`, `pcap_capture.rs`.
 - [ ] Update `docs/data-format.md`.
 - [ ] Commit `feat(http3): AC-003 persist httpVersion per-request, schemaVersion 6`.
 
-## Task 2: URL-bar version selector
+## Task 2: Settings-tab version selector
 
-**Files:** Modify `url-bar.tsx`, workspace-context (`types.ts` + `index.tsx` + the send/context module owning setters). Test `url-bar` test (+ context surface test).
+**Files:** Modify `config-panels.tsx` (`GeneralPanel`), `request-pane.tsx`, workspace-context (`types.ts` + `index.tsx` + the send/context module owning setters). Test `general-panel` test (+ context surface test).
 
 **Interfaces:**
 - Consumes: `RequestNode.httpVersion` (Task 1), `setRequestHttpVersion`.
 - Produces: `setRequestHttpVersion: (id: string, v: HttpVersion) => void` on the workspace context.
 
-- [ ] RED: URL bar renders a version selector; choosing `HTTP/3` calls `setRequestHttpVersion(activeId, "h3")`; the trigger reflects the active request's stored version (TC-010).
+- [ ] RED: the request Settings tab renders a version selector; choosing `HTTP/3` calls the setter with `"h3"`; the trigger reflects the request's stored version (TC-010).
 - [ ] Confirm RED (no selector / no setter).
-- [ ] GREEN: add the setter to context, render the `Select` (Auto / HTTP/3) mirroring the method `Select`.
-- [ ] Commit `feat(http3): AC-004 URL-bar HTTP version selector`.
+- [ ] GREEN: add the setter to context, render an optional `Select` (Auto / HTTP/3) in `GeneralPanel` (request-only; folder Settings omits it) beside the timeout field.
+- [ ] Commit `feat(http3): AC-004 Settings-tab HTTP version selector`.
 
 ## Task 3: Wire plumbing (TS → Rust payload)
 

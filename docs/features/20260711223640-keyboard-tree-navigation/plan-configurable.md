@@ -106,7 +106,7 @@ too strict.
 
 - #3 (bare Cmd/Ctrl+Arrow mutating tree): fixed by the binding-match rewrite.
 - #2 (Karabiner Cmd<->Option swap): once reorder is rebindable, the user can set the tree
-  reorder actions to whatever their Karabiner leaves intact (or add the ReqUI exception).
+  reorder actions to whatever their Karabiner leaves intact (or add the purerequest exception).
   Not an app fix per se, but the reconfigurability removes the hard block.
 - #5 (tab drag visual overlap): SEPARATE, not addressed here - still needs a DragOverlay.
 

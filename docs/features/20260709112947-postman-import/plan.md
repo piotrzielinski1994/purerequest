@@ -25,7 +25,7 @@ The reader port (`PostmanCollectionReader`) is the third seam - native pick + re
 Bruno `reader`.
 
 `pm.*` alias: extend the QuickJS `PRELUDE` with a `globalThis.pm` object mapping to the same `__call`
-bridge the `bru`/`requi` objects use (no new host dispatch entries needed - reuses `requi.*`/`res.*`/
+bridge the `bru`/`purerequest` objects use (no new host dispatch entries needed - reuses `purerequest.*`/`res.*`/
 `console.*`). `pm.test` is defined in the prelude JS (runs `fn` in a `try/catch`).
 
 ## File changes
@@ -44,7 +44,7 @@ bridge the `bru`/`requi` objects use (no new host dispatch entries needed - reus
 
 **Script alias:**
 - `src/lib/scripts/quickjs-runner.ts` - extend `PRELUDE` with `globalThis.pm` (variables/environment/
-  collectionVariables/globals get+set -> `requi.*`; a post-stage `pm.response` -> `res.*` guarded by
+  collectionVariables/globals get+set -> `purerequest.*`; a post-stage `pm.response` -> `res.*` guarded by
   `__hasRes`; `pm.test(name, fn)` try/catch). No `buildDispatch` change (reuses existing paths).
 
 **Reader port:**

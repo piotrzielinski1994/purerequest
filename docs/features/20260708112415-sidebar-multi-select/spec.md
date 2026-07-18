@@ -18,12 +18,12 @@ opens/toggles it, drag moves that one node. This adds:
 - **Dragging a selected row moves the whole selection** in one drop (reparent or
   reorder); dragging an unselected row moves just that one (unchanged).
 
-Mirrors the approach already shipped in the sibling `dbui` repo (same tree
+Mirrors the approach already shipped in the sibling `purequery` repo (same tree
 architecture): a `selectedIds: Set<string>` + `selectAnchorId` in the workspace
 context, pure range helpers, and a `moveNodes` tree transform that moves a set
 contiguously in document order.
 
-Out of scope (dbui has it, we defer): bulk keyboard delete and the multi-node
+Out of scope (purequery has it, we defer): bulk keyboard delete and the multi-node
 delete dialog. Single-node delete is unchanged.
 
 ## 2. Acceptance Criteria

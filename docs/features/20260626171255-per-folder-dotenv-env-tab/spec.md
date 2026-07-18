@@ -56,7 +56,7 @@ Two changes, building on the existing variables/environments feature
   folder `.env` defining KEY wins, farther folders next, workspace-root `.env` is the base
   fallback. A request not inside any folder resolves only the root `.env`. A KEY defined in
   a folder `.env` does not leak to sibling folders.
-- AC-004: On send, copy-as-cURL, and inside scripts (`requi.getProcessEnv`), the request's
+- AC-004: On send, copy-as-cURL, and inside scripts (`purerequest.getProcessEnv`), the request's
   **folded** process env (AC-003) is what interpolates `{{process.env.KEY}}` across URL,
   header values, query-param values, auth values and body - recursively, unknown tokens
   left verbatim (existing interpolation behaviour preserved, only the env source changes).
@@ -188,7 +188,7 @@ On-disk:
 
 ```
 <workspace>/
-  requi.workspace.json
+  purerequest.workspace.json
   .env                 ROOT base (KEY=value, gitignored) - editor in Settings
   api/
     folder.json        { name, config: { environments: {...} }, order }

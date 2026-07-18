@@ -101,11 +101,11 @@ describe("editorFind", () => {
 
     pressOpenKey(view);
 
-    const findBar = () => container.querySelector(".cm-requi-find");
+    const findBar = () => container.querySelector(".cm-purerequest-find");
     await waitFor(() => expect(findBar()).not.toBeNull());
 
     const input = container.querySelector<HTMLInputElement>(
-      '.cm-requi-find input[aria-label="Find"]',
+      '.cm-purerequest-find input[aria-label="Find"]',
     );
     await user.type(input as HTMLInputElement, "ada");
 

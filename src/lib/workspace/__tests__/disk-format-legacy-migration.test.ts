@@ -72,7 +72,7 @@ describe("disk-format legacy v3 body migration (AC-008, TC-005)", () => {
   // slot; the multipart slot stays empty; a legacy body string fills the json slot.
   it("should map legacy form bodyMode + bodyForm into the form slot", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
       "legacy.req.json": legacyRequest({
         body: "raw",
         bodyMode: "form",
@@ -92,7 +92,7 @@ describe("disk-format legacy v3 body migration (AC-008, TC-005)", () => {
   // multipart slot, leaving the form slot empty (the slot the legacy mode named).
   it("should map legacy multipart bodyMode + bodyForm into the multipart slot", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
       "legacy.req.json": legacyRequest({
         body: "",
         bodyMode: "multipart",
@@ -111,7 +111,7 @@ describe("disk-format legacy v3 body migration (AC-008, TC-005)", () => {
   // stringified text, with json the active mode when no bodyMode is present.
   it("should map a legacy tagged json body into the json slot", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
       "legacy.req.json": legacyRequest({
         body: { type: "json", payload: { a: 1 } },
       }),
@@ -128,7 +128,7 @@ describe("disk-format legacy v3 body migration (AC-008, TC-005)", () => {
   // transitional files still load (not stringify the wrapper itself).
   it("should decode a retired tagged json slot in an early v4 body object", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 4, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 4, name: "W" }),
       "legacy.req.json": legacyRequest({
         body: {
           active: "json",
@@ -149,7 +149,7 @@ describe("disk-format legacy v3 params migration (AC-006, AC-008, TC-004/005)", 
   // `params.query`; the disabled row is preserved verbatim (encoding drops it later).
   it("should move a legacy request config.params into params.query", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
       "legacy.req.json": legacyRequest({
         body: "",
         config: {
@@ -177,7 +177,7 @@ describe("disk-format legacy v3 params migration (AC-006, AC-008, TC-004/005)", 
   // a descendant request does NOT inherit the folder's params onto its own query.
   it("should drop a legacy folder config.params and not inherit it onto a descendant", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
       "api/folder.json": JSON.stringify({
         name: "api",
         config: {
@@ -212,7 +212,7 @@ describe("disk-format legacy v3 params migration (AC-006, AC-008, TC-004/005)", 
   // once into the new body + params shape.
   it("should migrate a full legacy v3 request document into the new shape", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
       "legacy.req.json": legacyRequest({
         body: '{\n  "raw": true\n}',
         bodyMode: "multipart",
@@ -301,7 +301,7 @@ describe("disk-format flat config (v5)", () => {
   // flat fields are absent, so readConfig falls back to the nested wrapper.
   it("should still read a legacy nested config object", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 4, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 4, name: "W" }),
       "legacy.req.json": legacyRequest({
         body: { active: "json", types: {} },
         config: {
@@ -323,7 +323,7 @@ describe("disk-format flat config (v5)", () => {
   // hand-mixed doc); other nested-only fields still fall through.
   it("should let a flat field win over the nested config for the same key", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 4, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 4, name: "W" }),
       "legacy.req.json": legacyRequest({
         body: { active: "json", types: {} },
         timeoutMs: 999,

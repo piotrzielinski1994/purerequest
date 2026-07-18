@@ -44,7 +44,7 @@ class FindPanel implements Panel {
 
   constructor(private readonly view: EditorView) {
     this.dom = document.createElement("div");
-    this.dom.className = "cm-requi-find";
+    this.dom.className = "cm-purerequest-find";
     // Keep the panel's own keystrokes out of the editor's keymap.
     this.dom.addEventListener("keydown", (event) => event.stopPropagation());
   }

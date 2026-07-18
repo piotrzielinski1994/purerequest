@@ -5,11 +5,11 @@ export type ScriptStage = "pre" | "post";
 export type ScriptOutcome = { ok: true } | { ok: false; error: string };
 
 // Host-side script API. `req` is present only in a pre-request script, `res`
-// only in a post-response script; `requi` + `console` exist in both. The real
+// only in a post-response script; `purerequest` + `console` exist in both. The real
 // QuickJS adapter marshals these callbacks into sandbox globals; the fake runner
 // passes this object straight to an injected impl.
 export type ScriptApi = {
-  requi: {
+  purerequest: {
     getVar: (name: string) => string | undefined;
     setVar: (name: string, value: string) => void;
     getProcessEnv: (name: string) => string | undefined;

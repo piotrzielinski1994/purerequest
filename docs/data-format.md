@@ -1,6 +1,6 @@
 # Workspace on-disk format & data model
 
-The durable contract for how a ReqUI workspace is stored on disk. This is an
+The durable contract for how a purerequest workspace is stored on disk. This is an
 **invariant** - the disk layer, importers/exporters, and migrations all depend
 on these shapes. Not derivable by reading a single file, so it lives here.
 (Feature behaviour is not documented here - that's derivable from the code and
@@ -24,7 +24,7 @@ accordingly.
 
 ```
 <workspace>/
-  requi.workspace.json        manifest { schemaVersion, name }
+  purerequest.workspace.json        manifest { schemaVersion, name }
   <folder>/folder.json        { name, <config fields...>, order }
   <folder>/.env               KEY=value (per-folder, gitignored; nearest wins)
   <folder>/<request>.req.json { name, method, url, [httpVersion], body, params, <config fields...>, order }

@@ -6,7 +6,7 @@ for the full 5-sub-task breakdown and the confirmed maximal scope).
 ## 1. Overview
 
 Replace the reqwest-based `send_http_request` with a **hand-rolled network client** built on
-`hyper` + `hyper-util` + `tokio-rustls` (the same crates reqwest uses internally), so ReqUI owns
+`hyper` + `hyper-util` + `tokio-rustls` (the same crates reqwest uses internally), so purerequest owns
 the `TcpStream` and the TLS session. Owning them is the precondition for the later dissection
 sub-tasks: we can tap the raw TLS record bytes (below rustls), the decrypted application-data
 bytes (above rustls), the negotiated TLS params, and the socket peer/local `IP:port`.
@@ -15,7 +15,7 @@ This sub-task ships **functional parity only** - no dissection model, no UI. The
 captured into an in-memory `Capture` struct and proven by a Rust test; they are not yet serialized
 to the frontend.
 
-The cutover is guarded by a runtime flag (`REQUI_TAP_CLIENT`, default ON) so both the reqwest and
+The cutover is guarded by a runtime flag (`PUREREQUEST_TAP_CLIENT`, default ON) so both the reqwest and
 tap paths stay compiled and testable during the epic and the change is reversible.
 
 ### Scope
@@ -57,7 +57,7 @@ Out (later sub-tasks / deferred):
   sub-task 3.
 - **Redirect hand-rolled, compression via crates** (`flate2`/`brotli`). Redirect is a simple loop;
   hand-rolling inflate/brotli would be a bug farm.
-- **Runtime flag `REQUI_TAP_CLIENT`** (default ON), not a compile-time cargo feature, so one
+- **Runtime flag `PUREREQUEST_TAP_CLIENT`** (default ON), not a compile-time cargo feature, so one
   `cargo test` run exercises both clients.
 - **Tap at the stream I/O boundary** (wrap the streams), not via `SSLKEYLOGFILE` - the plaintext
   is exactly what we read/write through the `TlsStream`, so no key export is needed.

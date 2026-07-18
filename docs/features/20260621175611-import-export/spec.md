@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-ReqUI can build and send requests but has no way to move a request in or out as text. This
+purerequest can build and send requests but has no way to move a request in or out as text. This
 feature adds two text bridges, both surfaced via the command palette **and** a keyboard
 shortcut (user directive):
 

@@ -13,7 +13,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
-// requi uses the raw env color for --border (its #rrggbbaa alpha pair IS the
+// purerequest uses the raw env color for --border (its #rrggbbaa alpha pair IS the
 // tint - no color-mix), so the override is the hex EXACTLY. Read it off the shell
 // root the design contract pins it to.
 function shellEl(): HTMLElement | null {

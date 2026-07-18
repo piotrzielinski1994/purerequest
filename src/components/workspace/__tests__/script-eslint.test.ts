@@ -27,8 +27,8 @@ describe("jsUndefLinter", () => {
     expect(jsUndefLinter("pre")(view).length).toBeGreaterThan(0);
   });
 
-  it("should not flag the requi/console globals in any stage", () => {
-    const view = viewOf("requi.setVar('a','1'); console.log('x');");
+  it("should not flag the purerequest/console globals in any stage", () => {
+    const view = viewOf("purerequest.setVar('a','1'); console.log('x');");
 
     expect(jsUndefLinter("pre")(view)).toEqual([]);
     expect(jsUndefLinter("post")(view)).toEqual([]);
@@ -68,7 +68,7 @@ describe("jsUndefLinter", () => {
   });
 
   it("should support async/await syntax without a parse error", () => {
-    const view = viewOf("await Promise.resolve(); requi.setVar('a','1');");
+    const view = viewOf("await Promise.resolve(); purerequest.setVar('a','1');");
 
     expect(jsUndefLinter("pre")(view)).toEqual([]);
   });

@@ -10,9 +10,9 @@ const linter = new Linter();
 // req.getUrl()/getHeader()), `res` is post-only; everything else
 // (Promise/JSON/Math/...) is a standard ES global ESLint knows via ecmaVersion.
 function globalsFor(stage: ScriptStage): Record<string, "readonly"> {
-  // `bru` is the Bruno-compat alias of `requi` (both injected in every stage).
+  // `bru` is the Bruno-compat alias of `purerequest` (both injected in every stage).
   const shared = {
-    requi: "readonly",
+    purerequest: "readonly",
     bru: "readonly",
     console: "readonly",
     req: "readonly",

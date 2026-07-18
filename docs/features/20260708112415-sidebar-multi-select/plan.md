@@ -1,18 +1,18 @@
 # Plan: Sidebar multi-select + multi-move
 
-From the approved spec. Ports the dbui approach to requi's folder/request tree.
+From the approved spec. Ports the purequery approach to purerequest's folder/request tree.
 
 ## Task breakdown
 
 1. **Pure helpers (red -> green)**
    - New `src/lib/workspace/tree-select.ts`: `flattenSelectable`, `rangeBetween`
-     (adapt dbui's: selectable = folder + request; a `RequestNode` is a leaf, so
+     (adapt purequery's: selectable = folder + request; a `RequestNode` is a leaf, so
      it contributes its own id; a folder contributes its id + children only when
      expanded).
    - Extend `src/lib/workspace/move.ts`: add `movableInOrder` + `moveNodes`
-     (verbatim from dbui - it is model-agnostic, keys only on `kind === "folder"`).
+     (verbatim from purequery - it is model-agnostic, keys only on `kind === "folder"`).
    - Add `rawDropTarget` to `src/lib/workspace/tree-locate.ts` and refactor
-     `dropTarget` to layer single-node compensation on top of it (dbui shape).
+     `dropTarget` to layer single-node compensation on top of it (purequery shape).
    - Unit tests: `tree-select.test.ts`, `move-nodes.test.ts` (or extend existing).
 
 2. **Context state + reducer**
@@ -36,7 +36,7 @@ From the approved spec. Ports the dbui approach to requi's folder/request tree.
 
 5. **Component tests**
    - `tree-multi-select.test.tsx` (click modes) + `tree-multi-move.test.tsx`
-     (moveNodes through context), mirroring dbui's suites against requi fixtures.
+     (moveNodes through context), mirroring purequery's suites against purerequest fixtures.
 
 ## Execution order
 

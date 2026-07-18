@@ -14,7 +14,7 @@ import { authOf, emptyBody } from "@/lib/workspace/model";
 
 // A Postman v2.1 collection is a single nested-JSON file: the `item` array holds
 // folders (which own their own `item`) and requests (which own a `request`). This
-// module parses that document into a ReqUI subtree, total (never throws): invalid
+// module parses that document into a purerequest subtree, total (never throws): invalid
 // JSON or a doc missing `info`+`item` yields null; unknown fields are skipped.
 
 type PostmanRow = {
@@ -96,7 +96,7 @@ function isRowArray(value: unknown): value is PostmanRow[] {
 }
 
 // Enabled/disabled rows for headers/query/form/multipart: `disabled:true` maps to
-// `enabled:false`, everything else to `enabled:true` (always present, like ReqUI's
+// `enabled:false`, everything else to `enabled:true` (always present, like purerequest's
 // own grids). Rows with a blank key are dropped.
 function toRows(value: unknown): KeyValue[] {
   if (!isRowArray(value)) {
@@ -397,7 +397,7 @@ export function parsePostmanCollection(
 }
 
 // Parse a Postman environment JSON (`{name, values:[{key,value,enabled?}]}`) into an
-// Environment. An enabled/absent value drops the `enabled` flag (like ReqUI's own env
+// Environment. An enabled/absent value drops the `enabled` flag (like purerequest's own env
 // rows); `enabled:false` is kept. Returns null when the doc has no name+values.
 export function parsePostmanEnvironment(text: string): Environment | null {
   let doc: PostmanEnvDoc | null;

@@ -43,7 +43,7 @@ What this feature does **not** deliver:
 
 ### User Story
 
-As a keyboard-driven ReqUI user, I want each action bound to a shortcut I can change and
+As a keyboard-driven purerequest user, I want each action bound to a shortcut I can change and
 have remembered across launches, so I can drive the app without the mouse using bindings
 that match my muscle memory.
 

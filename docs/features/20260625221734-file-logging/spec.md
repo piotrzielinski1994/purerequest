@@ -7,7 +7,7 @@
 
 ## 1. Overview
 
-ReqUI has no file logging today. The Rust backend prints nothing structured, and the only
+purerequest has no file logging today. The Rust backend prints nothing structured, and the only
 diagnostic frontend call is a lone `console.warn` in the Tauri-store persistence wrapper (lost
 to devtools). When a user hits a bug there is no on-disk artifact to inspect - you can't ask
 "send me the log".
@@ -20,7 +20,7 @@ frontend bridge so the webview can write to the same file.
 
 - **In:**
   - `tauri-plugin-log` v2 registered in the Tauri builder. One **per-launch** file
-    `requi-<YYYYMMDDHHMMSS>.log` in the OS app-log dir (macOS `~/Library/Logs/com.pzielinski.requi/`).
+    `purerequest-<YYYYMMDDHHMMSS>.log` in the OS app-log dir (macOS `~/Library/Logs/com.pzielinski.purerequest/`).
   - Targets: **Stdout + the per-launch file**. Level `Info`. `RotationStrategy::KeepAll`,
     `max_file_size(50_000_000)` (50 MB) - one session, one file, never rotated mid-run.
   - Best-effort init: if the log dir is unwritable the app still launches (log to stderr and skip).
@@ -39,7 +39,7 @@ frontend bridge so the webview can write to the same file.
 
 ## 2. Acceptance Criteria
 
-- **AC-001:** On app launch a log file named `requi-<YYYYMMDDHHMMSS>.log` (14-digit local-time stamp)
+- **AC-001:** On app launch a log file named `purerequest-<YYYYMMDDHHMMSS>.log` (14-digit local-time stamp)
   is created in the OS app-log dir; a new file is created on each launch.
 - **AC-002:** Log output goes to **both** stdout and the per-launch file, at level `Info` and above
   (Debug/Trace suppressed).
@@ -55,11 +55,11 @@ frontend bridge so the webview can write to the same file.
 
 ## 3. Test Cases
 
-- **TC-001** (happy path, pure): `launch_log_name(2026, 6, 25, 22, 17, 34)` -> `"requi-20260625221734"`.
+- **TC-001** (happy path, pure): `launch_log_name(2026, 6, 25, 22, 17, 34)` -> `"purerequest-20260625221734"`.
   Maps to: AC-001.
 - **TC-002** (boundary, pure): single-digit fields zero-pad - `launch_log_name(2026, 1, 2, 3, 4, 5)`
-  -> `"requi-20260102030405"`. Maps to: AC-001.
-- **TC-003** (shape, pure): the stamp after the `requi-` prefix is exactly 14 ASCII digits.
+  -> `"purerequest-20260102030405"`. Maps to: AC-001.
+- **TC-003** (shape, pure): the stamp after the `purerequest-` prefix is exactly 14 ASCII digits.
   Maps to: AC-001.
 - **TC-004** (FE behavior): `logMessage("warn", "x")` invokes the `log_message` command with
   `{ level: "warn", message: "x" }`. Maps to: AC-005.
@@ -73,7 +73,7 @@ frontend bridge so the webview can write to the same file.
 No persisted app data. One pure helper:
 
 ```
-launch_log_name(year, month, day, hour, minute, second) -> "requi-<YYYYMMDDHHMMSS>"
+launch_log_name(year, month, day, hour, minute, second) -> "purerequest-<YYYYMMDDHHMMSS>"
 ```
 
 FE bridge level is a closed string union: `"info" | "warn" | "error" | "debug"`.
@@ -99,7 +99,7 @@ FE bridge level is a closed string union: `"info" | "warn" | "error" | "debug"`.
 
 | AC | Proven by |
 | -- | --------- |
-| AC-001 | `logging.rs` tests `should_format_launch_name_as_requi_plus_14_digits`, `should_zero_pad_single_digit_fields`, `should_match_feature_folder_timestamp_shape` (TC-001/002/003) + live launch (`requi-20260625223125.log` created) |
+| AC-001 | `logging.rs` tests `should_format_launch_name_as_requi_plus_14_digits`, `should_zero_pad_single_digit_fields`, `should_match_feature_folder_timestamp_shape` (TC-001/002/003) + live launch (`purerequest-20260625223125.log` created) |
 | AC-002 | `logging.rs::init` `targets([Stdout, LogDir{..}])` + `.level(Info)` (config) + live: startup line in both file and stdout |
 | AC-003 | `logging.rs::init` early `return` on `app.plugin(...).is_err()` (config, vidui-mirror) |
 | AC-004 | `lib.rs` `log::info!` lines in `send_http_request` (start + result) and `cancel_http_request` |

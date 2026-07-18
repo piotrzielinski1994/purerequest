@@ -2,7 +2,7 @@
 
 **Spec:** [spec.md](spec.md)
 **Branch:** `20260625221734-file-logging`
-**Approach:** mirror `vidui` 1:1 (its `logging.rs` is the proven template), adapt names `vidui`->`requi`.
+**Approach:** mirror `vidui` 1:1 (its `logging.rs` is the proven template), adapt names `vidui`->`purerequest`.
 TDD where it pays: the pure `launch_log_name` helper (Rust) and the FE bridge (Vitest). Plugin wiring,
 soft-fail, and backend `log::info!` calls are config/integration - asserted by the plugin config + manual
 launch, not unit-tested (mirrors vidui, which only unit-tests the pure name helper).
@@ -10,7 +10,7 @@ launch, not unit-tested (mirrors vidui, which only unit-tests the pure name help
 ## Key decisions / patterns
 
 - **Custom-command FE bridge, not the JS plugin-log package.** vidui proves the pattern (`log_playback`);
-  it matches requi's existing `invoke`-based FE->Rust seam (`tauri-client.ts`) and adds no npm dep. The
+  it matches purerequest's existing `invoke`-based FE->Rust seam (`tauri-client.ts`) and adds no npm dep. The
   command is generalized to `log_message(level, message)` (vidui's was playback-specific).
 - **Register the plugin in `.setup()` via `app.plugin(...)`, not the builder `.plugin()` chain.** The
   `LogDir` target errors if the dir is unwritable; doing it in setup lets us swallow that and keep
@@ -37,7 +37,7 @@ plugin wiring + a thin IPC bridge), no domain model, aggregate, boundary, or rec
 - `src-tauri/src/lib.rs` - `mod logging;`; add `.setup(|app| { logging::init(app.handle()); Ok(()) })` to
   the builder; register `logging::log_message` in `generate_handler!`; add `log::info!` lines to
   `send_http_request` (start + result) and `cancel_http_request`.
-- `src-tauri/src/main.rs` - no change (already delegates to `requi_lib::run()`).
+- `src-tauri/src/main.rs` - no change (already delegates to `purerequest_lib::run()`).
 - `src-tauri/capabilities/default.json` - add `"log:default"`.
 - `src/lib/settings/tauri-store.ts` - route the `persist` catch through `logMessage("warn", ...)`
   (keep behavior: still resolves, never throws). TC-006.
@@ -48,7 +48,7 @@ plugin wiring + a thin IPC bridge), no domain model, aggregate, boundary, or rec
 1. **RED (Rust):** add the 3 pure `launch_log_name` tests in `logging.rs` -> `cargo test` fails (no fn).
 2. **GREEN (Rust):** add `launch_log_name` + `current_launch_log_name` -> tests pass.
 3. **Wire plugin:** add deps, `init`, `log_message`, setup hook, handler, capability, backend log lines.
-   Verify: `cargo build`, launch app, confirm `~/Library/Logs/com.pzielinski.requi/requi-*.log` appears
+   Verify: `cargo build`, launch app, confirm `~/Library/Logs/com.pzielinski.purerequest/purerequest-*.log` appears
    and contains a request line after sending one.
 4. **RED (FE):** `file-log.test.ts` TC-004/TC-005 -> `npm test` fails (no module).
 5. **GREEN (FE):** add `file-log.ts` -> tests pass.
@@ -73,7 +73,7 @@ plugin wiring + a thin IPC bridge), no domain model, aggregate, boundary, or rec
 - `cargo test` in `src-tauri/` (Rust pure + existing suite green).
 - `npm test` (Vitest FE green, incl. TC-004/005/006).
 - `npm run typecheck` / lint clean, no `any`.
-- Manual: `npm start`, send a request, confirm `requi-<ts>.log` exists in the OS log dir with the
+- Manual: `npm start`, send a request, confirm `purerequest-<ts>.log` exists in the OS log dir with the
   start+result lines; trigger a persist failure path is hard to force manually - covered by TC-006.
 
 ## Risks

@@ -23,9 +23,9 @@ language-data `autocomplete` facet that the JSON-schema IntelliSense already use
 **Out of scope (deliberate):**
 
 - **Script editor** - scripts are NOT `{{}}`-interpolated. A script reads variables via
-  `requi.getVar("X")` / `bru.getVar("X")` and runs verbatim in QuickJS; `{{X}}` in JS is
+  `purerequest.getVar("X")` / `bru.getVar("X")` and runs verbatim in QuickJS; `{{X}}` in JS is
   not substituted, so offering `{{var}}` completion there would suggest syntax that does
-  nothing. The script editor keeps its `scriptApiCompletion` (the `req.`/`res.`/`requi.`
+  nothing. The script editor keeps its `scriptApiCompletion` (the `req.`/`res.`/`purerequest.`
   API) unchanged.
 - **Theme-colors** JSON editor - holds `oklch(...)` strings with no `{{}}` tokens and no
   request scope; token completion has nothing meaningful to offer. Unchanged.

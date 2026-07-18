@@ -195,10 +195,10 @@ pub(crate) struct HttpResponsePayload {
 }
 
 // Runtime flag selecting the send implementation, so the cutover to the hand-rolled tap
-// client is reversible and both paths stay testable. Default ON (tap); `REQUI_TAP_CLIENT=0`
+// client is reversible and both paths stay testable. Default ON (tap); `PUREREQUEST_TAP_CLIENT=0`
 // forces the legacy reqwest path.
 fn use_tap_client() -> bool {
-    std::env::var("REQUI_TAP_CLIENT")
+    std::env::var("PUREREQUEST_TAP_CLIENT")
         .map(|value| value != "0")
         .unwrap_or(true)
 }
@@ -222,7 +222,7 @@ async fn send_http_request(request: HttpRequestPayload) -> Result<HttpResponsePa
     if request.http_version == "h3" {
         let method = request.method.clone();
         let url = request.url.clone();
-        // Best-effort L2-L4 packet capture (OFF unless REQUI_PCAP=1), same as the tap path - the
+        // Best-effort L2-L4 packet capture (OFF unless PUREREQUEST_PCAP=1), same as the tap path - the
         // side-car is protocol-agnostic, so it fills the QUIC dissection's lower layers when on.
         let capture_handle = pcap_capture::start_unfiltered(Duration::from_secs(30));
         let (mut response, quic) = quic_client::send_via_quic(request, token).await?;
@@ -247,7 +247,7 @@ async fn send_http_request(request: HttpRequestPayload) -> Result<HttpResponsePa
     if use_tap_client() {
         let method = request.method.clone();
         let url = request.url.clone();
-        // Best-effort L2-L4 packet capture (OFF unless REQUI_PCAP=1). Runs on its own thread for
+        // Best-effort L2-L4 packet capture (OFF unless PUREREQUEST_PCAP=1). Runs on its own thread for
         // the duration of the send; never blocks or affects the send path. Started before the
         // send so it catches the SYN handshake; filtered to the connection 4-tuple afterwards.
         let capture_handle = pcap_capture::start_unfiltered(Duration::from_secs(30));
@@ -585,10 +585,10 @@ mod tests {
 
     // Full send_http_request path WITH live packet capture on loopback: proves the pcap side-car
     // wires into a real send and upgrades L3/L4 to decoded from real captured bytes. Ignored -
-    // needs REQUI_PCAP=1 + REQUI_PCAP_DEVICE=lo0 + BPF access. Run:
-    //   REQUI_PCAP=1 REQUI_PCAP_DEVICE=lo0 cargo test --lib -- --ignored --nocapture full_path_capture
+    // needs PUREREQUEST_PCAP=1 + PUREREQUEST_PCAP_DEVICE=lo0 + BPF access. Run:
+    //   PUREREQUEST_PCAP=1 PUREREQUEST_PCAP_DEVICE=lo0 cargo test --lib -- --ignored --nocapture full_path_capture
     #[tokio::test]
-    #[ignore = "needs REQUI_PCAP=1 + REQUI_PCAP_DEVICE=lo0 + BPF access; live loopback capture"]
+    #[ignore = "needs PUREREQUEST_PCAP=1 + PUREREQUEST_PCAP_DEVICE=lo0 + BPF access; live loopback capture"]
     async fn should_decode_l3_l4_from_captured_packets_on_the_full_send_path() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
@@ -634,10 +634,10 @@ mod tests {
     // Full send path against a REAL external host over the egress interface (en0, Ethernet
     // linktype, real network timing) - proves live capture upgrades L2/L3/L4 to decoded outside
     // loopback. Guards against the `Device::lookup()` -> bogus `ap1` regression that captured 0
-    // packets. Ignored - needs REQUI_PCAP=1 + BPF access + network egress. Run:
-    //   REQUI_PCAP=1 cargo test --lib -- --ignored --nocapture en0_external_capture
+    // packets. Ignored - needs PUREREQUEST_PCAP=1 + BPF access + network egress. Run:
+    //   PUREREQUEST_PCAP=1 cargo test --lib -- --ignored --nocapture en0_external_capture
     #[tokio::test]
-    #[ignore = "needs REQUI_PCAP=1 + BPF access + network egress; hits a real external host"]
+    #[ignore = "needs PUREREQUEST_PCAP=1 + BPF access + network egress; hits a real external host"]
     async fn en0_external_capture() {
         let response = send_http_request(request_to(
             "https://countries.trevorblades.com/",
@@ -662,7 +662,7 @@ mod tests {
 
     // TC-011, AC-011 - behavior: the legacy reqwest send path (selected when the flag is
     // off) still returns a correct 200 + body, so the tap cutover is reversible. Calls
-    // send_via_reqwest directly to avoid mutating the process-wide REQUI_TAP_CLIENT env var
+    // send_via_reqwest directly to avoid mutating the process-wide PUREREQUEST_TAP_CLIENT env var
     // (which would race other async tests). The default send_http_request path (tap) is
     // covered by the tests below + tap_client::tap_tests.
     #[tokio::test]

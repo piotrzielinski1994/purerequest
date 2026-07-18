@@ -208,7 +208,7 @@ describe("excluded editors stay token-free", () => {
   });
 
   // TC-010, AC-008 - behavior: the script editor offers NO `{{var}}` token option,
-  // yet still exposes its req/res/requi API completion (unchanged).
+  // yet still exposes its req/res/purerequest API completion (unchanged).
   it("should not offer token completion but keep the script API in the script editor", async () => {
     const { container } = render(
       <ScriptEditor

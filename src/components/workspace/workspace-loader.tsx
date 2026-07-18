@@ -113,7 +113,7 @@ export function WorkspaceLoader({
         status: "loaded",
         tree: parsed.tree,
         consoleLines,
-        workspaceName: readWorkspaceName(read.files["requi.workspace.json"]),
+        workspaceName: readWorkspaceName(read.files["purerequest.workspace.json"]),
         processEnv: parseDotenv(read.files[".env"] ?? ""),
         envText: read.files[".env"] ?? "",
       });

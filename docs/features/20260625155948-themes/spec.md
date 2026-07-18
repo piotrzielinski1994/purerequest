@@ -7,7 +7,7 @@
 
 ## 1. Overview
 
-ReqUI today is light-only. `index.css` ships both a `:root` (light) and a `.dark` token block, but
+purerequest today is light-only. `index.css` ships both a `:root` (light) and a `.dark` token block, but
 **nothing ever toggles the `.dark` class** - the dark block is dead code, and there is no theme UI.
 
 This feature adds a real theme system:
@@ -30,7 +30,7 @@ This feature adds a real theme system:
   - `system` resolves via `window.matchMedia("(prefers-color-scheme: dark)")` and reacts to OS changes
     while the app is open.
   - Per-mode customization of **18 app tokens** + **9 editor-syntax tokens** via a **raw-JSON CodeMirror
-    editor** in the Settings tab (the same edit surface ReqUI uses for config / `.env` / request Settings:
+    editor** in the Settings tab (the same edit surface purerequest uses for config / `.env` / request Settings:
     JSON syntax highlighting + lint underline on malformed JSON). Values are `oklch(...)` strings (matching
     `index.css`).
   - The editor is **seeded with the full effective color set** (every token, showing its current value -
@@ -59,7 +59,7 @@ This feature adds a real theme system:
 
 - **Customizable tokens = all app tokens** (the full shadcn set in `index.css`, currently 18 incl.
   `*-foreground` pairs), not a curated subset.
-- **Color input = raw-JSON CodeMirror editor** (matches ReqUI's config / `.env` / request-Settings edit
+- **Color input = raw-JSON CodeMirror editor** (matches purerequest's config / `.env` / request-Settings edit
   convention - learnings: "Config editing lives in panes... raw JSON + Mod+S"). Values are `oklch(...)`
   strings to match `index.css`. **No hex picker, no color conversion, no new dependency** (the earlier
   hex-picker answer was superseded by the "display JSON" layout choice).

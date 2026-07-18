@@ -3096,6 +3096,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "purerequest"
+version = "0.1.0"
+dependencies = [
+ "aes",
+ "brotli",
+ "bytes",
+ "chacha20",
+ "chrono",
+ "flate2",
+ "h3",
+ "h3-quinn",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "log",
+ "pcap",
+ "quinn",
+ "rcgen",
+ "reqwest 0.12.28",
+ "ring",
+ "rustls",
+ "rustls-pki-types",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-log",
+ "tauri-plugin-opener",
+ "tauri-plugin-store",
+ "tokio",
+ "tokio-rustls",
+ "tokio-util",
+ "tower-layer",
+ "tower-service",
+ "url",
+ "webpki-roots",
+ "wiremock",
+]
+
+[[package]]
 name = "quick-xml"
 version = "0.39.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3341,48 +3383,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71fe3824f5629716b1589be05dacd749f6aa084c87e00e016714a8cdfccc997c"
 dependencies = [
  "bytecheck",
-]
-
-[[package]]
-name = "requi"
-version = "0.1.0"
-dependencies = [
- "aes",
- "brotli",
- "bytes",
- "chacha20",
- "chrono",
- "flate2",
- "h3",
- "h3-quinn",
- "http-body-util",
- "hyper",
- "hyper-util",
- "log",
- "pcap",
- "quinn",
- "rcgen",
- "reqwest 0.12.28",
- "ring",
- "rustls",
- "rustls-pki-types",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-log",
- "tauri-plugin-opener",
- "tauri-plugin-store",
- "tokio",
- "tokio-rustls",
- "tokio-util",
- "tower-layer",
- "tower-service",
- "url",
- "webpki-roots",
- "wiremock",
 ]
 
 [[package]]

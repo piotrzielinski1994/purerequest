@@ -179,7 +179,7 @@ describe("disk-format environmentColors sanitize (AC-008, E-2, E-4)", () => {
   // so a green run proves the field is actually READ + validated - not merely never
   // read (which would make a bare "garbage -> undefined" assertion tautological).
   const folderJsonWith = (environmentColors: unknown): FileMap => ({
-    "requi.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
+    "purerequest.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
     "api/folder.json": JSON.stringify({
       name: "Api",
       config: { variables: { baseUrl: "https://api" } },

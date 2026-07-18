@@ -5,7 +5,7 @@ import { findNode } from "@/lib/workspace/tree-locate";
 import { upsertRow } from "@/lib/workspace/model";
 import type { TreeNode } from "@/lib/workspace/model";
 
-// Where a `requi.setVar(name, ...)` write lands: the nearest scope (leaf-first
+// Where a `purerequest.setVar(name, ...)` write lands: the nearest scope (leaf-first
 // along the resolved folder chain) that already defines `name` in its plain
 // `config.variables`, else the request's own node. Mirrors resolveConfig's
 // nearest-wins fold so a script updates the var "where it logically lives".

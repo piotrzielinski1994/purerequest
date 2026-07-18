@@ -21,7 +21,7 @@ modified** (the script layer only produces a modified node + modified `Effective
    fold var writes into the tree (one `persistTree`) -> build the wire from a modified node +
    modified `EffectiveConfig` -> existing send/generation/cancel machinery -> run post (read-only
    `res`, collect + persist var writes) -> commit the success state. A `ScriptApi` factory builds
-   the `requi`/`req`/`res`/`console` host object per stage.
+   the `purerequest`/`req`/`res`/`console` host object per stage.
 4. **QuickJS adapter** (`src/lib/scripts/quickjs-runner.ts`, the only file importing
    `quickjs-emscripten`). Lazily loads the async single-file WASM module once (memoized promise);
    per `run` creates an async context, exposes `api` as globals (host-function handles), evaluates
@@ -35,7 +35,7 @@ The Console panel + Script tab editor are reused as-is; no new tab/view.
 
 **New pure / sandbox modules (`src/lib/scripts/`):**
 - `model.ts` - `ScriptStage`, `ScriptOutcome` (ADT), `ScriptRunner`, `ScriptApi` (the host shape:
-  `requi`/`req`/`res`/`console` callbacks), `SCRIPT_TIMEOUT_MS`.
+  `purerequest`/`req`/`res`/`console` callbacks), `SCRIPT_TIMEOUT_MS`.
 - `fake-runner.ts` - `createFakeScriptRunner(impl?)`: invokes `impl(api)` (awaited), maps a thrown
   error to `{ ok:false, error }`, default no-op `{ ok:true }`.
 - `quickjs-runner.ts` - `createQuickJsScriptRunner()`: the real WASM adapter (memoized module load,
@@ -64,7 +64,7 @@ The Console panel + Script tab editor are reused as-is; no new tab/view.
 
 **Editor hint (cosmetic, not an AC):**
 - `src/components/workspace/config-panels.tsx` - optional one-line API hint above the Script
-  editor (`requi.setVar / req.setUrl / res.getJson / console.log`). Skip if it complicates layout.
+  editor (`purerequest.setVar / req.setUrl / res.getJson / console.log`). Skip if it complicates layout.
 
 **Deps:**
 - `package.json` - add `quickjs-emscripten`. No Rust change.
@@ -119,7 +119,7 @@ React (Vitest + RTL, fake runner + fake http client):
 
 - AC-001..009 each map to a named test (trace table filled in after verify). Gates: vitest
   all-green, tsc clean (no `any`), eslint clean. Manual smoke in the running app (real QuickJS):
-  a pre `req.setHeader` + a post `requi.setVar` chained into a second request, console output
+  a pre `req.setHeader` + a post `purerequest.setVar` chained into a second request, console output
   visible.
 
 ## AC traceability (verified PASS, 871 frontend tests, fresh-verifier PASS)

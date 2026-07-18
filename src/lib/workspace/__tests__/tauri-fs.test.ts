@@ -62,12 +62,12 @@ describe("createTauriWorkspaceFs writeWorkspace", () => {
     const fs = createTauriWorkspaceFs();
 
     const result = await fs.writeWorkspace(ROOT, {
-      "requi.workspace.json": "{}",
+      "purerequest.workspace.json": "{}",
       "dir1/folder.json": "{}",
     });
 
     expect(result.ok).toBe(true);
-    expect(fileContents.get(`${ROOT}/requi.workspace.json`)).toBe("{}");
+    expect(fileContents.get(`${ROOT}/purerequest.workspace.json`)).toBe("{}");
     expect(fileContents.get(`${ROOT}/dir1/folder.json`)).toBe("{}");
   });
 });

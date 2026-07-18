@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-ReqUI imports a single request from a cURL string, a whole **Bruno collection** (a folder of
+purerequest imports a single request from a cURL string, a whole **Bruno collection** (a folder of
 `.bru`/`.yml` files), and a **Postman collection** (`*.postman_collection.json`). This feature adds
 importing an **OpenAPI 3.x document** (`openapi.yml` / `openapi.json`, versions **3.0 and 3.1**) into
 the current workspace as a **new top-level folder**: one request per operation, grouped into per-tag
@@ -24,7 +24,7 @@ Unlike Bruno (a folder tree) and Postman (a nested `item` array), an OpenAPI doc
 
 - **In:** an `Import OpenAPI document` action (command palette + default hotkey `Mod+Shift+O`) that
   opens a native **single-file picker** (`json`/`yaml`/`yml`), reads the file, parses the 3.0/3.1 doc
-  into a ReqUI `TreeNode[]` subtree, inserts it as one new top-level folder, opens/selects it, and
+  into a purerequest `TreeNode[]` subtree, inserts it as one new top-level folder, opens/selects it, and
   persists. Two pure modules do the work: an OpenAPI parser (`parse-openapi.ts`, JSON + YAML, local
   `$ref` resolution) and a doc -> tree mapper (`openapi-to-tree.ts`).
 - **Out:** **Swagger 2.0** (2014 shape - `definitions`/`basePath`/`in:body`) - deferred to a follow-up;
@@ -58,8 +58,8 @@ Unlike Bruno (a folder tree) and Postman (a nested `item` array), an OpenAPI doc
   `baseUrl`. With **no** servers, requests carry the bare path (no `{{baseUrl}}` prefix).
 - **Lenient parse, like Bruno / Postman.** Invalid JSON/YAML or a doc without `openapi`+`paths` -> `null`
   (no-op); unknown / unsupported fields skipped; nothing throws.
-- **`{{var}}` needs no transform** - OpenAPI and ReqUI share the `{{name}}` syntax; but **OpenAPI path
-  templating `{name}` is rewritten to ReqUI's `:name`** so path-param substitution works.
+- **`{{var}}` needs no transform** - OpenAPI and purerequest share the `{{name}}` syntax; but **OpenAPI path
+  templating `{name}` is rewritten to purerequest's `:name`** so path-param substitution works.
 
 ## 2. Data model
 
@@ -106,7 +106,7 @@ security: [ { bearerAuth: [] } ]
 
 ### 3a. Operation -> RequestNode
 
-| OpenAPI                                                | ReqUI                                                                     |
+| OpenAPI                                                | purerequest                                                                     |
 | ------------------------------------------------------ | ------------------------------------------------------------------------- |
 | path key + method key (`get`/`post`/`put`/`patch`/`delete`) | one `RequestNode` per (path, method); other method keys (`head`/`options`/`trace`) skipped |
 | method key                                             | `method` (upper-cased)                                                    |
@@ -165,7 +165,7 @@ security: [ { bearerAuth: [] } ]
 - **AC-002:** each (path, method) pair -> one `RequestNode`; the method is upper-cased; only
   `get`/`post`/`put`/`patch`/`delete` are imported (`head`/`options`/`trace` skipped);
   `name` = `summary` \|\| `operationId` \|\| `"METHOD path"`.
-- **AC-003:** the request `url` = `{{baseUrl}}` + path with OpenAPI `{name}` rewritten to ReqUI `:name`;
+- **AC-003:** the request `url` = `{{baseUrl}}` + path with OpenAPI `{name}` rewritten to purerequest `:name`;
   when the doc has **no** `servers`, the url is the bare path (no `{{baseUrl}}` prefix).
 - **AC-004:** `parameters` map by `in`: `path` -> `params.path`, `query` -> `params.query`, `header` ->
   `config.headers`; each value seeded from `example` \|\| `schema.example` \|\| `schema.default` \|\| `""`;
@@ -232,7 +232,7 @@ security: [ { bearerAuth: [] } ]
 - **No operations** (`paths: {}` or only unsupported method keys): root folder empty -> AC-012 adds
   nothing (no stray empty folder).
 - **OpenAPI path templating `{name}`:** rewritten to `:name`. A param name with non-word chars
-  (`{user-id}`) becomes `:user-id`; ReqUI's `:name` substitution matches only the leading word chars -
+  (`{user-id}`) becomes `:user-id`; purerequest's `:name` substitution matches only the leading word chars -
   documented rough edge, still readable.
 - **Server url trailing slash + leading-slash path:** the server url's trailing `/` is stripped so
   `{{baseUrl}}` + `/users` never doubles the slash.

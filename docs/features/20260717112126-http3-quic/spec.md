@@ -77,7 +77,7 @@ mirroring `tap_client::send_via_tap`'s signature and responsibilities:
 
 `send_http_request` (lib.rs) routes on the new payload field: `httpVersion == "h3"`
 → `send_via_quic`; otherwise the existing tap-vs-reqwest selection is unchanged.
-The `REQUI_PCAP` side-car already captures L2-L4 by 4-tuple and is
+The `PUREREQUEST_PCAP` side-car already captures L2-L4 by 4-tuple and is
 protocol-agnostic, so it is started for the h3 path too (fills the real IP/UDP
 header bytes when enabled; facts-only otherwise), exactly as for TCP.
 
@@ -115,7 +115,7 @@ Layers, top → bottom, each honest about reach:
   `Facts` for ports/addresses (from the socket) unless pcap supplied real UDP
   header bytes (then `Decoded`), mirroring the existing split.
 - **Network (IP) / Data-Link / Physical** - identical to `dissect.rs`: `Decoded`
-  from a sample pcap packet when `REQUI_PCAP=1`, else `Facts`/`Privileged`/
+  from a sample pcap packet when `PUREREQUEST_PCAP=1`, else `Facts`/`Privileged`/
   `Unreachable` as today. Reuse the existing lower-layer helpers.
 
 Crypto is implemented against RFC 9001 (QUIC-TLS): HKDF-Expand-Label with QUIC
@@ -136,8 +136,9 @@ Transport:
   `auto`**, present as `"h3"` otherwise; manifest `schemaVersion` is `6`; a doc
   with no `httpVersion` loads as `auto`; a doc written after selecting `h3`
   round-trips `h3`.
-- **AC-004**: The URL bar exposes a version selector with `Auto` and `HTTP/3`;
-  selecting a value updates the active request and persists it (survives reload).
+- **AC-004**: The request Settings tab exposes a version selector with `Auto`
+  and `HTTP/3`; selecting a value updates the active request and persists it
+  (survives reload).
 - **AC-005**: An h3 send honours `timeoutMs` (returns `Err` past it) and
   cancellation (a mid-flight cancel resolves to the `__cancelled__` sentinel).
 - **AC-006**: An h3 send to a host with no HTTP/3 (QUIC handshake fails / times
@@ -201,9 +202,9 @@ Data model (TS, `disk-format` tests):
 
 UI (TS, url-bar test):
 
-- **TC-010** (AC-004): the URL bar renders a version selector; choosing `HTTP/3`
-  calls the setter with `"h3"` for the active request; the value reflects the
-  request's stored version.
+- **TC-010** (AC-004): the request Settings tab renders a version selector;
+  choosing `HTTP/3` calls the setter with `"h3"` for the active request; the
+  value reflects the request's stored version.
 
 Dissection (Rust, `quic_dissect` tests):
 
@@ -256,7 +257,7 @@ Dissection (Rust, `quic_dissect` tests):
   protection ECB block). `ring` (HKDF + AEAD) and `rustls` 0.23 / `webpki-roots`
   are already deps and are reused. `quinn` pulls `quinn-proto`.
 - **TS (new):** none. A `HttpVersion` type + reuse of the existing shadcn
-  `Select` for the version selector.
+  `Select` for the version selector in the request Settings tab.
 - **On-disk:** `schemaVersion 5 → 6`, new optional `httpVersion` field. Documented
   in [docs/data-format.md](../../data-format.md).
 - Reuses the existing `Dissection`/`Layer`/`Segment`/`Field` model, the
@@ -298,7 +299,7 @@ All ACs green. Rust: `cargo test --lib` = 89 passed / 6 ignored (network/bench/p
 | AC-001 | quic_client `should_return_200_body_and_custom_header_if_h3_get_succeeds`, `should_round_trip_body_and_custom_header_if_h3_post_sent` |
 | AC-002 | lib.rs `should_deserialize_http_version_h3_when_present_and_default_auto_when_absent` + routing in `send_http_request` (h3-only branch) + tap suite green |
 | AC-003 | disk-format-http-version.test.ts (6) + lib.rs deserialize test |
-| AC-004 | url-bar-http-version.test.tsx (3) |
+| AC-004 | general-panel.test.tsx "HTTP version selector" (4) |
 | AC-005 | quic_client `should_return_err_if_the_h3_server_delays_past_the_timeout`, `should_resolve_to_the_cancel_sentinel_if_cancelled_mid_flight` |
 | AC-006 | quic_client `should_return_err_and_not_hang_if_the_udp_port_is_closed` |
 | AC-007 | quic_client `should_return_timings_that_partition_the_total_if_the_h3_send_succeeds` |

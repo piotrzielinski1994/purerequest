@@ -52,7 +52,7 @@ function collectEnvironments(files: PostmanFileMap): Environment[] {
     });
 }
 
-// Map a Postman collection file-map into a single ReqUI root folder. Picks the
+// Map a Postman collection file-map into a single purerequest root folder. Picks the
 // collection file, folds every environment file into its `config.environments`, and
 // returns the root wrapped in an array (or [] when no collection file is present).
 export function postmanToTree(

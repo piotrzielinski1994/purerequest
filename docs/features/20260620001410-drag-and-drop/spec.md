@@ -172,7 +172,7 @@ inaccessible.
 - A pure `planReconcile(current: FileMap, next: FileMap): { write: FileMap; remove: string[] }`
   computes the file-level diff (write changed/new managed files, remove managed files no
   longer present). Only ever touches managed files (`folder.json` / `*.req.json` /
-  `requi.workspace.json`) - never user files in the workspace.
+  `purerequest.workspace.json`) - never user files in the workspace.
 - Tauri adapter executes the plan: `mkdir` parent dirs (recursive, idempotent) -> `writeTextFile`
   each -> `remove` orphaned files -> `remove` now-empty managed dirs (deepest-first; required
   because `deserialize` turns any leftover subdir into a phantom empty folder).

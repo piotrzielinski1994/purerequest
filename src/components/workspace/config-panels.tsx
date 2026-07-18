@@ -30,7 +30,13 @@ import { ScriptEditor } from "@/components/workspace/script-editor";
 import { AccentField } from "@/components/workspace/accent-field";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { ScriptStage } from "@/lib/scripts/model";
-import type { Auth, AuthMode, ConfigScope, KeyValue } from "@/lib/workspace/model";
+import type {
+  Auth,
+  AuthMode,
+  ConfigScope,
+  HttpVersion,
+  KeyValue,
+} from "@/lib/workspace/model";
 import { emptyAuth } from "@/lib/workspace/model";
 import type { ResolvedValue } from "@/lib/workspace/resolve";
 import { parseDotenv } from "@/lib/workspace/environment";
@@ -41,6 +47,11 @@ const AUTH_TYPE_LABELS: Record<AuthMode, string> = {
   bearer: "Bearer Token",
   basic: "Basic Auth",
 };
+
+const HTTP_VERSIONS: { value: HttpVersion; label: string }[] = [
+  { value: "auto", label: "Auto" },
+  { value: "h3", label: "HTTP/3" },
+];
 
 // Shared grid cell + input styling so the auth fields read like the Params grid.
 const AUTH_CELL = "border-r border-b border-border bg-background";
@@ -553,10 +564,14 @@ export function GeneralPanel({
   config,
   effectiveTimeout,
   onChange,
+  httpVersion,
+  onHttpVersionChange,
 }: {
   config: ConfigScope;
   effectiveTimeout: ResolvedValue<number>;
   onChange: (config: ConfigScope) => void;
+  httpVersion?: HttpVersion;
+  onHttpVersionChange?: (httpVersion: HttpVersion) => void;
 }) {
   const placeholder =
     effectiveTimeout.from.scopeId === "default"
@@ -609,6 +624,36 @@ export function GeneralPanel({
           />
         </div>
       </div>
+      {httpVersion !== undefined && onHttpVersionChange && (
+        <div className="contents">
+          <div className={cn(AUTH_CELL, "flex items-center px-2")}>
+            <span className="text-xs text-muted-foreground">HTTP version</span>
+          </div>
+          <div className={cn(AUTH_CELL, "relative")}>
+            <Select
+              value={httpVersion}
+              onValueChange={(version) =>
+                onHttpVersionChange(version as HttpVersion)
+              }
+            >
+              <SelectTrigger
+                aria-label="HTTP version"
+                className="h-9 w-full rounded-none border-0 bg-transparent font-mono text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
+              >
+                {HTTP_VERSIONS.find((version) => version.value === httpVersion)
+                  ?.label ?? "Auto"}
+              </SelectTrigger>
+              <SelectContent position="popper">
+                {HTTP_VERSIONS.map((version) => (
+                  <SelectItem key={version.value} value={version.value}>
+                    {version.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

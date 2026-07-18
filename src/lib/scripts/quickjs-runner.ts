@@ -16,7 +16,7 @@ import {
 
 // The host bridge marshals every sandbox call as `(path, argsJson) -> jsonResult`
 // over plain strings, so only strings cross the WASM boundary - no proxies. The
-// prelude (run inside the sandbox, global scope) rebuilds `requi`/`req`/`res`/
+// prelude (run inside the sandbox, global scope) rebuilds `purerequest`/`req`/`res`/
 // `console` as objects whose methods call the bridge; user code then runs in
 // MODULE scope so top-level `await` works natively (the isolation shape Bruno
 // uses). Module evaluation yields a promise for the module's completion, drained
@@ -24,34 +24,34 @@ import {
 const PRELUDE = `
 const __call = (path, ...args) =>
   JSON.parse(globalThis.__bridge(path, JSON.stringify(args)));
-globalThis.requi = {
-  getVar: (n) => __call("requi.getVar", n),
-  setVar: (n, v) => __call("requi.setVar", n, v),
-  getProcessEnv: (n) => __call("requi.getProcessEnv", n),
-  getEnvName: () => __call("requi.getEnvName"),
+globalThis.purerequest = {
+  getVar: (n) => __call("purerequest.getVar", n),
+  setVar: (n, v) => __call("purerequest.setVar", n, v),
+  getProcessEnv: (n) => __call("purerequest.getProcessEnv", n),
+  getEnvName: () => __call("purerequest.getEnvName"),
 };
-// Bruno's script API is \`bru\`. ReqUI has one variable space + no filesystem, so
+// Bruno's script API is \`bru\`. purerequest has one variable space + no filesystem, so
 // the reader accessors all map to getVar and fs-only methods (cwd) are no-ops -
 // enough for pasted/imported Bruno scripts to run instead of ReferenceError-ing.
 globalThis.bru = {
-  getVar: (n) => __call("requi.getVar", n),
-  setVar: (n, v) => __call("requi.setVar", n, v),
-  getEnvVar: (n) => __call("requi.getVar", n),
-  getCollectionVar: (n) => __call("requi.getVar", n),
-  getFolderVar: (n) => __call("requi.getVar", n),
-  getRequestVar: (n) => __call("requi.getVar", n),
-  getProcessEnv: (n) => __call("requi.getProcessEnv", n),
-  getEnvName: () => __call("requi.getEnvName"),
+  getVar: (n) => __call("purerequest.getVar", n),
+  setVar: (n, v) => __call("purerequest.setVar", n, v),
+  getEnvVar: (n) => __call("purerequest.getVar", n),
+  getCollectionVar: (n) => __call("purerequest.getVar", n),
+  getFolderVar: (n) => __call("purerequest.getVar", n),
+  getRequestVar: (n) => __call("purerequest.getVar", n),
+  getProcessEnv: (n) => __call("purerequest.getProcessEnv", n),
+  getEnvName: () => __call("purerequest.getEnvName"),
   cwd: () => "",
 };
 // Postman's script API is \`pm\`. Like \`bru\`, alias the reachable surface onto the
-// host: the four variable stores collapse to ReqUI's single var space (get/set ->
-// requi.getVar/setVar), pm.response maps onto res.* (post stage only), and pm.test
-// runs its fn swallowing a thrown assertion (ReqUI doesn't report pass/fail), so
+// host: the four variable stores collapse to purerequest's single var space (get/set ->
+// purerequest.getVar/setVar), pm.response maps onto res.* (post stage only), and pm.test
+// runs its fn swallowing a thrown assertion (purerequest doesn't report pass/fail), so
 // imported Postman scripts run instead of \`ReferenceError: pm is not defined\`.
 const __pmStore = {
-  get: (n) => __call("requi.getVar", n),
-  set: (n, v) => __call("requi.setVar", n, v),
+  get: (n) => __call("purerequest.getVar", n),
+  set: (n, v) => __call("purerequest.setVar", n, v),
 };
 globalThis.pm = {
   variables: __pmStore,
@@ -117,10 +117,10 @@ type Dispatch = (path: string, args: unknown[]) => unknown;
 
 function buildDispatch(api: ScriptApi): Dispatch {
   const table: Record<string, (args: unknown[]) => unknown> = {
-    "requi.getVar": (a) => api.requi.getVar(String(a[0])),
-    "requi.setVar": (a) => api.requi.setVar(String(a[0]), String(a[1])),
-    "requi.getProcessEnv": (a) => api.requi.getProcessEnv(String(a[0])),
-    "requi.getEnvName": () => api.requi.getEnvName(),
+    "purerequest.getVar": (a) => api.purerequest.getVar(String(a[0])),
+    "purerequest.setVar": (a) => api.purerequest.setVar(String(a[0]), String(a[1])),
+    "purerequest.getProcessEnv": (a) => api.purerequest.getProcessEnv(String(a[0])),
+    "purerequest.getEnvName": () => api.purerequest.getEnvName(),
     "console.log": (a) => api.console.log(...a),
     "console.info": (a) => api.console.info(...a),
     "console.warn": (a) => api.console.warn(...a),

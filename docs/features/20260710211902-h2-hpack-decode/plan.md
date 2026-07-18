@@ -49,5 +49,5 @@ existing response-pane test extended, or a new assertion.
 ## Acceptance verification
 
 `cargo test` (hpack + dissect suites green), `npm test` (frontend green), `cargo clippy` clean.
-Live: `REQUI_TAP_CLIENT` default + an h2 endpoint -> Protocols tab shows decoded request/response
+Live: `PUREREQUEST_TAP_CLIENT` default + an h2 endpoint -> Protocols tab shows decoded request/response
 headers with hex highlight. Traceability table filled in the task file.

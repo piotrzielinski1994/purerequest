@@ -158,7 +158,7 @@ Test `workspace-context/__tests__/surface.test.tsx`.
 
 ## Cross-cutting notes
 
-- **Pattern**: factory-of-closures (mirrors dbui's `workspace-context.tsx` internal idiom),
+- **Pattern**: factory-of-closures (mirrors purequery's `workspace-context.tsx` internal idiom),
   no new library. Each factory is a plain function; hooks stay in `index.tsx`.
 - **Edge cases** (from spec): circular factory deps resolved by construction order; refs
   passed as objects (live reads); `createRequestNode` is the tree+tabs hybrid injected into

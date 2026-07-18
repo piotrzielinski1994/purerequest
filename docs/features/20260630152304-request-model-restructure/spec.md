@@ -158,7 +158,7 @@ On-disk (`*.req.json`), minimal-diff:
 ## Dependencies
 
 - No new packages. zod v4 schema generator already in use.
-- No dbui prior art (checked `~/projects/private/dbui` - no equivalent model).
+- No purequery prior art (checked `~/projects/private/purequery` - no equivalent model).
 
 ## Out of scope
 

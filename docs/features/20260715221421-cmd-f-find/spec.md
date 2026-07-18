@@ -2,11 +2,11 @@
 
 ## Overview
 
-Port dbui's design-clean find bar to requi. Pressing the `open-find` binding (default `Mod+F`)
+Port purequery's design-clean find bar to purerequest. Pressing the `open-find` binding (default `Mod+F`)
 over any CodeMirror surface opens a styled top panel - query input, active/total match count,
 prev/next, close - replacing CodeMirror's default unstyled bottom search panel. The open
 binding is a rebindable registry action, so it appears in Settings and the command palette
-like every other shortcut. requi has no data grid, so only the CodeMirror surfaces are in
+like every other shortcut. purerequest has no data grid, so only the CodeMirror surfaces are in
 scope (request body, config/request-settings, `.env`, response viewer, console object viewer,
 script editor, GraphQL query editor).
 
@@ -35,7 +35,7 @@ No new persisted model. `open-find` joins `ShortcutActionId`; overrides persist 
 ## Edge Cases
 
 - @uiw `basicSetup` keeps `searchKeymap`, so the built-in `Mod-F` also opens the (now-styled)
-  FindBar even after rebinding open-find. Documented limitation (dbui parity, YAGNI).
+  FindBar even after rebinding open-find. Documented limitation (purequery parity, YAGNI).
 - Read-only viewers (response/console): `search()` is find-only, safe on `EditorState.readOnly`.
 
 ## Dependencies

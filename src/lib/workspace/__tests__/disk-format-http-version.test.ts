@@ -51,7 +51,7 @@ describe("disk-format httpVersion", () => {
   it("should stamp the workspace manifest with schemaVersion 6", () => {
     const map = serialize([]);
 
-    const manifest = JSON.parse(map["requi.workspace.json"]) as {
+    const manifest = JSON.parse(map["purerequest.workspace.json"]) as {
       schemaVersion: number;
     };
     expect(manifest.schemaVersion).toBe(6);
@@ -81,7 +81,7 @@ describe("disk-format httpVersion", () => {
   // to a node whose requestHttpVersion is "h3".
   it("should deserialize httpVersion h3 back to a request whose version is h3", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 6, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 6, name: "W" }),
       "h3.req.json": JSON.stringify({
         name: "H3",
         method: "GET",
@@ -101,7 +101,7 @@ describe("disk-format httpVersion", () => {
   // auto.
   it("should deserialize a doc with no httpVersion to a request whose version is auto", () => {
     const files: FileMap = {
-      "requi.workspace.json": JSON.stringify({ schemaVersion: 5, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 5, name: "W" }),
       "legacy.req.json": JSON.stringify({
         name: "Legacy",
         method: "GET",

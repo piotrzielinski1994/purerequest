@@ -3,14 +3,14 @@ import { describe, it, expect } from "vitest";
 import { apiMembers } from "@/components/workspace/script-api-complete";
 
 describe("apiMembers", () => {
-  it("should list the requi methods in both stages", () => {
-    expect(apiMembers("requi", "pre")).toEqual([
+  it("should list the purerequest methods in both stages", () => {
+    expect(apiMembers("purerequest", "pre")).toEqual([
       "getVar",
       "setVar",
       "getProcessEnv",
       "getEnvName",
     ]);
-    expect(apiMembers("requi", "post")).toEqual(apiMembers("requi", "pre"));
+    expect(apiMembers("purerequest", "post")).toEqual(apiMembers("purerequest", "pre"));
   });
 
   it("should list the console methods in both stages", () => {

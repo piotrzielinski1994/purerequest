@@ -10,7 +10,7 @@ import type { ScriptApi } from "@/lib/scripts/model";
 
 function makeApi(overrides: Partial<ScriptApi> = {}): ScriptApi {
   return {
-    requi: {
+    purerequest: {
       getVar: () => undefined,
       setVar: () => {},
       getProcessEnv: () => undefined,
@@ -31,9 +31,9 @@ describe("createQuickJsScriptRunner", () => {
   // TC-001 / AC-008 - side-effect-contract: a sync script reaches the host setVar
   // through the sandbox and the run reports success.
   it("should call the host setVar and return ok:true for a sync script", async () => {
-    const setVar = vi.fn<NonNullable<ScriptApi["requi"]>["setVar"]>();
+    const setVar = vi.fn<NonNullable<ScriptApi["purerequest"]>["setVar"]>();
     const api = makeApi({
-      requi: {
+      purerequest: {
         getVar: () => undefined,
         setVar,
         getProcessEnv: () => undefined,
@@ -42,7 +42,7 @@ describe("createQuickJsScriptRunner", () => {
     });
     const runner = createQuickJsScriptRunner();
 
-    const outcome = await runner.run("requi.setVar('a','1')", api);
+    const outcome = await runner.run("purerequest.setVar('a','1')", api);
 
     expect(setVar).toHaveBeenCalledWith("a", "1");
     expect(outcome).toEqual({ ok: true });
@@ -51,9 +51,9 @@ describe("createQuickJsScriptRunner", () => {
   // TC-001 / AC-009 - behavior: async/await is supported; the host setVar gets
   // the value computed after the awaited microtask.
   it("should support async/await and call setVar with the resolved value", async () => {
-    const setVar = vi.fn<NonNullable<ScriptApi["requi"]>["setVar"]>();
+    const setVar = vi.fn<NonNullable<ScriptApi["purerequest"]>["setVar"]>();
     const api = makeApi({
-      requi: {
+      purerequest: {
         getVar: () => undefined,
         setVar,
         getProcessEnv: () => undefined,
@@ -63,7 +63,7 @@ describe("createQuickJsScriptRunner", () => {
     const runner = createQuickJsScriptRunner();
 
     const outcome = await runner.run(
-      "await Promise.resolve(); requi.setVar('a', String(1 + 1))",
+      "await Promise.resolve(); purerequest.setVar('a', String(1 + 1))",
       api,
     );
 
@@ -125,12 +125,12 @@ describe("createQuickJsScriptRunner", () => {
   });
 
   // Bruno-compat - side-effect-contract: a pasted Bruno script's `bru.setVar`
-  // reaches the host setVar (aliased onto requi), so imported Bruno collections
+  // reaches the host setVar (aliased onto purerequest), so imported Bruno collections
   // run without a `ReferenceError: 'bru' is not defined`.
   it("should alias bru.setVar onto the host setVar", async () => {
-    const setVar = vi.fn<NonNullable<ScriptApi["requi"]>["setVar"]>();
+    const setVar = vi.fn<NonNullable<ScriptApi["purerequest"]>["setVar"]>();
     const api = makeApi({
-      requi: {
+      purerequest: {
         getVar: () => undefined,
         setVar,
         getProcessEnv: () => undefined,
@@ -146,14 +146,14 @@ describe("createQuickJsScriptRunner", () => {
   });
 
   // Bruno-compat - behavior: bru.getVar / bru.getEnvVar / bru.getCollectionVar
-  // all read through the host getVar (ReqUI has one variable space).
+  // all read through the host getVar (purerequest has one variable space).
   it("should alias bru read accessors onto the host getVar", async () => {
-    const getVar = vi.fn<NonNullable<ScriptApi["requi"]>["getVar"]>(
+    const getVar = vi.fn<NonNullable<ScriptApi["purerequest"]>["getVar"]>(
       (name) => `val-${name}`,
     );
-    const setVar = vi.fn<NonNullable<ScriptApi["requi"]>["setVar"]>();
+    const setVar = vi.fn<NonNullable<ScriptApi["purerequest"]>["setVar"]>();
     const api = makeApi({
-      requi: { getVar, setVar, getProcessEnv: () => undefined, getEnvName: () => null },
+      purerequest: { getVar, setVar, getProcessEnv: () => undefined, getEnvName: () => null },
     });
     const runner = createQuickJsScriptRunner();
 
@@ -189,15 +189,15 @@ describe("createQuickJsScriptRunner", () => {
   });
 
   // Postman-compat, AC-012 / TC-010 - side-effect-contract: pm.variables get/set
-  // read and write through the host getVar/setVar (ReqUI has one variable space),
+  // read and write through the host getVar/setVar (purerequest has one variable space),
   // so imported Postman scripts run without a `ReferenceError: pm is not defined`.
   it("should alias pm.variables get and set onto the host getVar and setVar", async () => {
-    const getVar = vi.fn<NonNullable<ScriptApi["requi"]>["getVar"]>(
+    const getVar = vi.fn<NonNullable<ScriptApi["purerequest"]>["getVar"]>(
       (name) => `val-${name}`,
     );
-    const setVar = vi.fn<NonNullable<ScriptApi["requi"]>["setVar"]>();
+    const setVar = vi.fn<NonNullable<ScriptApi["purerequest"]>["setVar"]>();
     const api = makeApi({
-      requi: {
+      purerequest: {
         getVar,
         setVar,
         getProcessEnv: () => undefined,
@@ -219,9 +219,9 @@ describe("createQuickJsScriptRunner", () => {
   // Postman-compat, AC-012 - behavior: pm.environment / pm.collectionVariables /
   // pm.globals set all reach the host setVar (one variable space).
   it("should alias pm.environment, pm.collectionVariables and pm.globals set onto the host setVar", async () => {
-    const setVar = vi.fn<NonNullable<ScriptApi["requi"]>["setVar"]>();
+    const setVar = vi.fn<NonNullable<ScriptApi["purerequest"]>["setVar"]>();
     const api = makeApi({
-      requi: {
+      purerequest: {
         getVar: () => undefined,
         setVar,
         getProcessEnv: () => undefined,
