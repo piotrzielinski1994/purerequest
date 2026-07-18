@@ -22,6 +22,7 @@ import type { TokenTarget } from "@/components/workspace/url-token";
 import type { CurlParseResult } from "@/lib/curl/parse-curl";
 import type { BrunoFileMap } from "@/lib/bruno/bruno-to-tree";
 import type { BrunoExportWriter } from "@/lib/bruno/writer";
+import type { PostmanExportWriter } from "@/lib/postman/writer";
 import type { PostmanFileMap } from "@/lib/postman/postman-to-tree";
 
 // A promoted-on-save "new request" tab: the pristine request plus where it lands
@@ -102,6 +103,7 @@ export type WorkspaceInternals = {
   httpClientRef: RefObject<HttpClient>;
   scriptRunnerRef: RefObject<ScriptRunner>;
   brunoWriterRef: RefObject<BrunoExportWriter>;
+  postmanWriterRef: RefObject<PostmanExportWriter>;
   sendGeneration: RefObject<Map<string, number>>;
   inFlightRequestId: RefObject<Map<string, string>>;
   onTabsChangeRef: RefObject<
@@ -380,6 +382,7 @@ export type WorkspaceContextValue = {
   importPostman: (files: PostmanFileMap, name: string) => void;
   importOpenapi: (text: string, name: string) => void;
   exportBruno: (nodeId?: string) => void;
+  exportPostman: (nodeId?: string) => void;
   focusUrlNonce: number;
   // A pending request to focus a panel after a visibility toggle, and the two
   // ops around it: request a focus (set by the toggle handler), consume it
