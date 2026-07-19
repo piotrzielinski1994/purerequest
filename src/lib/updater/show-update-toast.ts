@@ -3,7 +3,9 @@ import type { UpdateInfo } from "@/lib/updater/update-controller";
 
 async function runUpdate(update: UpdateInfo, handle: ToastHandle) {
   handle.update("Downloading… 0%");
-  await update.downloadAndInstall((pct) => handle.update(`Downloading… ${pct}%`));
+  await update.downloadAndInstall((pct) =>
+    handle.update(`Downloading… ${pct}%`),
+  );
   await update.relaunch();
 }
 

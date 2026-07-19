@@ -25,10 +25,17 @@
   "plugins": {
     "fs": {
       "requireLiteralLeadingDot": false
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI1QzgwRjEyRTlFNjA0RDkKUldUWkJPYnBFZy9JdFl1T0NTYVpST3JHejZrSmNiR0NBWkZoY0lHOE5OWk52ZGhPcTF1UE0yM0UK",
+      "endpoints": [
+        "https://github.com/piotrzielinski1994/purerequest/releases/latest/download/latest.json"
+      ]
     }
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "icon": [
       "icons/32x32.png",

@@ -4,7 +4,10 @@ import userEvent from "@testing-library/user-event";
 
 import { ToastProvider } from "@/components/ui/toast";
 import { UpdateChecker } from "@/lib/updater/update-checker";
-import type { UpdateController, UpdateInfo } from "@/lib/updater/update-controller";
+import type {
+  UpdateController,
+  UpdateInfo,
+} from "@/lib/updater/update-controller";
 
 // The startup bridge (sibling of WindowFullscreenSync): mounts inside providers,
 // runs one check on mount via the injected controller, and on an available

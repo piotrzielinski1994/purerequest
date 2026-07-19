@@ -14,6 +14,13 @@ import {
   createWindowController,
 } from "@/lib/window/window-controller";
 import { WindowFullscreenSync } from "@/lib/window/window-fullscreen-sync";
+import {
+  createNoopUpdateController,
+  createUpdateController,
+  getAppVersion,
+} from "@/lib/updater/update-controller";
+import { UpdateChecker } from "@/lib/updater/update-checker";
+import { UpdaterProvider } from "@/lib/updater/updater-context";
 
 function createSettingsStore() {
   if (isDevBrowser()) {
@@ -32,16 +39,30 @@ function createWindowControllerForEnv() {
   return isTauri() ? createWindowController() : createNoopWindowController();
 }
 
+function createUpdateControllerForEnv() {
+  // Same guard as the window controller: only the native host talks to the
+  // updater/process plugins; dev-browser and jsdom get the noop (no network,
+  // no plugin calls).
+  return isTauri() ? createUpdateController() : createNoopUpdateController();
+}
+
 function RootLayout() {
   const [settingsStore] = useState(createSettingsStore);
   const [windowController] = useState(createWindowControllerForEnv);
+  const [updateController] = useState(createUpdateControllerForEnv);
 
   return (
     <SettingsProvider store={settingsStore}>
       <WindowFullscreenSync controller={windowController} />
       <ThemeProvider>
         <ToastProvider>
-          <Outlet />
+          <UpdaterProvider
+            controller={updateController}
+            getVersion={getAppVersion}
+          >
+            <UpdateChecker controller={updateController} />
+            <Outlet />
+          </UpdaterProvider>
         </ToastProvider>
       </ThemeProvider>
     </SettingsProvider>

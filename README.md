@@ -55,6 +55,21 @@ on macOS right-click the app and choose Open; on Windows choose "More info -> Ru
 To take installers down later, delete the Release (and its tag) or remove individual assets - the
 download links 404 immediately. Anyone who already downloaded keeps their local copy.
 
+### In-app auto-update
+
+Release builds ship the Tauri updater: the app checks the latest GitHub Release on startup (and via
+Settings -> Updates -> "Check for updates") and, when a newer version exists, shows a toast with an
+"Update now" button that downloads the signed update in place and relaunches. Two caveats:
+
+- **Only works forward.** A given build can only auto-update to releases published _after_ it. The
+  first updater-enabled build (and any build a user already has that predates the updater) must be
+  downloaded manually once.
+- **Signing secrets required in CI.** The workflow signs update artifacts with a minisign key. Add
+  two GitHub repo secrets before releasing: `TAURI_SIGNING_PRIVATE_KEY` (the private key contents)
+  and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (empty string if the key has no password). The matching
+  public key lives in `src-tauri/tauri.conf.json` under `plugins.updater.pubkey`. Without the
+  secrets the build still succeeds but emits unsigned artifacts the updater will reject.
+
 ## Features
 
 - **Requests** - method selector, URL bar, structured
