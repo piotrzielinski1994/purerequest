@@ -106,6 +106,45 @@ describe("UpdateChecker startup bridge", () => {
     });
   });
 
+  // AC-001 side-effect-contract: the check fires exactly once on mount, not on
+  // every re-render.
+  it("should check for updates only once across re-renders", async () => {
+    const check = vi.fn(() => Promise.resolve(null));
+    const { rerender } = renderChecker({ check });
+
+    await Promise.resolve();
+    rerender(
+      <ToastProvider>
+        <UpdateChecker controller={{ check }} />
+      </ToastProvider>,
+    );
+    await Promise.resolve();
+
+    expect(check).toHaveBeenCalledTimes(1);
+  });
+
+  // AC-003 behavior: once download starts, the Update now button is replaced by
+  // the progress label so it can't be re-fired mid-download.
+  it("should replace the Update now button with progress once download starts", async () => {
+    const downloadAndInstall = vi.fn((onProgress: (pct: number) => void) => {
+      onProgress(50);
+      return new Promise<void>(() => {});
+    });
+    const controller = controllerWith(fakeUpdateInfo({ downloadAndInstall }));
+
+    const user = userEvent.setup();
+    renderChecker(controller);
+
+    await user.click(
+      await screen.findByRole("button", { name: /update now/i }),
+    );
+
+    expect(await screen.findByText(/50%/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /update now/i }),
+    ).not.toBeInTheDocument();
+  });
+
   // TC-005 behavior: the available toast is persistent - it survives past the old
   // 2500ms auto-dismiss window. Fake timers are installed BEFORE mount so a
   // non-persistent impl's setTimeout would be captured and fire on advance.

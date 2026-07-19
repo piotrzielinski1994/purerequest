@@ -2,6 +2,7 @@ import type { ToastHandle } from "@/components/ui/toast";
 import type { UpdateInfo } from "@/lib/updater/update-controller";
 
 async function runUpdate(update: UpdateInfo, handle: ToastHandle) {
+  handle.clearAction();
   handle.update("Downloading… 0%");
   await update.downloadAndInstall((pct) =>
     handle.update(`Downloading… ${pct}%`),

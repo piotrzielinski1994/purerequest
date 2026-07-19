@@ -24,6 +24,7 @@ type Toast = {
 export type ToastHandle = {
   id: number;
   update: (message: string) => void;
+  clearAction: () => void;
   dismiss: () => void;
 };
 
@@ -36,6 +37,7 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 const NOOP_HANDLE: ToastHandle = {
   id: -1,
   update: () => {},
+  clearAction: () => {},
   dismiss: () => {},
 };
 
@@ -66,6 +68,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         update: (next) =>
           setToasts((current) =>
             current.map((t) => (t.id === id ? { ...t, message: next } : t)),
+          ),
+        clearAction: () =>
+          setToasts((current) =>
+            current.map((t) => (t.id === id ? { ...t, action: undefined } : t)),
           ),
         dismiss: () => dismiss(id),
       };
