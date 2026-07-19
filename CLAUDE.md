@@ -24,9 +24,11 @@ Briefing for Claude Code. Read [README.md](README.md) first - setup, commands, r
 
 If during a session you learn something project-specific that future-you would otherwise have to re-derive - a non-obvious convention the user prefers, a constraint that bit us, a gotcha worth recording - append it to [docs/learnings.md](docs/learnings.md). Examples: formatting rules the user repeated, gotchas that broke a hook/CI, naming conventions enforced via review.
 
+**MANDATORY trigger - every root-caused bug is a learning.** Any time you diagnose a bug to its root cause and fix it, append an entry, WITHOUT being asked, in the SAME turn as the fix (not just to the journal/Stop hook - those are separate sinks that do NOT satisfy this rule). This is the single highest-value category: the harder the bug was to find, the more it belongs here. The entry records (1) the observable symptom, (2) the real root cause, (3) the fix, (4) any wrong turns that wasted time so the next debugger skips them. A surprising root cause is NOT "debugging notes to omit" - it is the whole point of this file. If you find yourself deciding a hard-won fix is "too much detail" or "just debugging", that instinct is wrong: write it.
+
 For architectural trade-offs (significant, costly-to-reverse, or contested choices) use [docs/adr.md](docs/adr.md) instead - that's a separate log.
 
-Don't add: one-off task context, debugging notes, things obvious from the code itself, or anything that would fit better in [README.md](README.md). Don't ask permission for small additions - just keep the file tight and the diff visible in the next commit.
+Don't add: one-off task context, things obvious from the code itself, or anything that would fit better in [README.md](README.md). "Debugging notes" to omit means only the throwaway process narration (which command you ran 5th, transient dead ends already covered by the root-cause write-up) - NEVER the root cause or the fix itself. Don't ask permission for additions - just keep the file tight and the diff visible in the next commit.
 
 ## Features
 

@@ -33,8 +33,10 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      // 3. tell Vite to ignore watching `src-tauri` and `.pzielinski` (the latter
+      // symlinks the live app-data dir, whose per-launch log file grows every
+      // second and would otherwise trigger an endless HMR full-reload loop).
+      ignored: ["**/src-tauri/**", "**/.pzielinski/**"],
     },
   },
 }));
