@@ -7,6 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ThemeSection } from "@/components/settings/theme-section";
 import { EnvSection } from "@/components/settings/env-section";
 import { ShortcutsSection } from "@/components/settings/shortcuts-section";
+import { UpdatesSection } from "@/components/settings/updates-section";
+import { useUpdater } from "@/lib/updater/updater-context";
 import { useSettings } from "@/lib/settings/settings-context";
 import {
   SETTINGS_SECTIONS,
@@ -19,6 +21,7 @@ import {
 // tabs) so a long section body can never push the bar off-screen.
 export function SettingsView() {
   const { settings, saveSettingsSection } = useSettings();
+  const { controller, getVersion } = useUpdater();
   const stored = settings.settingsSection;
   // Coerce any stale/invalid persisted value to the first section.
   const section: SettingsSection =
@@ -41,6 +44,9 @@ export function SettingsView() {
           <TabsTrigger value="shortcuts" className={PANE_TABS_TRIGGER}>
             Shortcuts
           </TabsTrigger>
+          <TabsTrigger value="updates" className={PANE_TABS_TRIGGER}>
+            Updates
+          </TabsTrigger>
         </TabsList>
       </div>
       <TabsContent value="theme" className="min-h-0 flex-1">
@@ -53,6 +59,13 @@ export function SettingsView() {
         <ScrollArea className="h-full">
           <div className="max-w-3xl p-6">
             <ShortcutsSection />
+          </div>
+        </ScrollArea>
+      </TabsContent>
+      <TabsContent value="updates" className="min-h-0 flex-1">
+        <ScrollArea className="h-full">
+          <div className="max-w-3xl p-6">
+            <UpdatesSection controller={controller} getVersion={getVersion} />
           </div>
         </ScrollArea>
       </TabsContent>

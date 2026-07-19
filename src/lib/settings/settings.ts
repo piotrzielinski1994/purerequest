@@ -100,12 +100,13 @@ export type Settings = {
   settingsSection?: SettingsSection;
 };
 
-export type SettingsSection = "theme" | "env" | "shortcuts";
+export type SettingsSection = "theme" | "env" | "shortcuts" | "updates";
 
 export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
   "theme",
   "env",
   "shortcuts",
+  "updates",
 ];
 
 const THEME_MODES: ThemeMode[] = ["light", "dark", "system"];

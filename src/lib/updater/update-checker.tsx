@@ -1,15 +1,7 @@
 import { useEffect, useRef } from "react";
-import { useToast, type ToastHandle } from "@/components/ui/toast";
-import type {
-  UpdateController,
-  UpdateInfo,
-} from "@/lib/updater/update-controller";
-
-async function runUpdate(update: UpdateInfo, handle: ToastHandle) {
-  handle.update("Downloading… 0%");
-  await update.downloadAndInstall((pct) => handle.update(`Downloading… ${pct}%`));
-  await update.relaunch();
-}
+import { useToast } from "@/components/ui/toast";
+import type { UpdateController } from "@/lib/updater/update-controller";
+import { showUpdateToast } from "@/lib/updater/show-update-toast";
 
 // Mount-only bridge (sibling of WindowFullscreenSync): runs one update check on
 // mount via the injected controller and, on an available update, shows a
@@ -31,18 +23,9 @@ export function UpdateChecker({
     controller
       .check()
       .then((update) => {
-        if (update === null) {
-          return;
+        if (update !== null) {
+          showUpdateToast(show, update);
         }
-        const handle = show(`Update available: ${update.version}`, {
-          persistent: true,
-          action: {
-            label: "Update now",
-            onClick: () => {
-              runUpdate(update, handle);
-            },
-          },
-        });
       })
       .catch(() => {});
   }, [controller, show]);
