@@ -1,7 +1,9 @@
 use std::net::SocketAddr;
 use std::sync::mpsc;
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+#[cfg(feature = "pcap-capture")]
+use std::time::Instant;
 
 // One captured packet: the raw link-layer bytes plus the pcap linktype so the decoder knows
 // the L2 framing (Ethernet vs the 4-byte loopback pseudo-header).
@@ -29,6 +31,7 @@ pub const LINKTYPE_LOOP: i32 = 108;
 
 // Runtime gate. Live packet capture is OFF by default: it needs elevated privileges (BPF access)
 // and is purely additive. `PUREREQUEST_PCAP=1` opts in.
+#[cfg(feature = "pcap-capture")]
 pub fn is_enabled() -> bool {
     std::env::var("PUREREQUEST_PCAP").map(|v| v == "1").unwrap_or(false)
 }
@@ -36,6 +39,7 @@ pub fn is_enabled() -> bool {
 // A handle to a running capture thread. Dropping/joining it stops the capture and returns what
 // was seen. The thread self-terminates after `max_duration` as a safety net so it can never
 // outlive the send.
+#[allow(dead_code)]
 pub struct CaptureHandle {
     stop: mpsc::Sender<()>,
     join: thread::JoinHandle<PacketCapture>,
@@ -43,6 +47,7 @@ pub struct CaptureHandle {
 
 // How long the capture thread keeps draining after `finish()` is called, so packets still in
 // the kernel buffer from a just-completed fast (localhost) exchange aren't dropped.
+#[cfg(feature = "pcap-capture")]
 const DRAIN_LINGER: Duration = Duration::from_millis(150);
 
 impl CaptureHandle {
@@ -56,6 +61,7 @@ impl CaptureHandle {
 
 // How long the caller blocks waiting for the capture to arm before giving up and proceeding
 // with the send anyway (so a slow/failed capture can never stall a request).
+#[cfg(feature = "pcap-capture")]
 const ARM_TIMEOUT: Duration = Duration::from_millis(500);
 
 // Start capturing TCP packets before the send begins (so the SYN handshake is caught). We don't
@@ -63,6 +69,7 @@ const ARM_TIMEOUT: Duration = Duration::from_millis(500);
 // broad `tcp`; `filter_to_connection` narrows the collected packets to our 4-tuple afterwards.
 // Returns None when capture is disabled. BLOCKS (up to ARM_TIMEOUT) until the capture is actually
 // listening, so the send's SYN isn't missed to a device-open race - the whole point of capture.
+#[cfg(feature = "pcap-capture")]
 pub fn start_unfiltered(max_duration: Duration) -> Option<CaptureHandle> {
     if !is_enabled() {
         return None;
@@ -77,6 +84,14 @@ pub fn start_unfiltered(max_duration: Duration) -> Option<CaptureHandle> {
         stop: stop_tx,
         join,
     })
+}
+
+// Capture is compiled out of the shipped binaries (the `pcap-capture` feature is off by default)
+// so purerequest links no system libpcap/npcap and launches on a stock machine. Live L2-L4
+// capture is a privileged dev-only diagnostic; build with `--features pcap-capture` to enable it.
+#[cfg(not(feature = "pcap-capture"))]
+pub fn start_unfiltered(_max_duration: Duration) -> Option<CaptureHandle> {
+    None
 }
 
 // Keep only the packets belonging to this connection (matched by the two TCP ports, which are
@@ -136,6 +151,7 @@ fn packet_ports(packet: &CapturedPacket) -> Option<(u16, u16)> {
 // macOS (returns an addr-less pseudo-interface like `ap1`), so instead take the first Connected
 // device that has a routable (non-loopback, non-link-local) IP address bound to it - which is the
 // interface the default route uses for egress (en0 on Wi-Fi/Ethernet).
+#[cfg(feature = "pcap-capture")]
 fn pick_default_device() -> Result<pcap::Device, String> {
     use pcap::{ConnectionStatus, Device};
 
@@ -149,6 +165,7 @@ fn pick_default_device() -> Result<pcap::Device, String> {
 
 // A globally routable address (excludes loopback and link-local), i.e. one that identifies an
 // egress interface rather than a pseudo/tunnel-only device.
+#[cfg(any(feature = "pcap-capture", test))]
 fn is_routable(addr: &std::net::IpAddr) -> bool {
     match addr {
         std::net::IpAddr::V4(ip) => !ip.is_loopback() && !ip.is_link_local(),
@@ -157,10 +174,12 @@ fn is_routable(addr: &std::net::IpAddr) -> bool {
 }
 
 // IPv6 link-local prefix fe80::/10 (Ipv6Addr::is_unicast_link_local is unstable, so check by hand).
+#[cfg(any(feature = "pcap-capture", test))]
 fn is_ipv6_link_local(ip: &std::net::Ipv6Addr) -> bool {
     ip.segments()[0] & 0xffc0 == 0xfe80
 }
 
+#[cfg(feature = "pcap-capture")]
 fn run_capture(
     filter: &str,
     stop_rx: mpsc::Receiver<()>,
