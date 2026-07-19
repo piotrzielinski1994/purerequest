@@ -157,6 +157,7 @@ function RowContextMenu({
     openConfigEditor,
     exportBruno,
     exportPostman,
+    exportOpenapi,
     requestDeleteNode,
   } = useWorkspace();
   // Create actions belong only on a FOLDER row (create INSIDE it). A request is
@@ -201,6 +202,11 @@ function RowContextMenu({
         {isFolder && (
           <ContextMenuItem onSelect={() => exportPostman(node.id)}>
             Export as Postman...
+          </ContextMenuItem>
+        )}
+        {isFolder && (
+          <ContextMenuItem onSelect={() => exportOpenapi(node.id)}>
+            Export as OpenAPI...
           </ContextMenuItem>
         )}
         <ContextMenuSeparator />

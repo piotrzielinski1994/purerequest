@@ -71,7 +71,7 @@ download links 404 immediately. Anyone who already downloaded keeps their local 
 - **Scripting** - sandboxed `pre`/`post` JavaScript per request (Bruno `bru.*` / Postman `pm.*`
   aliased) with a Console.
 - **Import / export** - cURL, Bruno (`.bru` + OpenCollection), Postman, and OpenAPI/Swagger
-  import; Bruno + Postman export; "Copy as code" (cURL / `fetch`).
+  import; Bruno, Postman, and OpenAPI export; "Copy as code" (cURL / `fetch`).
 - **UX** - light / dark / system theme with custom colors, a command palette + quick-open, in-app
   find, and fully configurable keyboard shortcuts.
 
