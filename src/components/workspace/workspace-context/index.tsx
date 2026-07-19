@@ -27,6 +27,10 @@ import {
   createNoopBrunoWriter,
   type BrunoExportWriter,
 } from "@/lib/bruno/writer";
+import {
+  createNoopPostmanWriter,
+  type PostmanExportWriter,
+} from "@/lib/postman/writer";
 import { parseDotenv } from "@/lib/workspace/environment";
 import { findNode } from "@/lib/workspace/tree-locate";
 import { useToast } from "@/components/ui/toast";
@@ -95,6 +99,7 @@ type WorkspaceProviderProps = {
   httpClient?: HttpClient;
   scriptRunner?: ScriptRunner;
   brunoWriter?: BrunoExportWriter;
+  postmanWriter?: PostmanExportWriter;
   workspaceName?: string;
   activeEnvironment?: string;
   processEnv?: Record<string, string>;
@@ -117,6 +122,7 @@ export function WorkspaceProvider({
   httpClient,
   scriptRunner,
   brunoWriter,
+  postmanWriter,
   workspaceName = "Workspace",
   activeEnvironment: initialActiveEnvironment,
   processEnv: initialProcessEnv = {},
@@ -244,6 +250,14 @@ export function WorkspaceProvider({
       brunoWriterRef.current = brunoWriter;
     }
   }, [brunoWriter]);
+  const postmanWriterRef = useRef<PostmanExportWriter>(
+    postmanWriter ?? createNoopPostmanWriter(),
+  );
+  useEffect(() => {
+    if (postmanWriter) {
+      postmanWriterRef.current = postmanWriter;
+    }
+  }, [postmanWriter]);
   // Per-request send generation: bumped on each send so a stale result (one
   // resolving after a cancel + re-send) can be ignored. The in-flight wire id
   // lets a Stop cancel exactly the send it belongs to.
@@ -512,6 +526,7 @@ export function WorkspaceProvider({
       httpClientRef,
       scriptRunnerRef,
       brunoWriterRef,
+      postmanWriterRef,
       workspaceName,
       sendGeneration,
       inFlightRequestId,
@@ -610,7 +625,7 @@ export function WorkspaceProvider({
       selectSingle,
     });
 
-    const { exportBruno } = createExports(internals);
+    const { exportBruno, exportPostman } = createExports(internals);
 
     const { saveNodeConfig, saveFolder, saveFolderConfigDoc, setFolderEnvColor } =
       createConfigSaves(internals, persistTree);
@@ -769,6 +784,7 @@ export function WorkspaceProvider({
       importPostman,
       importOpenapi,
       exportBruno,
+      exportPostman,
       focusUrlNonce,
       pendingPanelFocus,
       requestPanelFocus,
