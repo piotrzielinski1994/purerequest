@@ -15,6 +15,7 @@ import type { PostmanCollectionReader } from "@/lib/postman/reader";
 import type { OpenapiReader } from "@/lib/openapi/reader";
 import type { BrunoExportWriter } from "@/lib/bruno/writer";
 import type { PostmanExportWriter } from "@/lib/postman/writer";
+import type { OpenapiExportWriter } from "@/lib/openapi/writer";
 import type { HttpClient } from "@/lib/http/model";
 import type { ScriptRunner } from "@/lib/scripts/model";
 import type { TreeNode } from "@/lib/workspace/model";
@@ -57,6 +58,7 @@ export function WorkspaceLoader({
   openapiReader,
   brunoWriter,
   postmanWriter,
+  openapiWriter,
   httpClient,
   scriptRunner,
 }: {
@@ -67,6 +69,7 @@ export function WorkspaceLoader({
   openapiReader?: OpenapiReader;
   brunoWriter?: BrunoExportWriter;
   postmanWriter?: PostmanExportWriter;
+  openapiWriter?: OpenapiExportWriter;
   httpClient?: HttpClient;
   scriptRunner?: ScriptRunner;
 }) {
@@ -139,6 +142,7 @@ export function WorkspaceLoader({
         scriptRunner={scriptRunner}
         brunoWriter={brunoWriter}
         postmanWriter={postmanWriter}
+        openapiWriter={openapiWriter}
         workspaceName={DEFAULT_WORKSPACE_NAME}
       >
         <WorkspaceLayout
@@ -173,6 +177,7 @@ export function WorkspaceLoader({
       scriptRunner={scriptRunner}
       brunoWriter={brunoWriter}
       postmanWriter={postmanWriter}
+      openapiWriter={openapiWriter}
       workspaceName={workspaceName}
       processEnv={state.processEnv}
       envText={state.envText}

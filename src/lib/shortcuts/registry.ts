@@ -24,6 +24,7 @@ export type ShortcutActionId =
   | "import-openapi"
   | "export-bruno"
   | "export-postman"
+  | "export-openapi"
   | "open-command-palette"
   | "open-quick-open"
   | "open-find"
@@ -208,6 +209,13 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     description:
       "Export the selected folder (or the whole workspace) as a Postman collection.",
     defaultHotkey: "Mod+Alt+P",
+  },
+  {
+    id: "export-openapi",
+    name: "Export as OpenAPI document",
+    description:
+      "Export the selected folder (or the whole workspace) as an OpenAPI 3.0 document.",
+    defaultHotkey: "Mod+Alt+O",
   },
   {
     id: "open-command-palette",

@@ -37,6 +37,7 @@ const ACTION_IDS: ShortcutActionId[] = [
   "import-openapi",
   "export-bruno",
   "export-postman",
+  "export-openapi",
   "open-command-palette",
   "open-quick-open",
   "open-find",

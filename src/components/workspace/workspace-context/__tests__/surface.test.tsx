@@ -120,6 +120,7 @@ const EXPECTED_MEMBERS = [
   "importOpenapi",
   "exportBruno",
   "exportPostman",
+  "exportOpenapi",
   "focusUrlNonce",
   "pendingPanelFocus",
   "requestPanelFocus",

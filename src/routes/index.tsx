@@ -27,6 +27,10 @@ import {
   createTauriPostmanWriter,
   createNoopPostmanWriter,
 } from "@/lib/postman/writer";
+import {
+  createTauriOpenapiWriter,
+  createNoopOpenapiWriter,
+} from "@/lib/openapi/writer";
 import { createTauriHttpClient } from "@/lib/http/tauri-client";
 import { createFakeHttpClient } from "@/lib/http/fake-client";
 import { createQuickJsScriptRunner } from "@/lib/scripts/quickjs-runner";
@@ -43,6 +47,7 @@ import type { PostmanCollectionReader } from "@/lib/postman/reader";
 import type { OpenapiReader } from "@/lib/openapi/reader";
 import type { BrunoExportWriter } from "@/lib/bruno/writer";
 import type { PostmanExportWriter } from "@/lib/postman/writer";
+import type { OpenapiExportWriter } from "@/lib/openapi/writer";
 import type { HttpClient } from "@/lib/http/model";
 import { rootRoute } from "@/routes/__root";
 
@@ -54,6 +59,7 @@ type Adapters = {
   openapiReader: OpenapiReader;
   brunoWriter: BrunoExportWriter;
   postmanWriter: PostmanExportWriter;
+  openapiWriter: OpenapiExportWriter;
   httpClient: HttpClient;
 };
 
@@ -67,6 +73,7 @@ function createAdapters(): Adapters {
       openapiReader: createNoopOpenapiReader(),
       brunoWriter: createNoopBrunoWriter(),
       postmanWriter: createNoopPostmanWriter(),
+      openapiWriter: createNoopOpenapiWriter(),
       httpClient: createFakeHttpClient({ ok: true, response: DEMO_RESPONSE }),
     };
   }
@@ -78,6 +85,7 @@ function createAdapters(): Adapters {
     openapiReader: createTauriOpenapiReader(),
     brunoWriter: createTauriBrunoWriter(),
     postmanWriter: createTauriPostmanWriter(),
+    openapiWriter: createTauriOpenapiWriter(),
     httpClient: createTauriHttpClient(),
   };
 }
@@ -95,6 +103,7 @@ function HomePage() {
       openapiReader={adapters.openapiReader}
       brunoWriter={adapters.brunoWriter}
       postmanWriter={adapters.postmanWriter}
+      openapiWriter={adapters.openapiWriter}
       httpClient={adapters.httpClient}
       scriptRunner={scriptRunner}
     />

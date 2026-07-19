@@ -31,6 +31,10 @@ import {
   createNoopPostmanWriter,
   type PostmanExportWriter,
 } from "@/lib/postman/writer";
+import {
+  createNoopOpenapiWriter,
+  type OpenapiExportWriter,
+} from "@/lib/openapi/writer";
 import { parseDotenv } from "@/lib/workspace/environment";
 import { findNode } from "@/lib/workspace/tree-locate";
 import { useToast } from "@/components/ui/toast";
@@ -100,6 +104,7 @@ type WorkspaceProviderProps = {
   scriptRunner?: ScriptRunner;
   brunoWriter?: BrunoExportWriter;
   postmanWriter?: PostmanExportWriter;
+  openapiWriter?: OpenapiExportWriter;
   workspaceName?: string;
   activeEnvironment?: string;
   processEnv?: Record<string, string>;
@@ -123,6 +128,7 @@ export function WorkspaceProvider({
   scriptRunner,
   brunoWriter,
   postmanWriter,
+  openapiWriter,
   workspaceName = "Workspace",
   activeEnvironment: initialActiveEnvironment,
   processEnv: initialProcessEnv = {},
@@ -258,6 +264,14 @@ export function WorkspaceProvider({
       postmanWriterRef.current = postmanWriter;
     }
   }, [postmanWriter]);
+  const openapiWriterRef = useRef<OpenapiExportWriter>(
+    openapiWriter ?? createNoopOpenapiWriter(),
+  );
+  useEffect(() => {
+    if (openapiWriter) {
+      openapiWriterRef.current = openapiWriter;
+    }
+  }, [openapiWriter]);
   // Per-request send generation: bumped on each send so a stale result (one
   // resolving after a cancel + re-send) can be ignored. The in-flight wire id
   // lets a Stop cancel exactly the send it belongs to.
@@ -527,6 +541,7 @@ export function WorkspaceProvider({
       scriptRunnerRef,
       brunoWriterRef,
       postmanWriterRef,
+      openapiWriterRef,
       workspaceName,
       sendGeneration,
       inFlightRequestId,
@@ -625,7 +640,8 @@ export function WorkspaceProvider({
       selectSingle,
     });
 
-    const { exportBruno, exportPostman } = createExports(internals);
+    const { exportBruno, exportPostman, exportOpenapi } =
+      createExports(internals);
 
     const { saveNodeConfig, saveFolder, saveFolderConfigDoc, setFolderEnvColor } =
       createConfigSaves(internals, persistTree);
@@ -785,6 +801,7 @@ export function WorkspaceProvider({
       importOpenapi,
       exportBruno,
       exportPostman,
+      exportOpenapi,
       focusUrlNonce,
       pendingPanelFocus,
       requestPanelFocus,
