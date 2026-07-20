@@ -1,0 +1,22 @@
+name: Publish Winget
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish the winget manifest for (e.g. v0.1.0)'
+        required: true
+
+jobs:
+  publish-winget:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Submit manifest to winget-pkgs
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: Pzielinski.PureRequest
+          installers-regex: '_x64-setup\.exe$'
+          release-tag: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+          token: ${{ secrets.WINGET_TOKEN }}

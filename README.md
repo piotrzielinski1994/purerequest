@@ -44,6 +44,18 @@ Rust backend tests: `cd src-tauri && cargo test`.
 > browser build wired to fakes (in-memory fs + fake HTTP), not the native Tauri boundary - that
 > stays covered by `cargo test`.
 
+## Installing
+
+- **macOS (Homebrew):** `brew install --cask piotrzielinski1994/tap/purerequest`
+- **Windows (winget):** `winget install Pzielinski.PureRequest`
+- **Any OS (manual):** download the installer for your platform from the [latest Release](https://github.com/piotrzielinski1994/purerequest/releases/latest).
+
+Both package manifests are updated automatically on every published Release: the Homebrew cask via
+[`publish-cask.yml`](.github/workflows/publish-cask.yml) (pushes to the owned tap) and the winget
+manifest via [`publish-winget.yml`](.github/workflows/publish-winget.yml) (opens a PR against
+`microsoft/winget-pkgs`). See [packaging/winget/](packaging/winget/) for the initial manifests that
+must be submitted manually once, before the workflow can take over.
+
 ## Releasing installers
 
 The [`Release` workflow](.github/workflows/release.yml) builds installers for all three OSes and
