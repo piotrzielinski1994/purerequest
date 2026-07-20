@@ -47,7 +47,7 @@ Rust backend tests: `cd src-tauri && cargo test`.
 ## Installing
 
 - **macOS (Homebrew):** `brew install --cask piotrzielinski1994/tap/purerequest`
-- **Windows (winget):** `winget install Pzielinski.PureRequest`
+- **Windows (winget):** `winget install pzielinski.purerequest`
 - **Any OS (manual):** download the installer for your platform from the [latest Release](https://github.com/piotrzielinski1994/purerequest/releases/latest).
 
 Both package manifests are updated automatically on every published Release: the Homebrew cask via

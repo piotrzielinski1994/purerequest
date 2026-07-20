@@ -16,7 +16,7 @@ jobs:
       - name: Submit manifest to winget-pkgs
         uses: vedantmgoyal9/winget-releaser@v2
         with:
-          identifier: Pzielinski.PureRequest
+          identifier: pzielinski.purerequest
           installers-regex: '_x64-setup\.exe$'
           release-tag: ${{ github.event.release.tag_name || github.event.inputs.tag }}
           token: ${{ secrets.WINGET_TOKEN }}

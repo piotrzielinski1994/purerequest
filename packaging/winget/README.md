@@ -3,7 +3,7 @@
 Manifests for publishing purerequest to the Windows Package Manager
 ([microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs)).
 
-Package identifier: `Pzielinski.PureRequest`
+Package identifier: `pzielinski.purerequest`
 
 ## One-time first submission (manual)
 
@@ -13,12 +13,12 @@ version has to be submitted by hand:
 
 1. Fork `microsoft/winget-pkgs` under `piotrzielinski1994`.
 2. Copy the three manifests in this folder into the fork at
-   `manifests/p/Pzielinski/PureRequest/0.1.0/` (keep the filenames as-is; the path is
+   `manifests/p/pzielinski/purerequest/0.1.0/` (keep the filenames as-is; the path is
    case-sensitive and mirrors the identifier segments).
 3. Validate + smoke-test locally on a Windows box:
    ```powershell
-   winget validate --manifest manifests\p\Pzielinski\PureRequest\0.1.0
-   winget install --manifest manifests\p\Pzielinski\PureRequest\0.1.0
+   winget validate --manifest manifests\p\pzielinski\purerequest\0.1.0
+   winget install --manifest manifests\p\pzielinski\purerequest\0.1.0
    ```
 4. Open a PR from the fork to `microsoft/winget-pkgs` `master`. The Microsoft validation bot runs
    automatically; a human moderator reviews.
