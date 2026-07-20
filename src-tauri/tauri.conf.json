@@ -27,7 +27,7 @@
       "requireLiteralLeadingDot": false
     },
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI1QzgwRjEyRTlFNjA0RDkKUldUWkJPYnBFZy9JdFl1T0NTYVpST3JHejZrSmNiR0NBWkZoY0lHOE5OWk52ZGhPcTF1UE0yM0UK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU5NkRCQTc3RDVDMUVBOTEKUldTUjZzSFZkN3B0NlMyZE1DNjNKMVJCWE5IRHg4eEo4SnFQUlV3SDY2Y1JJdXRKRndoRFFmamcK",
       "endpoints": [
         "https://github.com/piotrzielinski1994/purerequest/releases/latest/download/latest.json"
       ]
