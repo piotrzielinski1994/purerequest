@@ -10,7 +10,6 @@ import {
 import { FolderPane } from "@/components/workspace/folder-pane";
 import { ContentHeader } from "@/components/workspace/content-header";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
-import { ToastProvider } from "@/components/ui/toast";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
@@ -62,14 +61,12 @@ function FolderProbe() {
 
 function renderFolder(onTreeChange: OnTreeChange) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider tree={tree} onTreeChange={onTreeChange}>
-        <ContentHeader />
-        <FolderProbe />
-        <FolderPane />
-        <CloseConfirmDialog />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider tree={tree} onTreeChange={onTreeChange}>
+      <ContentHeader />
+      <FolderProbe />
+      <FolderPane />
+      <CloseConfirmDialog />
+    </WorkspaceProvider>,
   );
 }
 

@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import { isTauri } from "@tauri-apps/api/core";
 import { isDevBrowser } from "@/lib/runtime/environment";
 import { DEMO_WORKSPACE_PATH } from "@/lib/workspace/demo-seed";
-import { ToastProvider } from "@/components/ui/toast";
+import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/lib/theme/theme-context";
 import {
   createNoopWindowController,
@@ -55,15 +55,14 @@ function RootLayout() {
     <SettingsProvider store={settingsStore}>
       <WindowFullscreenSync controller={windowController} />
       <ThemeProvider>
-        <ToastProvider>
-          <UpdaterProvider
-            controller={updateController}
-            getVersion={getAppVersion}
-          >
-            <UpdateChecker controller={updateController} />
-            <Outlet />
-          </UpdaterProvider>
-        </ToastProvider>
+        <UpdaterProvider
+          controller={updateController}
+          getVersion={getAppVersion}
+        >
+          <UpdateChecker controller={updateController} />
+          <Outlet />
+          <Toaster />
+        </UpdaterProvider>
       </ThemeProvider>
     </SettingsProvider>
   );

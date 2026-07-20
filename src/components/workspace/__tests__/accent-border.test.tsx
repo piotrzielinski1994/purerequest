@@ -9,7 +9,6 @@ import {
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
-import { ToastProvider } from "@/components/ui/toast";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
@@ -127,18 +126,22 @@ function renderLayout(opts: {
 }) {
   return render(
     <SettingsProvider store={createInMemorySettingsStore()}>
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={tree}
-          activeEnvironment={opts.activeEnvironment}
-          initialExpandedIds={["f-a", "f-prod", "f-parent", "f-child", "f-staging"]}
-          initialActiveRequestId={opts.activeRequestId}
-          initialOpenRequestIds={opts.openRequestIds}
-        >
-          <BorderProbe />
-          <WorkspaceLayout />
-        </WorkspaceProvider>
-      </ToastProvider>
+      <WorkspaceProvider
+        tree={tree}
+        activeEnvironment={opts.activeEnvironment}
+        initialExpandedIds={[
+          "f-a",
+          "f-prod",
+          "f-parent",
+          "f-child",
+          "f-staging",
+        ]}
+        initialActiveRequestId={opts.activeRequestId}
+        initialOpenRequestIds={opts.openRequestIds}
+      >
+        <BorderProbe />
+        <WorkspaceLayout />
+      </WorkspaceProvider>
     </SettingsProvider>,
   );
 }

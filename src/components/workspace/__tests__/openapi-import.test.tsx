@@ -1,16 +1,28 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { toast } from "sonner";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { ToastProvider } from "@/components/ui/toast";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { OpenapiReader } from "@/lib/openapi/reader";
+
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), {
+    error: vi.fn(),
+    success: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+  Toaster: () => null,
+}));
+
+const mockToast = vi.mocked(toast);
 
 type OnTreeChange = (
   tree: TreeNode[],
@@ -68,15 +80,13 @@ function renderShell(
   });
   return render(
     <SettingsProvider store={store}>
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={baseTree}
-          consoleLines={["[12:00:00] Ready."]}
-          onTreeChange={opts.onTreeChange}
-        >
-          <WorkspaceLayout openapiReader={opts.openapiReader} />
-        </WorkspaceProvider>
-      </ToastProvider>
+      <WorkspaceProvider
+        tree={baseTree}
+        consoleLines={["[12:00:00] Ready."]}
+        onTreeChange={opts.onTreeChange}
+      >
+        <WorkspaceLayout openapiReader={opts.openapiReader} />
+      </WorkspaceProvider>
     </SettingsProvider>,
   );
 }
@@ -136,8 +146,7 @@ describe("Import OpenAPI document (AC-012, AC-013)", () => {
     ).toBe(true);
     // the imported request lives inside the new folder.
     const importedRequest = collect(persisted).find(
-      (node) =>
-        node.kind === "request" && node.url === "{{baseUrl}}/ping",
+      (node) => node.kind === "request" && node.url === "{{baseUrl}}/ping",
     );
     expect(importedRequest).toBeDefined();
 
@@ -190,6 +199,12 @@ describe("Import OpenAPI document (AC-012, AC-013)", () => {
 
     await runPaletteCommand(user, /import openapi document/i);
 
-    expect(await screen.findByText(/no importable operations/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        mockToast.mock.calls.some((c) =>
+          /no importable operations/i.test(String(c[0])),
+        ),
+      ).toBe(true);
+    });
   });
 });

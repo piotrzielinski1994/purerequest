@@ -13,7 +13,6 @@ import {
   useWorkspace,
 } from "@/components/workspace/workspace-context";
 import { RequestPane } from "@/components/workspace/request-pane";
-import { ToastProvider } from "@/components/ui/toast";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient } from "./fake-http-client";
@@ -62,17 +61,15 @@ const fullRequestDoc = (overrides: Record<string, unknown> = {}) =>
 
 function renderPane(onTreeChange = vi.fn().mockResolvedValue({ ok: true })) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider
-        tree={tree}
-        initialActiveRequestId="req-1"
-        httpClient={createFakeHttpClient()}
-        onTreeChange={onTreeChange}
-      >
-        <EditorProbe />
-        <RequestPane />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider
+      tree={tree}
+      initialActiveRequestId="req-1"
+      httpClient={createFakeHttpClient()}
+      onTreeChange={onTreeChange}
+    >
+      <EditorProbe />
+      <RequestPane />
+    </WorkspaceProvider>,
   );
 }
 
@@ -128,7 +125,9 @@ describe("Raw editor code folding", () => {
     );
 
     // the fold gutter exists and offers at least one collapse control.
-    const foldMarkers = document.querySelectorAll(".cm-foldGutter .cm-gutterElement");
+    const foldMarkers = document.querySelectorAll(
+      ".cm-foldGutter .cm-gutterElement",
+    );
     expect(foldMarkers.length).toBeGreaterThan(0);
     const openControl = document.querySelector('.cm-foldGutter [title*="old"]');
     expect(openControl).not.toBeNull();

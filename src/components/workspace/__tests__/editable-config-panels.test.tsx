@@ -15,7 +15,6 @@ import {
   useWorkspace,
 } from "@/components/workspace/workspace-context";
 import { RequestPane } from "@/components/workspace/request-pane";
-import { ToastProvider } from "@/components/ui/toast";
 import type { ConfigScope, RequestNode, TreeNode } from "@/lib/workspace/model";
 import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 
@@ -64,17 +63,15 @@ function SaveProbe() {
 
 function renderPane(onTreeChange: OnTreeChange) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider
-        tree={tree}
-        initialActiveRequestId="req-1"
-        initialOpenRequestIds={["req-1"]}
-        onTreeChange={onTreeChange}
-      >
-        <SaveProbe />
-        <RequestPane />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider
+      tree={tree}
+      initialActiveRequestId="req-1"
+      initialOpenRequestIds={["req-1"]}
+      onTreeChange={onTreeChange}
+    >
+      <SaveProbe />
+      <RequestPane />
+    </WorkspaceProvider>,
   );
 }
 
@@ -225,15 +222,13 @@ describe("config grid {{var}} highlighting", () => {
 
   const renderTokens = (onTreeChange: OnTreeChange) =>
     render(
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={tokenTree}
-          initialActiveRequestId="req-1"
-          onTreeChange={onTreeChange}
-        >
-          <RequestPane />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider
+        tree={tokenTree}
+        initialActiveRequestId="req-1"
+        onTreeChange={onTreeChange}
+      >
+        <RequestPane />
+      </WorkspaceProvider>,
     );
 
   // behavior: a {{var}} inside a header value is rendered as a colored token in
@@ -306,17 +301,15 @@ describe("editable Auth panel", () => {
       },
     ];
     return render(
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={basicTree}
-          initialActiveRequestId="req-1"
-          initialOpenRequestIds={["req-1"]}
-          onTreeChange={onTreeChange}
-        >
-          <SaveProbe />
-          <RequestPane />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider
+        tree={basicTree}
+        initialActiveRequestId="req-1"
+        initialOpenRequestIds={["req-1"]}
+        onTreeChange={onTreeChange}
+      >
+        <SaveProbe />
+        <RequestPane />
+      </WorkspaceProvider>,
     );
   };
 
@@ -427,7 +420,9 @@ async function setScript(label: RegExp, text: string) {
 // Type into the editor WITHOUT blurring (the tab-switch-loses-edit scenario).
 async function typeScriptNoBlur(label: RegExp, text: string) {
   const content = screen.getByLabelText(label);
-  const view = EditorView.findFromDOM(content.closest(".cm-editor") as HTMLElement);
+  const view = EditorView.findFromDOM(
+    content.closest(".cm-editor") as HTMLElement,
+  );
   if (!view) {
     throw new Error("live EditorView not found");
   }
@@ -476,7 +471,9 @@ describe("editable Script panel", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedConfig(onTreeChange).scripts?.pre).toBe("console.log('pending')");
+    expect(savedConfig(onTreeChange).scripts?.pre).toBe(
+      "console.log('pending')",
+    );
   });
 
   // config-grid - behavior: editing the post-response script persists it on save

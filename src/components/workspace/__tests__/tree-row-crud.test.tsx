@@ -9,7 +9,6 @@ import {
 } from "@/components/workspace/workspace-context";
 import { TreeRow } from "@/components/workspace/tree-row";
 import { TreeDndProvider } from "@/components/workspace/tree-dnd";
-import { ToastProvider } from "@/components/ui/toast";
 import { fixtureTree, profileRequest } from "./fixtures";
 import type { TreeNode } from "@/lib/workspace/model";
 
@@ -42,18 +41,16 @@ function RenameControl() {
 
 function renderRow(node: TreeNode) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
-        <RenameControl />
-        <DndContext>
-          <TreeDndProvider value={{ activeId: null, indicator: null }}>
-            <ul>
-              <TreeRow node={node} depth={0} />
-            </ul>
-          </TreeDndProvider>
-        </DndContext>
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
+      <RenameControl />
+      <DndContext>
+        <TreeDndProvider value={{ activeId: null, indicator: null }}>
+          <ul>
+            <TreeRow node={node} depth={0} />
+          </ul>
+        </TreeDndProvider>
+      </DndContext>
+    </WorkspaceProvider>,
   );
 }
 

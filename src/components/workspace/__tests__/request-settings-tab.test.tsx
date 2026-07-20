@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   render,
   screen,
@@ -10,6 +10,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { EditorView } from "@codemirror/view";
 import { forceLinting, diagnosticCount } from "@codemirror/lint";
+import { toast } from "sonner";
 
 import {
   WorkspaceProvider,
@@ -17,10 +18,29 @@ import {
 } from "@/components/workspace/workspace-context";
 import { RequestPane } from "@/components/workspace/request-pane";
 import { SidebarTree } from "@/components/workspace/sidebar-tree";
-import { ToastProvider } from "@/components/ui/toast";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient } from "./fake-http-client";
+
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), {
+    error: vi.fn(),
+    success: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+  Toaster: () => null,
+}));
+
+const mockToast = vi.mocked(toast);
+
+function toastFired(pattern: RegExp): boolean {
+  return mockToast.mock.calls.some((c) => pattern.test(String(c[0])));
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 // Saving is via Mod+S (saveActiveEditor) or the close popup - the per-editor
 // Save bar was removed. This probe drives the Mod+S path and surfaces
@@ -83,17 +103,15 @@ async function setDoc(text: string) {
 
 function renderPane(onTreeChange = vi.fn().mockResolvedValue({ ok: true })) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider
-        tree={tree}
-        initialActiveRequestId="req-1"
-        httpClient={createFakeHttpClient()}
-        onTreeChange={onTreeChange}
-      >
-        <EditorProbe />
-        <RequestPane />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider
+      tree={tree}
+      initialActiveRequestId="req-1"
+      httpClient={createFakeHttpClient()}
+      onTreeChange={onTreeChange}
+    >
+      <EditorProbe />
+      <RequestPane />
+    </WorkspaceProvider>,
   );
 }
 
@@ -151,35 +169,33 @@ describe("RequestPane Raw sub-tab", () => {
   it("should show a JSON body as real nested JSON in the Raw JSON", async () => {
     const user = userEvent.setup();
     render(
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={[
-            {
-              kind: "request",
-              id: "req-1",
-              name: "Req",
-              method: "POST",
-              url: "https://api/get",
-              body: {
-                active: "json",
-                types: {
-                  json: '{\n  "grant_type": "client_credentials"\n}',
-                  form: [],
-                  multipart: [],
-                  graphql: { query: "", variables: "" },
-                },
+      <WorkspaceProvider
+        tree={[
+          {
+            kind: "request",
+            id: "req-1",
+            name: "Req",
+            method: "POST",
+            url: "https://api/get",
+            body: {
+              active: "json",
+              types: {
+                json: '{\n  "grant_type": "client_credentials"\n}',
+                form: [],
+                multipart: [],
+                graphql: { query: "", variables: "" },
               },
-              params: emptyParams(),
-              config: REQ_CONFIG,
             },
-          ]}
-          initialActiveRequestId="req-1"
-          httpClient={createFakeHttpClient()}
-          onTreeChange={vi.fn().mockResolvedValue({ ok: true })}
-        >
-          <RequestPane />
-        </WorkspaceProvider>
-      </ToastProvider>,
+            params: emptyParams(),
+            config: REQ_CONFIG,
+          },
+        ]}
+        initialActiveRequestId="req-1"
+        httpClient={createFakeHttpClient()}
+        onTreeChange={vi.fn().mockResolvedValue({ ok: true })}
+      >
+        <RequestPane />
+      </WorkspaceProvider>,
     );
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
@@ -452,7 +468,9 @@ describe("RequestPane Raw sub-tab", () => {
     await setDoc(fullRequestDoc({ config: { variables: { token: "abc" } } }));
     await user.click(screen.getByRole("button", { name: /fire shortcut/i }));
 
-    expect(await screen.findByText(/saved/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(toastFired(/saved/i)).toBe(true);
+    });
   });
 
   // behavior: the save shortcut persists the active request editor without
@@ -461,17 +479,15 @@ describe("RequestPane Raw sub-tab", () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn().mockResolvedValue({ ok: true });
     render(
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={tree}
-          initialActiveRequestId="req-1"
-          httpClient={createFakeHttpClient()}
-          onTreeChange={onTreeChange}
-        >
-          <EditorProbe />
-          <RequestPane />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider
+        tree={tree}
+        initialActiveRequestId="req-1"
+        httpClient={createFakeHttpClient()}
+        onTreeChange={onTreeChange}
+      >
+        <EditorProbe />
+        <RequestPane />
+      </WorkspaceProvider>,
     );
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
@@ -505,7 +521,9 @@ describe("RequestPane Raw sub-tab", () => {
     await setDoc(fullRequestDoc({ config: { variables: { token: "abc" } } }));
     await user.click(screen.getByRole("button", { name: /fire shortcut/i }));
 
-    expect(await screen.findByText(/disk full/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(toastFired(/disk full/i)).toBe(true);
+    });
   });
 });
 
@@ -524,14 +542,13 @@ describe("Request context-menu Edit config opens the Raw sub-tab", () => {
     const treeEl = screen.getByRole("tree", { name: /collection/i });
     const row = within(treeEl).getByRole("treeitem", { name: /Req/i });
     fireEvent.contextMenu(row);
-    await user.click(
-      await screen.findByRole("menuitem", { name: /^edit$/i }),
-    );
+    await user.click(await screen.findByRole("menuitem", { name: /^edit$/i }));
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
-    expect(
-      within(tablist).getByRole("tab", { name: "Raw" }),
-    ).toHaveAttribute("aria-selected", "true");
+    expect(within(tablist).getByRole("tab", { name: "Raw" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
     });

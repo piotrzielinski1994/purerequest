@@ -8,7 +8,6 @@ import {
 } from "@/components/workspace/workspace-context";
 import { SidebarTree } from "@/components/workspace/sidebar-tree";
 import { ContentHeader } from "@/components/workspace/content-header";
-import { ToastProvider } from "@/components/ui/toast";
 import { fixtureTree } from "./fixtures";
 
 function EditUrlButton({ id }: { id: string }) {
@@ -198,9 +197,7 @@ describe("ContentHeader", () => {
     const tree = screen.getByRole("tree", { name: /collection/i });
     const folderRow = within(tree).getByRole("treeitem", { name: "Users" });
     fireEvent.contextMenu(folderRow);
-    await user.click(
-      await screen.findByRole("menuitem", { name: /^edit$/i }),
-    );
+    await user.click(await screen.findByRole("menuitem", { name: /^edit$/i }));
 
     expect(
       within(tablist).getByRole("tab", { name: "profile" }),
@@ -226,9 +223,7 @@ describe("ContentHeader", () => {
     const tree = screen.getByRole("tree", { name: /collection/i });
     const folderRow = within(tree).getByRole("treeitem", { name: "Users" });
     fireEvent.contextMenu(folderRow);
-    await user.click(
-      await screen.findByRole("menuitem", { name: /^edit$/i }),
-    );
+    await user.click(await screen.findByRole("menuitem", { name: /^edit$/i }));
 
     const tablist = screen.getByRole("tablist", { name: /open requests/i });
     const editorTab = within(tablist).getByRole("tab", { name: "Users" });
@@ -240,9 +235,10 @@ describe("ContentHeader", () => {
       within(tablist).getByRole("tab", { name: "profile" }),
     ).toHaveAttribute("aria-selected", "true");
     // the editor tab is still present, just no longer active.
-    expect(
-      within(tablist).getByRole("tab", { name: "Users" }),
-    ).toHaveAttribute("aria-selected", "false");
+    expect(within(tablist).getByRole("tab", { name: "Users" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
   });
 
   // behavior: opening a folder config editor adds its own tab in the tab strip.
@@ -262,9 +258,7 @@ describe("ContentHeader", () => {
     const tree = screen.getByRole("tree", { name: /collection/i });
     const folderRow = within(tree).getByRole("treeitem", { name: "Users" });
     fireEvent.contextMenu(folderRow);
-    await user.click(
-      await screen.findByRole("menuitem", { name: /^edit$/i }),
-    );
+    await user.click(await screen.findByRole("menuitem", { name: /^edit$/i }));
 
     const tablist = screen.getByRole("tablist", { name: /open requests/i });
     const editorTab = within(tablist).getByRole("tab", { name: "Users" });
@@ -295,15 +289,17 @@ describe("ContentHeader", () => {
     const tablist = screen.getByRole("tablist", { name: /open requests/i });
     // activate the request tab -> editor deactivates but its tab remains.
     await user.click(within(tablist).getByRole("tab", { name: "profile" }));
-    expect(
-      within(tablist).getByRole("tab", { name: "Users" }),
-    ).toHaveAttribute("aria-selected", "false");
+    expect(within(tablist).getByRole("tab", { name: "Users" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
 
     // click the editor tab back -> it re-activates.
     await user.click(within(tablist).getByRole("tab", { name: "Users" }));
-    expect(
-      within(tablist).getByRole("tab", { name: "Users" }),
-    ).toHaveAttribute("aria-selected", "true");
+    expect(within(tablist).getByRole("tab", { name: "Users" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     expect(
       within(tablist).getByRole("tab", { name: "profile" }),
     ).toHaveAttribute("aria-selected", "false");
@@ -326,9 +322,7 @@ describe("ContentHeader", () => {
     const tree = screen.getByRole("tree", { name: /collection/i });
     const folderRow = within(tree).getByRole("treeitem", { name: "Users" });
     fireEvent.contextMenu(folderRow);
-    await user.click(
-      await screen.findByRole("menuitem", { name: /^edit$/i }),
-    );
+    await user.click(await screen.findByRole("menuitem", { name: /^edit$/i }));
 
     await user.click(
       screen.getByRole("button", { name: /close config editor/i }),
@@ -584,15 +578,13 @@ describe("ContentHeader tab context menu (AC-006/008)", () => {
     activeId = openIds[0],
   ): ReturnType<typeof userEvent.setup> {
     render(
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={fixtureTree}
-          initialOpenRequestIds={openIds}
-          initialActiveRequestId={activeId}
-        >
-          <ContentHeader />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider
+        tree={fixtureTree}
+        initialOpenRequestIds={openIds}
+        initialActiveRequestId={activeId}
+      >
+        <ContentHeader />
+      </WorkspaceProvider>,
     );
     return userEvent.setup();
   }

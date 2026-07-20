@@ -10,7 +10,6 @@ import { ContentHeader } from "@/components/workspace/content-header";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
-import { ToastProvider } from "@/components/ui/toast";
 import { fixtureTree } from "./fixtures";
 
 // Drives the tab strip via a probe (context openSettings/setActiveRequest) so the
@@ -31,16 +30,14 @@ async function renderHeader(openIds: string[] = ["req-profile", "req-token"]) {
   });
   render(
     <SettingsProvider store={store}>
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={fixtureTree}
-          initialOpenRequestIds={openIds}
-          initialActiveRequestId={openIds[0]}
-        >
-          <ContentHeader />
-          <Probe />
-        </WorkspaceProvider>
-      </ToastProvider>
+      <WorkspaceProvider
+        tree={fixtureTree}
+        initialOpenRequestIds={openIds}
+        initialActiveRequestId={openIds[0]}
+      >
+        <ContentHeader />
+        <Probe />
+      </WorkspaceProvider>
     </SettingsProvider>,
   );
   await screen.findByRole("tablist", { name: /open requests/i });
@@ -63,7 +60,9 @@ describe("Settings tab is a real tab (AC-003/004)", () => {
     // Activate the profile request tab.
     await user.click(within(tablist()).getByRole("tab", { name: "profile" }));
 
-    const settingsTab = within(tablist()).getByRole("tab", { name: /settings/i });
+    const settingsTab = within(tablist()).getByRole("tab", {
+      name: /settings/i,
+    });
     expect(settingsTab).toBeInTheDocument();
     expect(settingsTab).toHaveAttribute("aria-selected", "false");
   });
@@ -146,7 +145,9 @@ describe("Settings tab reorder handle (AC-005)", () => {
     await renderHeader();
     await openSettings(user);
 
-    const settingsTab = within(tablist()).getByRole("tab", { name: /settings/i });
+    const settingsTab = within(tablist()).getByRole("tab", {
+      name: /settings/i,
+    });
     const handle = settingsTab.closest("[aria-roledescription]") as HTMLElement;
     expect(handle).not.toBeNull();
     expect(handle).toHaveAttribute("aria-roledescription", "sortable");
@@ -179,9 +180,7 @@ describe("Tab chip has no dead click zones (AC-011)", () => {
     // Close the inactive token tab via its X; profile stays active, token gone.
     await user.click(screen.getByRole("button", { name: /close token/i }));
 
-    expect(
-      within(tablist()).queryByRole("tab", { name: "token" }),
-    ).toBeNull();
+    expect(within(tablist()).queryByRole("tab", { name: "token" })).toBeNull();
     expect(
       within(tablist()).getByRole("tab", { name: "profile" }),
     ).toHaveAttribute("aria-selected", "true");

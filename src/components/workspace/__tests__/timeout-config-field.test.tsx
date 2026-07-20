@@ -10,7 +10,6 @@ import { RequestPane } from "@/components/workspace/request-pane";
 import { FolderPane } from "@/components/workspace/folder-pane";
 import { ContentHeader } from "@/components/workspace/content-header";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
-import { ToastProvider } from "@/components/ui/toast";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient } from "./fake-http-client";
@@ -77,18 +76,16 @@ const inheritedTree: TreeNode[] = [
 
 function renderRequestPane(tree: TreeNode[], onTreeChange: OnTreeChange) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider
-        tree={tree}
-        initialActiveRequestId="req-1"
-        initialOpenRequestIds={["req-1"]}
-        httpClient={createFakeHttpClient()}
-        onTreeChange={onTreeChange}
-      >
-        <SaveProbe />
-        <RequestPane />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider
+      tree={tree}
+      initialActiveRequestId="req-1"
+      initialOpenRequestIds={["req-1"]}
+      httpClient={createFakeHttpClient()}
+      onTreeChange={onTreeChange}
+    >
+      <SaveProbe />
+      <RequestPane />
+    </WorkspaceProvider>,
   );
 }
 
@@ -217,19 +214,19 @@ describe("request pane Raw tab (renamed from Settings)", () => {
     const user = userEvent.setup();
     const onTreeChange = vi.fn<OnTreeChange>().mockResolvedValue({ ok: true });
     render(
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={requestTree}
-          httpClient={createFakeHttpClient()}
-          onTreeChange={onTreeChange}
-        >
-          <EditJumpProbe />
-          <RequestPane />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider
+        tree={requestTree}
+        httpClient={createFakeHttpClient()}
+        onTreeChange={onTreeChange}
+      >
+        <EditJumpProbe />
+        <RequestPane />
+      </WorkspaceProvider>,
     );
 
-    await user.click(screen.getByRole("button", { name: /open config editor/i }));
+    await user.click(
+      screen.getByRole("button", { name: /open config editor/i }),
+    );
 
     const tablist = screen.getByRole("tablist", { name: /request sections/i });
     expect(within(tablist).getByRole("tab", { name: "Raw" })).toHaveAttribute(
@@ -289,14 +286,12 @@ function FolderProbe() {
 
 function renderFolder(onTreeChange: OnTreeChange) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider tree={folderTree} onTreeChange={onTreeChange}>
-        <ContentHeader />
-        <FolderProbe />
-        <FolderPane />
-        <CloseConfirmDialog />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider tree={folderTree} onTreeChange={onTreeChange}>
+      <ContentHeader />
+      <FolderProbe />
+      <FolderPane />
+      <CloseConfirmDialog />
+    </WorkspaceProvider>,
   );
 }
 

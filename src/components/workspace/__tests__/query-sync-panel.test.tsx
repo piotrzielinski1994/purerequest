@@ -8,7 +8,6 @@ import {
 } from "@/components/workspace/workspace-context";
 import { RequestPane } from "@/components/workspace/request-pane";
 import { UrlBar } from "@/components/workspace/url-bar";
-import { ToastProvider } from "@/components/ui/toast";
 import type { KeyValue, RequestNode, TreeNode } from "@/lib/workspace/model";
 import { emptyBody } from "@/lib/workspace/model";
 
@@ -56,18 +55,16 @@ function renderPane(
   onTreeChange: OnTreeChange = vi.fn().mockResolvedValue({ ok: true }),
 ) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider
-        tree={tree}
-        initialActiveRequestId="req-1"
-        initialOpenRequestIds={["req-1"]}
-        onTreeChange={onTreeChange}
-      >
-        <SaveProbe />
-        <UrlBar />
-        <RequestPane />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider
+      tree={tree}
+      initialActiveRequestId="req-1"
+      initialOpenRequestIds={["req-1"]}
+      onTreeChange={onTreeChange}
+    >
+      <SaveProbe />
+      <UrlBar />
+      <RequestPane />
+    </WorkspaceProvider>,
   );
 }
 

@@ -1,6 +1,10 @@
+import { toast } from "sonner";
 import { findNode } from "@/lib/workspace/tree-locate";
 import { slugify } from "@/lib/workspace/slug";
-import { treeToBrunoFiles, type BrunoExportRoot } from "@/lib/bruno/tree-to-bruno";
+import {
+  treeToBrunoFiles,
+  type BrunoExportRoot,
+} from "@/lib/bruno/tree-to-bruno";
 import {
   treeToPostmanFiles,
   type PostmanExportRoot,
@@ -24,7 +28,6 @@ export function createExports(internals: WorkspaceInternals): ExportsApi {
     brunoWriterRef,
     postmanWriterRef,
     openapiWriterRef,
-    showToastRef,
   } = internals;
 
   const brunoRootFor = (nodeId: string | undefined): BrunoExportRoot => {
@@ -62,11 +65,11 @@ export function createExports(internals: WorkspaceInternals): ExportsApi {
       .save(treeToBrunoFiles(root), root.name)
       .then((saved) => {
         if (saved) {
-          showToastRef.current("Exported Bruno collection");
+          toast("Exported Bruno collection");
         }
       })
       .catch(() => {
-        showToastRef.current("Failed to export Bruno collection");
+        toast("Failed to export Bruno collection");
       });
   };
 
@@ -76,11 +79,11 @@ export function createExports(internals: WorkspaceInternals): ExportsApi {
       .save(treeToPostmanFiles(root), root.name)
       .then((saved) => {
         if (saved) {
-          showToastRef.current("Exported Postman collection");
+          toast("Exported Postman collection");
         }
       })
       .catch(() => {
-        showToastRef.current("Failed to export Postman collection");
+        toast("Failed to export Postman collection");
       });
   };
 
@@ -97,11 +100,11 @@ export function createExports(internals: WorkspaceInternals): ExportsApi {
       .save(files, root.name)
       .then((saved) => {
         if (saved) {
-          showToastRef.current("Exported OpenAPI document");
+          toast("Exported OpenAPI document");
         }
       })
       .catch(() => {
-        showToastRef.current("Failed to export OpenAPI document");
+        toast("Failed to export OpenAPI document");
       });
   };
 

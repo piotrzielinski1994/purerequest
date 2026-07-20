@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { useToast } from "@/components/ui/toast";
 import type { UpdateController } from "@/lib/updater/update-controller";
 import { showUpdateToast } from "@/lib/updater/show-update-toast";
 
@@ -12,7 +11,6 @@ export function UpdateChecker({
 }: {
   controller: UpdateController;
 }) {
-  const { show } = useToast();
   const hasChecked = useRef(false);
 
   useEffect(() => {
@@ -24,11 +22,11 @@ export function UpdateChecker({
       .check()
       .then((update) => {
         if (update !== null) {
-          showUpdateToast(show, update);
+          showUpdateToast(update);
         }
       })
       .catch(() => {});
-  }, [controller, show]);
+  }, [controller]);
 
   return null;
 }

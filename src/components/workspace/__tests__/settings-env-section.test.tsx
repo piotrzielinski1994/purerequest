@@ -11,7 +11,6 @@ import { Sidebar } from "@/components/workspace/sidebar";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
-import { ToastProvider } from "@/components/ui/toast";
 import type { TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
@@ -48,14 +47,12 @@ function renderShell(props: {
 }) {
   const store = createInMemorySettingsStore({ ...DEFAULT_SETTINGS });
   return render(
-    <ToastProvider>
-      <SettingsProvider store={store}>
-        <WorkspaceProvider tree={tree} {...props}>
-          <OpenSettings />
-          <Content />
-        </WorkspaceProvider>
-      </SettingsProvider>
-    </ToastProvider>,
+    <SettingsProvider store={store}>
+      <WorkspaceProvider tree={tree} {...props}>
+        <OpenSettings />
+        <Content />
+      </WorkspaceProvider>
+    </SettingsProvider>,
   );
 }
 
@@ -126,11 +123,9 @@ describe("sidebar no longer hosts the .env editor (AC-009)", () => {
   // AC-009, TC-006 - behavior: the sidebar has no ".env" edit button.
   it("should not render an Edit .env button in the sidebar", () => {
     render(
-      <ToastProvider>
-        <WorkspaceProvider tree={tree}>
-          <Sidebar />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider tree={tree}>
+        <Sidebar />
+      </WorkspaceProvider>,
     );
 
     expect(

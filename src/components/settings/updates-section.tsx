@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/toast";
 import type { UpdateController } from "@/lib/updater/update-controller";
 import { showUpdateToast } from "@/lib/updater/show-update-toast";
 
@@ -11,7 +11,6 @@ export function UpdatesSection({
   controller: UpdateController;
   getVersion: () => Promise<string>;
 }) {
-  const { show } = useToast();
   const [version, setVersion] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
 
@@ -36,12 +35,12 @@ export function UpdatesSection({
       .check()
       .then((update) => {
         if (update === null) {
-          show("You're on the latest version");
+          toast("You're on the latest version");
           return;
         }
-        showUpdateToast(show, update);
+        showUpdateToast(update);
       })
-      .catch(() => show("Update check failed"))
+      .catch(() => toast("Update check failed"))
       .finally(() => setIsChecking(false));
   };
 

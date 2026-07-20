@@ -1,8 +1,16 @@
+import { toast } from "sonner";
 import { insertNode } from "@/lib/workspace/tree-edit";
 import { mergeDotenv } from "@/lib/workspace/environment";
 import { parseCurl, type CurlParseResult } from "@/lib/curl/parse-curl";
-import { brunoToTree, collectDotenv, type BrunoFileMap } from "@/lib/bruno/bruno-to-tree";
-import { postmanToTree, type PostmanFileMap } from "@/lib/postman/postman-to-tree";
+import {
+  brunoToTree,
+  collectDotenv,
+  type BrunoFileMap,
+} from "@/lib/bruno/bruno-to-tree";
+import {
+  postmanToTree,
+  type PostmanFileMap,
+} from "@/lib/postman/postman-to-tree";
 import { openapiToTree } from "@/lib/openapi/openapi-to-tree";
 import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
 import type { PersistApi } from "@/components/workspace/workspace-context/persist";
@@ -31,7 +39,6 @@ export function createImports(
     tree,
     envText,
     nodeCounter,
-    showToastRef,
     setIsCurlImportOpen,
     setExpandedFolderIds,
     setIsEditorActive,
@@ -69,7 +76,7 @@ export function createImports(
       { mode: "persist" },
     );
     setIsCurlImportOpen(false);
-    showToastRef.current("Imported request");
+    toast("Imported request");
     return result;
   };
 
@@ -84,7 +91,7 @@ export function createImports(
     setIsEditorActive(false);
     selectSingle(folder.id);
     persistTree(insertNode(tree, null, tree.length, folder), "import");
-    showToastRef.current("Imported Bruno collection");
+    toast("Imported Bruno collection");
   };
 
   const importPostman = (files: PostmanFileMap, name: string) => {
@@ -102,13 +109,13 @@ export function createImports(
     if (collectionEnv.trim() !== "") {
       saveEnv(mergeDotenv(envText, collectionEnv));
     }
-    showToastRef.current("Imported Postman collection");
+    toast("Imported Postman collection");
   };
 
   const importOpenapi = (text: string, name: string) => {
     const [root] = openapiToTree(text, name);
     if (!root || root.kind !== "folder" || root.children.length === 0) {
-      showToastRef.current("No importable operations in OpenAPI document");
+      toast("No importable operations in OpenAPI document");
       return;
     }
     nodeCounter.current += 1;
@@ -117,7 +124,7 @@ export function createImports(
     setIsEditorActive(false);
     selectSingle(folder.id);
     persistTree(insertNode(tree, null, tree.length, folder), "import");
-    showToastRef.current("Imported OpenAPI document");
+    toast("Imported OpenAPI document");
   };
 
   return {

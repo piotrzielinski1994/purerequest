@@ -6,7 +6,6 @@ import {
   WorkspaceProvider,
   useWorkspace,
 } from "@/components/workspace/workspace-context";
-import { ToastProvider } from "@/components/ui/toast";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
@@ -75,21 +74,19 @@ function renderProbe({
 }: RenderOpts) {
   const client: FakeHttpClient = createFakeHttpClient();
   return render(
-    <ToastProvider>
-      <WorkspaceProvider
-        tree={tree}
-        httpClient={client}
-        scriptRunner={createFakeScriptRunner(setVarImpl)}
-        initialActiveRequestId="req-main"
-        initialExpandedIds={["identity"]}
-        onTreeChange={onTreeChange}
-        onEnvChange={onEnvChange}
-        envText={envText}
-        processEnv={processEnv}
-      >
-        <Probe />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider
+      tree={tree}
+      httpClient={client}
+      scriptRunner={createFakeScriptRunner(setVarImpl)}
+      initialActiveRequestId="req-main"
+      initialExpandedIds={["identity"]}
+      onTreeChange={onTreeChange}
+      onEnvChange={onEnvChange}
+      envText={envText}
+      processEnv={processEnv}
+    >
+      <Probe />
+    </WorkspaceProvider>,
   );
 }
 
@@ -161,7 +158,8 @@ describe("setVar follows a pure process.env pointer to the ROOT .env (AC-002)", 
     await user.click(screen.getByRole("button", { name: /send main/i }));
 
     await waitFor(() => expect(onEnvChange).toHaveBeenCalled());
-    const lastText = onEnvChange.mock.calls[onEnvChange.mock.calls.length - 1][0];
+    const lastText =
+      onEnvChange.mock.calls[onEnvChange.mock.calls.length - 1][0];
     expect(lastText).toContain("BEARER_TOKEN=root-jwt");
   });
 });
@@ -180,7 +178,8 @@ describe("setVar appends to the root .env if the key owns no .env yet (AC-003)",
 
     renderProbe({
       tree: treeMissingKey,
-      setVarImpl: (api) => api.purerequest.setVar("BEARER_TOKEN", "appended-jwt"),
+      setVarImpl: (api) =>
+        api.purerequest.setVar("BEARER_TOKEN", "appended-jwt"),
       onTreeChange,
       onEnvChange,
       envText: "",

@@ -9,7 +9,6 @@ import {
 import { FolderPane } from "@/components/workspace/folder-pane";
 import { ContentHeader } from "@/components/workspace/content-header";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
-import { ToastProvider } from "@/components/ui/toast";
 import type { FolderNode, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
@@ -66,14 +65,12 @@ function FolderProbe() {
 
 function renderFolder(onTreeChange: OnTreeChange, initialTree: TreeNode[]) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider tree={initialTree} onTreeChange={onTreeChange}>
-        <ContentHeader />
-        <FolderProbe />
-        <FolderPane />
-        <CloseConfirmDialog />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider tree={initialTree} onTreeChange={onTreeChange}>
+      <ContentHeader />
+      <FolderProbe />
+      <FolderPane />
+      <CloseConfirmDialog />
+    </WorkspaceProvider>,
   );
 }
 
@@ -108,10 +105,15 @@ describe("folder Env tab accent control (AC-001)", () => {
   // swatches, the native picker, and the hex input.
   it("should render the accent preset swatches, native picker and hex input on the Env toolbar", async () => {
     const user = userEvent.setup();
-    renderFolder(vi.fn<OnTreeChange>().mockResolvedValue({ ok: true }), makeTree());
+    renderFolder(
+      vi.fn<OnTreeChange>().mockResolvedValue({ ok: true }),
+      makeTree(),
+    );
     await openEnvTab(user);
 
-    expect(await screen.findByRole("button", { name: /none/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /none/i }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /green/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /blue/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /red/i })).toBeInTheDocument();
@@ -146,7 +148,9 @@ describe("folder Env tab accent live persist (AC-002)", () => {
     await user.click(await screen.findByRole("button", { name: /green/i }));
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedFolder(onTreeChange).environmentColors).toEqual({ local: GREEN });
+    expect(savedFolder(onTreeChange).environmentColors).toEqual({
+      local: GREEN,
+    });
     expect(dirtyDot()).not.toBeInTheDocument();
   });
 
@@ -185,7 +189,10 @@ describe("folder Env tab accent live persist (AC-002)", () => {
   // AC-002, TC-001 - behavior: clicking a preset reflects its hex in the field.
   it("should show the preset's hex in the hex field if a preset is clicked", async () => {
     const user = userEvent.setup();
-    renderFolder(vi.fn<OnTreeChange>().mockResolvedValue({ ok: true }), makeTree());
+    renderFolder(
+      vi.fn<OnTreeChange>().mockResolvedValue({ ok: true }),
+      makeTree(),
+    );
     await openEnvTab(user);
 
     await user.click(await screen.findByRole("button", { name: /red/i }));
@@ -277,6 +284,8 @@ describe("folder Raw JSON shows env colors folded in", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
-    expect(savedFolder(onTreeChange).environmentColors).toEqual({ prod: GREEN });
+    expect(savedFolder(onTreeChange).environmentColors).toEqual({
+      prod: GREEN,
+    });
   });
 });

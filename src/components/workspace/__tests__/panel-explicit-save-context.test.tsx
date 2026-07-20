@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { toast } from "sonner";
 
 import {
   WorkspaceProvider,
@@ -9,9 +10,30 @@ import {
 import { RequestPane } from "@/components/workspace/request-pane";
 import { ContentHeader } from "@/components/workspace/content-header";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
-import { ToastProvider } from "@/components/ui/toast";
 import type { ConfigScope, RequestNode, TreeNode } from "@/lib/workspace/model";
 import { authOf, emptyBody } from "@/lib/workspace/model";
+
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), {
+    error: vi.fn(),
+    success: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+  Toaster: () => null,
+}));
+
+const mockToast = vi.mocked(toast);
+
+const toastCallsMatching = (pattern: RegExp): string[] =>
+  mockToast.mock.calls.map((c) => String(c[0])).filter((m) => pattern.test(m));
+
+const toastFired = (pattern: RegExp): boolean =>
+  toastCallsMatching(pattern).length > 0;
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 type OnTreeChange = (
   tree: TreeNode[],
@@ -53,19 +75,17 @@ function renderPane(
   initialTree: TreeNode[] = tree,
 ) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider
-        tree={initialTree}
-        initialActiveRequestId="req-1"
-        initialOpenRequestIds={["req-1"]}
-        onTreeChange={onTreeChange}
-      >
-        <ContentHeader />
-        <SaveProbe />
-        <RequestPane />
-        <CloseConfirmDialog />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider
+      tree={initialTree}
+      initialActiveRequestId="req-1"
+      initialOpenRequestIds={["req-1"]}
+      onTreeChange={onTreeChange}
+    >
+      <ContentHeader />
+      <SaveProbe />
+      <RequestPane />
+      <CloseConfirmDialog />
+    </WorkspaceProvider>,
   );
 }
 
@@ -178,7 +198,7 @@ describe("request structured panels - Cmd+S persists + toast (AC-002)", () => {
     expect(savedConfig(onTreeChange).auth?.types.bearer).toEqual({
       token: "new-token",
     });
-    expect(await screen.findByText(/saved/i)).toBeInTheDocument();
+    await waitFor(() => expect(toastFired(/saved/i)).toBe(true));
   });
 
   // side-effect-contract: the save action persists the latest edit even when the
@@ -236,7 +256,7 @@ describe("request structured panels - Cmd+S always toasts", () => {
 
     await fireSave(user);
 
-    expect(await screen.findByText(/saved/i)).toBeInTheDocument();
+    await waitFor(() => expect(toastFired(/saved/i)).toBe(true));
     await Promise.resolve();
     expect(onTreeChange).not.toHaveBeenCalled();
   });
@@ -257,7 +277,7 @@ describe("request structured panels - Cmd+S always toasts", () => {
 
     await fireSave(user);
 
-    expect(await screen.findByText(/saved/i)).toBeInTheDocument();
+    await waitFor(() => expect(toastFired(/saved/i)).toBe(true));
     await Promise.resolve();
     expect(onTreeChange).not.toHaveBeenCalled();
   });
@@ -279,7 +299,7 @@ describe("request structured panels - Cmd+S always toasts", () => {
     await user.type(valueInput, "text/plain");
     await fireSave(user);
 
-    expect(await screen.findByText(/^saved$/i)).toBeInTheDocument();
+    await waitFor(() => expect(toastFired(/^saved$/i)).toBe(true));
     expect(onTreeChange).toHaveBeenCalledTimes(1);
   });
 
@@ -299,7 +319,7 @@ describe("request structured panels - Cmd+S always toasts", () => {
     await user.type(valueInput, "text/plain");
     await fireSave(user);
 
-    expect(await screen.findByText(/save failed/i)).toBeInTheDocument();
+    await waitFor(() => expect(toastFired(/save failed/i)).toBe(true));
   });
 
   // side-effect-contract: a dirty save shows the SUCCESS toast EXACTLY ONCE - the
@@ -316,9 +336,7 @@ describe("request structured panels - Cmd+S always toasts", () => {
     await fireSave(user);
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expect(screen.getAllByText(/^saved$/i)).toHaveLength(1),
-    );
+    await waitFor(() => expect(toastCallsMatching(/^saved$/i)).toHaveLength(1));
   });
 });
 

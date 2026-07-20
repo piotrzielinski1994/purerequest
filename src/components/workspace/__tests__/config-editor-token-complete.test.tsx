@@ -17,10 +17,7 @@ import {
 } from "@/components/workspace/config-editor";
 import { ScriptEditor } from "@/components/workspace/script-editor";
 import { ThemeSection } from "@/components/settings/theme-section";
-import {
-  WorkspaceProvider,
-} from "@/components/workspace/workspace-context";
-import { ToastProvider } from "@/components/ui/toast";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
@@ -124,11 +121,9 @@ describe("config editors token autocomplete", () => {
   // is still collected (>= 2 autocomplete sources = compose, not replace).
   it("should offer the folder scope tokens and keep the schema source in the folder-config editor", async () => {
     render(
-      <ToastProvider>
-        <WorkspaceProvider tree={tree}>
-          <ConfigEditorForm id="folder-1" config={FOLDER_CONFIG} />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider tree={tree}>
+        <ConfigEditorForm id="folder-1" config={FOLDER_CONFIG} />
+      </WorkspaceProvider>,
     );
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
@@ -151,15 +146,13 @@ describe("config editors token autocomplete", () => {
   // AND still carries the schema source (composed).
   it("should offer the request scope tokens and keep the schema source in the request-Settings editor", async () => {
     render(
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={tree}
-          initialActiveRequestId="req-1"
-          httpClient={createFakeHttpClient()}
-        >
-          <RequestSettingsForm request={request} />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider
+        tree={tree}
+        initialActiveRequestId="req-1"
+        httpClient={createFakeHttpClient()}
+      >
+        <RequestSettingsForm request={request} />
+      </WorkspaceProvider>,
     );
     await waitFor(() => {
       expect(document.querySelector(".cm-editor")).not.toBeNull();
@@ -228,9 +221,9 @@ describe("excluded editors stay token-free", () => {
     await typeOpenToken(view);
     await new Promise((resolve) => setTimeout(resolve, 0));
     await Promise.resolve();
-    expect(
-      tokenLabelsInTooltip().some((t) => t.includes("process.env.")),
-    ).toBe(false);
+    expect(tokenLabelsInTooltip().some((t) => t.includes("process.env."))).toBe(
+      false,
+    );
 
     // the script API completion still fires: `req.` offers the request getters.
     await act(async () => {

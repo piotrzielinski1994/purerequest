@@ -6,7 +6,6 @@ import {
   WorkspaceProvider,
   useWorkspace,
 } from "@/components/workspace/workspace-context";
-import { ToastProvider } from "@/components/ui/toast";
 import type { MoveTarget } from "@/lib/workspace/move";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 import { serialize, deserialize } from "@/lib/workspace/disk-format";
@@ -255,12 +254,10 @@ function renderProbe(
   } = {},
 ) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider tree={crudTree} {...props}>
-        <CrudProbe />
-        <ConsoleProbe />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider tree={crudTree} {...props}>
+      <CrudProbe />
+      <ConsoleProbe />
+    </WorkspaceProvider>,
   );
 }
 
@@ -379,13 +376,25 @@ describe("WorkspaceProvider create request (draft)", () => {
       name: "untitled",
       method: "GET",
       url: "",
-      body: { active: "json", types: { json: "", form: [], multipart: [], graphql: { query: "", variables: "" } } },
+      body: {
+        active: "json",
+        types: {
+          json: "",
+          form: [],
+          multipart: [],
+          graphql: { query: "", variables: "" },
+        },
+      },
       params: { path: [], query: [] },
       config: {},
     };
     renderProbe({
       initialDraftTabs: [
-        { id: "new-99", request: draftRequest, placement: { parentId: null, index: 0 } },
+        {
+          id: "new-99",
+          request: draftRequest,
+          placement: { parentId: null, index: 0 },
+        },
       ],
       initialOpenRequestIds: ["new-99"],
       initialActiveRequestId: "new-99",
@@ -421,7 +430,9 @@ describe("WorkspaceProvider create request (draft)", () => {
     if (!usersFolder || usersFolder.kind !== "folder") {
       throw new Error("expected the users folder");
     }
-    expect(usersFolder.children.some((node) => node.id === activeId)).toBe(true);
+    expect(usersFolder.children.some((node) => node.id === activeId)).toBe(
+      true,
+    );
   });
 
   // behavior: a RESTORED draft (edits baked into its request, no live override, so
@@ -434,7 +445,15 @@ describe("WorkspaceProvider create request (draft)", () => {
       name: "restored",
       method: "POST",
       url: "https://restored.test/x",
-      body: { active: "json", types: { json: "", form: [], multipart: [], graphql: { query: "", variables: "" } } },
+      body: {
+        active: "json",
+        types: {
+          json: "",
+          form: [],
+          multipart: [],
+          graphql: { query: "", variables: "" },
+        },
+      },
       params: { path: [], query: [] },
       config: {},
     };

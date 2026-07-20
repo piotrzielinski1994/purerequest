@@ -9,7 +9,6 @@ import {
 import { FolderPane } from "@/components/workspace/folder-pane";
 import { ContentHeader } from "@/components/workspace/content-header";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
-import { ToastProvider } from "@/components/ui/toast";
 import type { FolderNode, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
@@ -59,14 +58,12 @@ function FolderProbe() {
 
 function renderFolder(onTreeChange: OnTreeChange) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider tree={tree} onTreeChange={onTreeChange}>
-        <ContentHeader />
-        <FolderProbe />
-        <FolderPane />
-        <CloseConfirmDialog />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider tree={tree} onTreeChange={onTreeChange}>
+      <ContentHeader />
+      <FolderProbe />
+      <FolderPane />
+      <CloseConfirmDialog />
+    </WorkspaceProvider>,
   );
 }
 
@@ -124,7 +121,9 @@ describe("folder Env tab (AC-005)", () => {
     await openFolderTab(user, "Env");
 
     const subbar = await screen.findByRole("tablist", { name: /env views/i });
-    expect(within(subbar).getByRole("tab", { name: "Envs" })).toBeInTheDocument();
+    expect(
+      within(subbar).getByRole("tab", { name: "Envs" }),
+    ).toBeInTheDocument();
     expect(
       within(subbar).getByRole("tab", { name: ".env" }),
     ).toBeInTheDocument();
@@ -171,17 +170,15 @@ describe("folder Env tab - Envs view (AC-006)", () => {
       },
     ];
     render(
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={siblingTree}
-          onTreeChange={vi.fn<OnTreeChange>().mockResolvedValue({ ok: true })}
-        >
-          <ContentHeader />
-          <FolderProbe />
-          <FolderPane />
-          <CloseConfirmDialog />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider
+        tree={siblingTree}
+        onTreeChange={vi.fn<OnTreeChange>().mockResolvedValue({ ok: true })}
+      >
+        <ContentHeader />
+        <FolderProbe />
+        <FolderPane />
+        <CloseConfirmDialog />
+      </WorkspaceProvider>,
     );
     await openFolderConfig(user);
     await openFolderTab(user, "Env");
@@ -243,8 +240,9 @@ describe("folder Env tab - Envs view (AC-006)", () => {
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
     expect(
-      savedFolder(onTreeChange).config.environments?.find((e) => e.name === "qa")
-        ?.variables,
+      savedFolder(onTreeChange).config.environments?.find(
+        (e) => e.name === "qa",
+      )?.variables,
     ).toEqual([]);
   });
 
@@ -262,9 +260,7 @@ describe("folder Env tab - Envs view (AC-006)", () => {
       await screen.findByRole("button", { name: /delete environment prod/i }),
     );
     // A confirm dialog appears; the env is not gone until the user confirms.
-    await user.click(
-      await screen.findByRole("button", { name: /^delete$/i }),
-    );
+    await user.click(await screen.findByRole("button", { name: /^delete$/i }));
     await user.click(screen.getByRole("button", { name: /fire save/i }));
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
@@ -404,20 +400,22 @@ function NestedProbe({ open }: { open: string }) {
   );
 }
 
-function renderTree(tree: TreeNode[], open: string, onTreeChange: OnTreeChange) {
+function renderTree(
+  tree: TreeNode[],
+  open: string,
+  onTreeChange: OnTreeChange,
+) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider
-        tree={tree}
-        initialExpandedIds={["asd1", "asd2", "solo"]}
-        onTreeChange={onTreeChange}
-      >
-        <ContentHeader />
-        <NestedProbe open={open} />
-        <FolderPane />
-        <CloseConfirmDialog />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider
+      tree={tree}
+      initialExpandedIds={["asd1", "asd2", "solo"]}
+      onTreeChange={onTreeChange}
+    >
+      <ContentHeader />
+      <NestedProbe open={open} />
+      <FolderPane />
+      <CloseConfirmDialog />
+    </WorkspaceProvider>,
   );
 }
 

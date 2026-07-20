@@ -7,7 +7,6 @@ import {
   useWorkspace,
 } from "@/components/workspace/workspace-context";
 import { ContentHeader } from "@/components/workspace/content-header";
-import { ToastProvider } from "@/components/ui/toast";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
@@ -31,16 +30,14 @@ async function renderHeader(openIds: string[], activeId = openIds[0]) {
   });
   const result = render(
     <SettingsProvider store={store}>
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={fixtureTree}
-          initialOpenRequestIds={openIds}
-          initialActiveRequestId={activeId}
-        >
-          <ContentHeader />
-          <OpenEditorButton />
-        </WorkspaceProvider>
-      </ToastProvider>
+      <WorkspaceProvider
+        tree={fixtureTree}
+        initialOpenRequestIds={openIds}
+        initialActiveRequestId={activeId}
+      >
+        <ContentHeader />
+        <OpenEditorButton />
+      </WorkspaceProvider>
     </SettingsProvider>,
   );
   await screen.findByRole("tablist", { name: /open requests/i });
@@ -61,7 +58,10 @@ describe("folder editor tab drag", () => {
     const handle = editorTab.closest("[aria-roledescription]");
 
     expect(handle).not.toBeNull();
-    expect(handle).toHaveAttribute("tabindex", expect.stringMatching(/^-?\d+$/));
+    expect(handle).toHaveAttribute(
+      "tabindex",
+      expect.stringMatching(/^-?\d+$/),
+    );
   });
 
   // side-effect-contract: the editor tab picks up on Space (KeyboardSensor wired),

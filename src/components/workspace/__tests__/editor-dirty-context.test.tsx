@@ -6,7 +6,6 @@ import {
   WorkspaceProvider,
   useWorkspace,
 } from "@/components/workspace/workspace-context";
-import { ToastProvider } from "@/components/ui/toast";
 import type { TreeNode } from "@/lib/workspace/model";
 import { bodyFixtureTree } from "./fixtures";
 
@@ -138,16 +137,14 @@ function renderProbe(
   ) => Promise<{ ok: true } | { ok: false; error: string }>,
 ) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider
-        tree={bodyFixtureTree}
-        initialActiveRequestId="req-json-body"
-        initialOpenRequestIds={["req-json-body"]}
-        onTreeChange={onTreeChange}
-      >
-        <EditorProbe save={save} />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider
+      tree={bodyFixtureTree}
+      initialActiveRequestId="req-json-body"
+      initialOpenRequestIds={["req-json-body"]}
+      onTreeChange={onTreeChange}
+    >
+      <EditorProbe save={save} />
+    </WorkspaceProvider>,
   );
 }
 

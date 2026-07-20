@@ -2,15 +2,27 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { EditorView } from "@codemirror/view";
+import { toast } from "sonner";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { ToastProvider } from "@/components/ui/toast";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 import { authOf, emptyParams } from "@/lib/workspace/model";
+
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), {
+    error: vi.fn(),
+    success: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+  Toaster: () => null,
+}));
+
+const mockToast = vi.mocked(toast);
 
 type OnTreeChange = (
   tree: TreeNode[],
@@ -54,16 +66,14 @@ function renderShell(
   });
   return render(
     <SettingsProvider store={store}>
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={exportTree}
-          consoleLines={["[12:00:00] Ready."]}
-          initialActiveRequestId={opts.initialActiveRequestId}
-          onTreeChange={opts.onTreeChange}
-        >
-          <WorkspaceLayout />
-        </WorkspaceProvider>
-      </ToastProvider>
+      <WorkspaceProvider
+        tree={exportTree}
+        consoleLines={["[12:00:00] Ready."]}
+        initialActiveRequestId={opts.initialActiveRequestId}
+        onTreeChange={opts.onTreeChange}
+      >
+        <WorkspaceLayout />
+      </WorkspaceProvider>
     </SettingsProvider>,
   );
 }
@@ -171,7 +181,11 @@ describe("Copy as code dialog - Copy (AC-006)", () => {
     });
     // the clipboard gets exactly what the preview showed.
     expect(writeText.mock.calls[0][0]).toBe(previewed);
-    expect(await screen.findByText(/copied as curl/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        mockToast.mock.calls.some((c) => /copied as curl/i.test(String(c[0]))),
+      ).toBe(true);
+    });
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
@@ -198,7 +212,9 @@ describe("Copy as code dialog - switch language (AC-005)", () => {
     });
 
     // open the Language select and pick fetch (options render in a portal).
-    await user.click(within(dialog).getByRole("combobox", { name: /language/i }));
+    await user.click(
+      within(dialog).getByRole("combobox", { name: /language/i }),
+    );
     await user.click(
       await screen.findByRole("option", { name: /javascript - fetch/i }),
     );

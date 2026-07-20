@@ -4,15 +4,12 @@ import userEvent from "@testing-library/user-event";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { ToastProvider } from "@/components/ui/toast";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
-import type {
-  BrunoCollectionReader,
-} from "@/lib/bruno/reader";
+import type { BrunoCollectionReader } from "@/lib/bruno/reader";
 import type { BrunoFileMap } from "@/lib/bruno/bruno-to-tree";
 
 type OnTreeChange = (
@@ -62,15 +59,13 @@ function renderShell(
   });
   return render(
     <SettingsProvider store={store}>
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={baseTree}
-          consoleLines={["[12:00:00] Ready."]}
-          onTreeChange={opts.onTreeChange}
-        >
-          <WorkspaceLayout reader={opts.reader} />
-        </WorkspaceProvider>
-      </ToastProvider>
+      <WorkspaceProvider
+        tree={baseTree}
+        consoleLines={["[12:00:00] Ready."]}
+        onTreeChange={opts.onTreeChange}
+      >
+        <WorkspaceLayout reader={opts.reader} />
+      </WorkspaceProvider>
     </SettingsProvider>,
   );
 }
@@ -136,9 +131,7 @@ describe("Import Bruno collection (AC-009, AC-010)", () => {
     expect(importedRequest).toBeDefined();
 
     // the new folder is visible in the sidebar tree.
-    expect(
-      await screen.findByText("Imported API"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Imported API")).toBeInTheDocument();
   });
 
   // AC-009/010, TC-008 - side-effect-contract: a reader that returns null
@@ -201,7 +194,8 @@ describe("Import Bruno collection (AC-009, AC-010)", () => {
     const onEnvChange = vi.fn<(text: string) => void>();
     const filesWithEnv: BrunoFileMap = {
       "bruno.json": '{ "name": "Env API" }',
-      "ping.yml": "info:\n  name: ping\nhttp:\n  method: GET\n  url: https://x.test",
+      "ping.yml":
+        "info:\n  name: ping\nhttp:\n  method: GET\n  url: https://x.test",
       ".env": "CULTURE=en-CA\nBEARER_TOKEN=abc",
     };
     render(
@@ -211,19 +205,17 @@ describe("Import Bruno collection (AC-009, AC-010)", () => {
           shortcuts: {},
         })}
       >
-        <ToastProvider>
-          <WorkspaceProvider
-            tree={baseTree}
-            consoleLines={["[12:00:00] Ready."]}
-            onTreeChange={onTreeChange}
-            envText="HOST=local"
-            onEnvChange={onEnvChange}
-          >
-            <WorkspaceLayout
-              reader={fakeReader({ name: "picked-dir", files: filesWithEnv })}
-            />
-          </WorkspaceProvider>
-        </ToastProvider>
+        <WorkspaceProvider
+          tree={baseTree}
+          consoleLines={["[12:00:00] Ready."]}
+          onTreeChange={onTreeChange}
+          envText="HOST=local"
+          onEnvChange={onEnvChange}
+        >
+          <WorkspaceLayout
+            reader={fakeReader({ name: "picked-dir", files: filesWithEnv })}
+          />
+        </WorkspaceProvider>
       </SettingsProvider>,
     );
     await screen.findByRole("region", { name: /console/i });

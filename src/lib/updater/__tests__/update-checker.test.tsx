@@ -1,184 +1,110 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, waitFor } from "@testing-library/react";
+import { toast } from "sonner";
 
-import { ToastProvider } from "@/components/ui/toast";
 import { UpdateChecker } from "@/lib/updater/update-checker";
 import type {
   UpdateController,
   UpdateInfo,
 } from "@/lib/updater/update-controller";
 
-// The startup bridge (sibling of WindowFullscreenSync): mounts inside providers,
-// runs one check on mount via the injected controller, and on an available
-// update shows a persistent action toast that drives download/install/relaunch.
-// Renders null - all assertions go through the ToastProvider's rendered DOM.
+// sonner is the external boundary the show-update-toast path hits; asserting on
+// it is the observable contract for "a toast appeared". The controller is the
+// injected port (a fake), NOT mocked as it is the seam under test.
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), {
+    error: vi.fn(),
+    success: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+}));
 
-type UpdateInfoOverrides = Partial<UpdateInfo>;
+const mockToast = vi.mocked(toast);
 
-function fakeUpdateInfo(overrides: UpdateInfoOverrides = {}): UpdateInfo {
+function makeUpdate(version = "v0.2.0"): UpdateInfo {
   return {
-    version: "v0.2.0",
-    downloadAndInstall: () => Promise.resolve(),
-    relaunch: () => Promise.resolve(),
-    ...overrides,
+    version,
+    downloadAndInstall: vi.fn(async () => {}),
+    relaunch: vi.fn(async () => {}),
   };
 }
 
-function controllerWith(info: UpdateInfo | null): UpdateController {
-  return { check: () => Promise.resolve(info) };
+function controllerOf(
+  check: () => Promise<UpdateInfo | null>,
+): UpdateController & { check: ReturnType<typeof vi.fn> } {
+  return { check: vi.fn(check) };
 }
 
-function renderChecker(controller: UpdateController) {
-  return render(
-    <ToastProvider>
-      <UpdateChecker controller={controller} />
-    </ToastProvider>,
-  );
-}
-
-afterEach(() => {
-  vi.useRealTimers();
-});
-
-describe("UpdateChecker startup bridge", () => {
-  // TC-001 behavior: an available update shows a persistent toast with the
-  // version text + an "Update now" button
-  it("should show an update toast with the version and an Update now button if an update is available", async () => {
-    renderChecker(controllerWith(fakeUpdateInfo({ version: "v0.2.0" })));
-
-    expect(await screen.findByText(/v0\.2\.0/)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /update now/i }),
-    ).toBeInTheDocument();
+describe("UpdateChecker", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  // TC-002 behavior: no update -> no toast
-  it("should not show any toast if no update is available", async () => {
-    renderChecker(controllerWith(null));
+  // side-effect-contract (TC-001): an available update shows a toast on mount
+  it("should show a toast if the startup check reports an available update", async () => {
+    const controller = controllerOf(async () => makeUpdate("v0.2.0"));
 
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(
-      screen.queryByRole("button", { name: /update now/i }),
-    ).not.toBeInTheDocument();
-  });
-
-  // TC-003 behavior: check rejects -> error swallowed, no toast, no throw
-  it("should swallow a rejected check without a toast or a throw", async () => {
-    const controller: UpdateController = {
-      check: () => Promise.reject(new Error("network down")),
-    };
-
-    expect(() => renderChecker(controller)).not.toThrow();
-
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(
-      screen.queryByRole("button", { name: /update now/i }),
-    ).not.toBeInTheDocument();
-  });
-
-  // TC-004 side-effect-contract: clicking Update now invokes downloadAndInstall,
-  // progress drives the label, and relaunch is invoked after it resolves
-  it("should download+install then relaunch when Update now is clicked", async () => {
-    const relaunch = vi.fn(() => Promise.resolve());
-    const downloadAndInstall = vi.fn((onProgress: (pct: number) => void) => {
-      onProgress(50);
-      return Promise.resolve();
-    });
-    const controller = controllerWith(
-      fakeUpdateInfo({ downloadAndInstall, relaunch }),
-    );
-
-    const user = userEvent.setup();
-    renderChecker(controller);
-
-    const button = await screen.findByRole("button", { name: /update now/i });
-    await user.click(button);
+    render(<UpdateChecker controller={controller} />);
 
     await waitFor(() => {
-      expect(downloadAndInstall).toHaveBeenCalledTimes(1);
+      expect(mockToast).toHaveBeenCalledTimes(1);
     });
-    expect(screen.getByText(/50%/)).toBeInTheDocument();
+    expect(String(mockToast.mock.calls[0][0])).toContain("v0.2.0");
+  });
+
+  // behavior (TC-002): no update -> no toast
+  it("should not show a toast if the startup check reports no update", async () => {
+    const controller = controllerOf(async () => null);
+
+    render(<UpdateChecker controller={controller} />);
+
     await waitFor(() => {
-      expect(relaunch).toHaveBeenCalledTimes(1);
+      expect(controller.check).toHaveBeenCalledTimes(1);
     });
-  });
-
-  // AC-001 side-effect-contract: the check fires exactly once on mount, not on
-  // every re-render.
-  it("should check for updates only once across re-renders", async () => {
-    const check = vi.fn(() => Promise.resolve(null));
-    const { rerender } = renderChecker({ check });
-
     await Promise.resolve();
-    rerender(
-      <ToastProvider>
-        <UpdateChecker controller={{ check }} />
-      </ToastProvider>,
-    );
+    expect(mockToast).not.toHaveBeenCalled();
+  });
+
+  // behavior (TC-003): a rejected check is swallowed - no throw, no toast
+  it("should swallow a rejected check without showing a toast", async () => {
+    const controller = controllerOf(async () => {
+      throw new Error("offline");
+    });
+
+    expect(() =>
+      render(<UpdateChecker controller={controller} />),
+    ).not.toThrow();
+
+    await waitFor(() => {
+      expect(controller.check).toHaveBeenCalledTimes(1);
+    });
+    await Promise.resolve();
+    expect(mockToast).not.toHaveBeenCalled();
+  });
+
+  // behavior (AC-001): the mount effect runs check exactly once even across a
+  // re-render (ref guard)
+  it("should run the check only once across a re-render", async () => {
+    const controller = controllerOf(async () => null);
+
+    const { rerender } = render(<UpdateChecker controller={controller} />);
+    await waitFor(() => {
+      expect(controller.check).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(<UpdateChecker controller={controller} />);
     await Promise.resolve();
 
-    expect(check).toHaveBeenCalledTimes(1);
+    expect(controller.check).toHaveBeenCalledTimes(1);
   });
 
-  // AC-003 behavior: once download starts, the Update now button is replaced by
-  // the progress label so it can't be re-fired mid-download.
-  it("should replace the Update now button with progress once download starts", async () => {
-    const downloadAndInstall = vi.fn((onProgress: (pct: number) => void) => {
-      onProgress(50);
-      return new Promise<void>(() => {});
-    });
-    const controller = controllerWith(fakeUpdateInfo({ downloadAndInstall }));
+  // behavior: the bridge renders nothing (headless)
+  it("should render null", () => {
+    const controller = controllerOf(async () => null);
 
-    const user = userEvent.setup();
-    renderChecker(controller);
+    const { container } = render(<UpdateChecker controller={controller} />);
 
-    await user.click(
-      await screen.findByRole("button", { name: /update now/i }),
-    );
-
-    expect(await screen.findByText(/50%/)).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /update now/i }),
-    ).not.toBeInTheDocument();
-  });
-
-  // TC-005 behavior: the available toast is persistent - it survives past the old
-  // 2500ms auto-dismiss window. Fake timers are installed BEFORE mount so a
-  // non-persistent impl's setTimeout would be captured and fire on advance.
-  it("should keep the update toast past the 2500ms auto-dismiss", async () => {
-    vi.useFakeTimers();
-    renderChecker(controllerWith(fakeUpdateInfo({ version: "v0.2.0" })));
-
-    // Flush the mount check promise (microtasks resolve under fake timers).
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-    expect(screen.getByText(/v0\.2\.0/)).toBeInTheDocument();
-
-    act(() => {
-      vi.advanceTimersByTime(10000);
-    });
-
-    expect(screen.getByText(/v0\.2\.0/)).toBeInTheDocument();
-  });
-
-  // TC-006 behavior/side-effect-contract: clicking × removes the toast and does
-  // NOT invoke the install path
-  it("should remove the toast and not install when dismiss is clicked", async () => {
-    const downloadAndInstall = vi.fn(() => Promise.resolve());
-    const controller = controllerWith(fakeUpdateInfo({ downloadAndInstall }));
-
-    const user = userEvent.setup();
-    renderChecker(controller);
-
-    await screen.findByText(/v0\.2\.0/);
-    await user.click(screen.getByRole("button", { name: /dismiss|close/i }));
-
-    expect(screen.queryByText(/v0\.2\.0/)).not.toBeInTheDocument();
-    expect(downloadAndInstall).not.toHaveBeenCalled();
+    expect(container).toBeEmptyDOMElement();
   });
 });

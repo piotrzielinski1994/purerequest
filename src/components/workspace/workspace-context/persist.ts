@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import type { TreeNode } from "@/lib/workspace/model";
 import { parseDotenv } from "@/lib/workspace/environment";
 import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
@@ -13,7 +14,6 @@ export function createPersist(internals: WorkspaceInternals): PersistApi {
     setEnvText,
     setProcessEnv,
     setConsoleLines,
-    showToastRef,
     onTreeChangeRef,
     onEnvChangeRef,
   } = internals;
@@ -29,7 +29,7 @@ export function createPersist(internals: WorkspaceInternals): PersistApi {
     setTree(next);
     const persist = onTreeChangeRef.current;
     if (!silent) {
-      showToastRef.current("Saved");
+      toast("Saved");
     }
     if (!persist) {
       return;
@@ -38,7 +38,7 @@ export function createPersist(internals: WorkspaceInternals): PersistApi {
       if (result.ok) {
         return;
       }
-      showToastRef.current(`Save failed: ${result.error}`);
+      toast(`Save failed: ${result.error}`);
       setConsoleLines((lines) => [
         ...lines,
         `[workspace] failed to persist ${failLabel}: ${result.error}`,
@@ -52,13 +52,13 @@ export function createPersist(internals: WorkspaceInternals): PersistApi {
     const persist = onEnvChangeRef.current;
     if (!persist) {
       if (!silent) {
-        showToastRef.current("Saved");
+        toast("Saved");
       }
       return;
     }
     Promise.resolve(persist(text)).then(() => {
       if (!silent) {
-        showToastRef.current("Saved");
+        toast("Saved");
       }
     });
   };

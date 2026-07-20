@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { ToastProvider } from "@/components/ui/toast";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
@@ -68,16 +67,14 @@ function renderShell(
   });
   return render(
     <SettingsProvider store={store}>
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={baseTree}
-          consoleLines={["[12:00:00] Ready."]}
-          openapiWriter={writer}
-          workspaceName={workspaceName}
-        >
-          <WorkspaceLayout />
-        </WorkspaceProvider>
-      </ToastProvider>
+      <WorkspaceProvider
+        tree={baseTree}
+        consoleLines={["[12:00:00] Ready."]}
+        openapiWriter={writer}
+        workspaceName={workspaceName}
+      >
+        <WorkspaceLayout />
+      </WorkspaceProvider>
     </SettingsProvider>,
   );
 }
@@ -91,14 +88,20 @@ describe("Export as OpenAPI - folder context menu (AC-011)", () => {
     renderShell(writer);
     await screen.findByRole("region", { name: /console/i });
 
-    await user.pointer({ keys: "[MouseRight]", target: screen.getByText("Users") });
+    await user.pointer({
+      keys: "[MouseRight]",
+      target: screen.getByText("Users"),
+    });
     const folderMenu = await screen.findByRole("menu");
     expect(
       within(folderMenu).getByText(/export as openapi/i),
     ).toBeInTheDocument();
     await user.keyboard("{Escape}");
 
-    await user.pointer({ keys: "[MouseRight]", target: screen.getByText("Top Req") });
+    await user.pointer({
+      keys: "[MouseRight]",
+      target: screen.getByText("Top Req"),
+    });
     const requestMenu = await screen.findByRole("menu");
     expect(
       within(requestMenu).queryByText(/export as openapi/i),
@@ -113,7 +116,10 @@ describe("Export as OpenAPI - folder context menu (AC-011)", () => {
     renderShell(writer);
     await screen.findByRole("region", { name: /console/i });
 
-    await user.pointer({ keys: "[MouseRight]", target: screen.getByText("Users") });
+    await user.pointer({
+      keys: "[MouseRight]",
+      target: screen.getByText("Users"),
+    });
     const menu = await screen.findByRole("menu");
     await user.click(within(menu).getByText(/export as openapi/i));
 

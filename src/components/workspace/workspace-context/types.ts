@@ -100,7 +100,6 @@ export type WorkspaceInternals = {
   paramsRevealNonce: RefObject<number>;
   nodeCounter: RefObject<number>;
   autoNameIds: RefObject<Map<string, string>>;
-  showToastRef: RefObject<(message: string) => void>;
   httpClientRef: RefObject<HttpClient>;
   scriptRunnerRef: RefObject<ScriptRunner>;
   brunoWriterRef: RefObject<BrunoExportWriter>;
@@ -109,7 +108,8 @@ export type WorkspaceInternals = {
   sendGeneration: RefObject<Map<string, number>>;
   inFlightRequestId: RefObject<Map<string, string>>;
   onTabsChangeRef: RefObject<
-    ((openRequestIds: string[], activeRequestId: string | null) => void) | undefined
+    | ((openRequestIds: string[], activeRequestId: string | null) => void)
+    | undefined
   >;
   onDraftTabsChangeRef: RefObject<((drafts: DraftTab[]) => void) | undefined>;
   onTreeChangeRef: RefObject<

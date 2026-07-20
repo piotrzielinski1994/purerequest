@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, within, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  within,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import {
@@ -8,7 +14,6 @@ import {
 } from "@/components/workspace/workspace-context";
 import { SidebarTree } from "@/components/workspace/sidebar-tree";
 import { UrlBar } from "@/components/workspace/url-bar";
-import { ToastProvider } from "@/components/ui/toast";
 import { fixtureTree } from "./fixtures";
 
 // A freshly created request auto-names itself from its URL until the user gives
@@ -97,7 +102,9 @@ function AutoNameProbe() {
       </button>
       <button
         type="button"
-        onClick={() => setRequestUrl("req-profile", "{{baseUrl}}/should-not-rename")}
+        onClick={() =>
+          setRequestUrl("req-profile", "{{baseUrl}}/should-not-rename")
+        }
       >
         edit profile url
       </button>
@@ -107,11 +114,9 @@ function AutoNameProbe() {
 
 function renderProbe() {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider tree={fixtureTree}>
-        <AutoNameProbe />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider tree={fixtureTree}>
+      <AutoNameProbe />
+    </WorkspaceProvider>,
   );
 }
 
@@ -201,13 +206,17 @@ describe("WorkspaceProvider request auto-name", () => {
 
     await user.click(screen.getByRole("button", { name: /new request/i }));
     await user.click(screen.getByRole("button", { name: /^type url$/i }));
-    expect(screen.getByTestId("active-name")).toHaveTextContent("/widgets/list");
+    expect(screen.getByTestId("active-name")).toHaveTextContent(
+      "/widgets/list",
+    );
 
     await user.click(screen.getByRole("button", { name: /begin rename/i }));
     await user.click(screen.getByRole("button", { name: /type url again/i }));
 
     // begin-rename signals the user is naming it -> URL no longer drives it.
-    expect(screen.getByTestId("active-name")).toHaveTextContent("/widgets/list");
+    expect(screen.getByTestId("active-name")).toHaveTextContent(
+      "/widgets/list",
+    );
   });
 
   // behavior: an already-saved (existing) request never auto-names from a URL edit.
@@ -241,13 +250,11 @@ describe("new request draft (not in the sidebar until saved)", () => {
   it("should open a draft tab without adding a row to the sidebar tree", async () => {
     const user = userEvent.setup();
     render(
-      <ToastProvider>
-        <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
-          <NewRequestControl />
-          <SidebarTree />
-          <UrlBar />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
+        <NewRequestControl />
+        <SidebarTree />
+        <UrlBar />
+      </WorkspaceProvider>,
     );
 
     const tree = screen.getByRole("tree", { name: /collection/i });
@@ -271,12 +278,10 @@ describe("new request draft (not in the sidebar until saved)", () => {
   it("should focus the URL input when New request is chosen from the empty-area context menu", async () => {
     const user = userEvent.setup();
     render(
-      <ToastProvider>
-        <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
-          <SidebarTree />
-          <UrlBar />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
+        <SidebarTree />
+        <UrlBar />
+      </WorkspaceProvider>,
     );
 
     const tree = screen.getByRole("tree", { name: /collection/i });
@@ -292,12 +297,10 @@ describe("new request draft (not in the sidebar until saved)", () => {
   it("should focus the URL input when New request is chosen from a folder context menu", async () => {
     const user = userEvent.setup();
     render(
-      <ToastProvider>
-        <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
-          <SidebarTree />
-          <UrlBar />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
+        <SidebarTree />
+        <UrlBar />
+      </WorkspaceProvider>,
     );
 
     const tree = screen.getByRole("tree", { name: /collection/i });

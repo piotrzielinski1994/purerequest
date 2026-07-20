@@ -11,7 +11,6 @@ import userEvent from "@testing-library/user-event";
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { SidebarTree } from "@/components/workspace/sidebar-tree";
 import { ContentHeader } from "@/components/workspace/content-header";
-import { ToastProvider } from "@/components/ui/toast";
 import { fixtureTree } from "./fixtures";
 
 describe("SidebarTree", () => {
@@ -19,7 +18,10 @@ describe("SidebarTree", () => {
   // create-something prompt, NOT the read-only "set workspacePath" hint.
   it("should show a create hint, not the settings hint, for an empty writable workspace", async () => {
     render(
-      <WorkspaceProvider tree={[]} onTreeChange={() => Promise.resolve({ ok: true })}>
+      <WorkspaceProvider
+        tree={[]}
+        onTreeChange={() => Promise.resolve({ ok: true })}
+      >
         <SidebarTree />
       </WorkspaceProvider>,
     );
@@ -179,11 +181,9 @@ describe("SidebarTree", () => {
   // row) offers New request / New folder for creating at the workspace root.
   it("should offer New request and New folder when the empty sidebar area is right-clicked", async () => {
     render(
-      <ToastProvider>
-        <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
-          <SidebarTree />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
+        <SidebarTree />
+      </WorkspaceProvider>,
     );
 
     const tree = screen.getByRole("tree", { name: /collection/i });
@@ -207,11 +207,9 @@ describe("SidebarTree", () => {
   // (Rename/Delete), NOT the empty-area create menu - radix inner-trigger wins.
   it("should show the row menu and not the create menu when a row is right-clicked", async () => {
     render(
-      <ToastProvider>
-        <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
-          <SidebarTree />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
+        <SidebarTree />
+      </WorkspaceProvider>,
     );
 
     const tree = screen.getByRole("tree", { name: /collection/i });
@@ -239,11 +237,9 @@ describe("SidebarTree", () => {
   it("should create a root folder when New folder is chosen from the empty-area menu", async () => {
     const user = userEvent.setup();
     render(
-      <ToastProvider>
-        <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
-          <SidebarTree />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
+        <SidebarTree />
+      </WorkspaceProvider>,
     );
 
     const tree = screen.getByRole("tree", { name: /collection/i });
@@ -265,11 +261,9 @@ describe("SidebarTree", () => {
   it("should focus the rename input of the folder created from the empty-area menu", async () => {
     const user = userEvent.setup();
     render(
-      <ToastProvider>
-        <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
-          <SidebarTree />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
+        <SidebarTree />
+      </WorkspaceProvider>,
     );
 
     const tree = screen.getByRole("tree", { name: /collection/i });

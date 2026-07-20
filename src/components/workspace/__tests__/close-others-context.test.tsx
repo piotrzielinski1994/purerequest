@@ -7,7 +7,6 @@ import {
   useWorkspace,
 } from "@/components/workspace/workspace-context";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
-import { ToastProvider } from "@/components/ui/toast";
 import type { TreeNode } from "@/lib/workspace/model";
 import { bodyFixtureTree } from "./fixtures";
 
@@ -25,12 +24,8 @@ type CloseOthersSurface = ReturnType<typeof useWorkspace> & {
 
 function CloseOthersDriver() {
   const ctx = useWorkspace() as CloseOthersSurface;
-  const {
-    setRequestUrl,
-    requestCloseOthers,
-    openRequestIds,
-    activeRequestId,
-  } = ctx;
+  const { setRequestUrl, requestCloseOthers, openRequestIds, activeRequestId } =
+    ctx;
   return (
     <div>
       <span data-testid="open-ids">{openRequestIds.join(",")}</span>
@@ -42,10 +37,7 @@ function CloseOthersDriver() {
       >
         dirty other
       </button>
-      <button
-        type="button"
-        onClick={() => requestCloseOthers("req-json-body")}
-      >
+      <button type="button" onClick={() => requestCloseOthers("req-json-body")}>
         close others of A
       </button>
     </div>
@@ -57,23 +49,17 @@ function renderDriver(opts?: {
   onTreeChange?: OnTreeChange;
 }) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider
-        tree={bodyFixtureTree}
-        initialActiveRequestId="req-other-body"
-        initialOpenRequestIds={
-          opts?.openIds ?? [
-            "req-json-body",
-            "req-other-body",
-            "req-empty-body",
-          ]
-        }
-        onTreeChange={opts?.onTreeChange}
-      >
-        <CloseOthersDriver />
-        <CloseConfirmDialog />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider
+      tree={bodyFixtureTree}
+      initialActiveRequestId="req-other-body"
+      initialOpenRequestIds={
+        opts?.openIds ?? ["req-json-body", "req-other-body", "req-empty-body"]
+      }
+      onTreeChange={opts?.onTreeChange}
+    >
+      <CloseOthersDriver />
+      <CloseConfirmDialog />
+    </WorkspaceProvider>,
   );
 }
 

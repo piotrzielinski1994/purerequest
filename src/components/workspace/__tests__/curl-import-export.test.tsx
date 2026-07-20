@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { ToastProvider } from "@/components/ui/toast";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
@@ -22,7 +21,15 @@ const postWithBody: RequestNode = {
   name: "create-widget",
   method: "POST",
   url: "https://api.example.com/widgets",
-  body: { active: "json", types: { json: '{"name":"foo"}', form: [], multipart: [], graphql: { query: "", variables: "" } } },
+  body: {
+    active: "json",
+    types: {
+      json: '{"name":"foo"}',
+      form: [],
+      multipart: [],
+      graphql: { query: "", variables: "" },
+    },
+  },
   params: emptyParams(),
   config: {
     headers: [{ key: "X-Trace", value: "abc" }],
@@ -60,16 +67,14 @@ function renderShell(
   });
   return render(
     <SettingsProvider store={store}>
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={exportTree}
-          consoleLines={["[12:00:00] Ready."]}
-          initialActiveRequestId={opts.initialActiveRequestId}
-          onTreeChange={opts.onTreeChange}
-        >
-          <WorkspaceLayout />
-        </WorkspaceProvider>
-      </ToastProvider>
+      <WorkspaceProvider
+        tree={exportTree}
+        consoleLines={["[12:00:00] Ready."]}
+        initialActiveRequestId={opts.initialActiveRequestId}
+        onTreeChange={opts.onTreeChange}
+      >
+        <WorkspaceLayout />
+      </WorkspaceProvider>
     </SettingsProvider>,
   );
 }

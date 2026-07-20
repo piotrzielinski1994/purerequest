@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,11 +23,9 @@ import {
   codeTargetById,
   type CodeTargetId,
 } from "@/lib/codegen/targets";
-import { useToast } from "@/components/ui/toast";
 
 export function CodeGenDialog() {
   const { isCodeGenOpen, closeCodeGen, resolveActiveWire } = useWorkspace();
-  const { show: showToast } = useToast();
   const { viewerExtensions } = useEditorExtensions();
   const [targetId, setTargetId] = useState<CodeTargetId>(CODE_TARGETS[0].id);
   // Reset the language to the default each time the dialog (re)opens, in render
@@ -45,7 +44,7 @@ export function CodeGenDialog() {
 
   const copy = () => {
     navigator.clipboard?.writeText(code);
-    showToast(`Copied as ${target.label}`);
+    toast(`Copied as ${target.label}`);
     closeCodeGen();
   };
 

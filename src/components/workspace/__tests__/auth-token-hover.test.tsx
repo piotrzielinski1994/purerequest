@@ -7,7 +7,6 @@ import {
   useWorkspace,
 } from "@/components/workspace/workspace-context";
 import { RequestPane } from "@/components/workspace/request-pane";
-import { ToastProvider } from "@/components/ui/toast";
 import type { TreeNode } from "@/lib/workspace/model";
 import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 
@@ -54,16 +53,14 @@ describe("auth field {{token}} highlight + hover", () => {
   it("should color a token in the bearer field and preview its resolved value on hover", async () => {
     const user = userEvent.setup();
     render(
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={tree}
-          initialActiveRequestId="api/get"
-          initialOpenRequestIds={["api/get"]}
-        >
-          <Probe />
-          <RequestPane />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider
+        tree={tree}
+        initialActiveRequestId="api/get"
+        initialOpenRequestIds={["api/get"]}
+      >
+        <Probe />
+        <RequestPane />
+      </WorkspaceProvider>,
     );
 
     await user.click(screen.getByRole("button", { name: /open auth/i }));

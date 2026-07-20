@@ -7,7 +7,6 @@ import {
   useWorkspace,
 } from "@/components/workspace/workspace-context";
 import { FolderPane } from "@/components/workspace/folder-pane";
-import { ToastProvider } from "@/components/ui/toast";
 import type { TreeNode } from "@/lib/workspace/model";
 
 const tree: TreeNode[] = [
@@ -15,7 +14,9 @@ const tree: TreeNode[] = [
     kind: "folder",
     id: "folder-1",
     name: "Folder",
-    config: { variables: [{ key: "apiBase", value: "{{process.env.HOST}}/v1" }] },
+    config: {
+      variables: [{ key: "apiBase", value: "{{process.env.HOST}}/v1" }],
+    },
     dotenv: "HOST=https://folder.example.com",
     children: [],
   },
@@ -37,12 +38,10 @@ describe("folder pane {{token}} hover", () => {
   it("should show the resolved value if a folder Vars token is hovered", async () => {
     const user = userEvent.setup();
     render(
-      <ToastProvider>
-        <WorkspaceProvider tree={tree}>
-          <Probe />
-          <FolderPane />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider tree={tree}>
+        <Probe />
+        <FolderPane />
+      </WorkspaceProvider>,
     );
 
     await user.click(

@@ -5,23 +5,20 @@ import userEvent from "@testing-library/user-event";
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { UrlBar } from "@/components/workspace/url-bar";
 import { FolderPane } from "@/components/workspace/folder-pane";
-import { ToastProvider } from "@/components/ui/toast";
 import type { TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 function renderWith(tree: TreeNode[], activeEnvironment?: string) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider
-        tree={tree}
-        initialActiveRequestId="req"
-        initialExpandedIds={["root"]}
-        activeEnvironment={activeEnvironment}
-      >
-        <UrlBar />
-        <FolderPane />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider
+      tree={tree}
+      initialActiveRequestId="req"
+      initialExpandedIds={["root"]}
+      activeEnvironment={activeEnvironment}
+    >
+      <UrlBar />
+      <FolderPane />
+    </WorkspaceProvider>,
   );
 }
 
@@ -54,7 +51,9 @@ describe("token popup: go to source", () => {
     renderWith(tree);
 
     await user.hover(screen.getByText("{{authToken}}"));
-    await user.click(await screen.findByRole("button", { name: /go to source/i }));
+    await user.click(
+      await screen.findByRole("button", { name: /go to source/i }),
+    );
 
     // The folder pane is now open on Vars, showing the variable key cell.
     expect(await screen.findByDisplayValue("authToken")).toBeInTheDocument();
@@ -69,7 +68,10 @@ describe("token popup: go to source", () => {
         name: "Root",
         config: {
           environments: [
-            { name: "prod", variables: [{ key: "baseUrl", value: "https://prod" }] },
+            {
+              name: "prod",
+              variables: [{ key: "baseUrl", value: "https://prod" }],
+            },
           ],
         },
         children: [
@@ -89,7 +91,9 @@ describe("token popup: go to source", () => {
     renderWith(tree, "prod");
 
     await user.hover(screen.getByText("{{baseUrl}}"));
-    await user.click(await screen.findByRole("button", { name: /go to source/i }));
+    await user.click(
+      await screen.findByRole("button", { name: /go to source/i }),
+    );
 
     // The env var key is shown in the Envs table for the picked environment.
     expect(await screen.findByDisplayValue("baseUrl")).toBeInTheDocument();
@@ -121,7 +125,9 @@ describe("token popup: go to source", () => {
     renderWith(tree);
 
     await user.hover(screen.getByText("{{process.env.HOST}}"));
-    await user.click(await screen.findByRole("button", { name: /go to source/i }));
+    await user.click(
+      await screen.findByRole("button", { name: /go to source/i }),
+    );
 
     // The .env table shows the dotenv key for the owning folder.
     expect(await screen.findByDisplayValue("HOST")).toBeInTheDocument();
@@ -161,7 +167,9 @@ describe("token popup: go to source", () => {
     renderWith(tree);
 
     await user.hover(screen.getByText("{{CUSTOMER_ID}}"));
-    await user.click(await screen.findByRole("button", { name: /go to source/i }));
+    await user.click(
+      await screen.findByRole("button", { name: /go to source/i }),
+    );
 
     // The Vars grid shows the pointer row's raw value - the .env view would show
     // the resolved "orig" instead, so this discriminates target from writeTarget.

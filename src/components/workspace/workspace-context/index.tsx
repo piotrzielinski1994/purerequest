@@ -37,7 +37,6 @@ import {
 } from "@/lib/openapi/writer";
 import { parseDotenv } from "@/lib/workspace/environment";
 import { findNode } from "@/lib/workspace/tree-locate";
-import { useToast } from "@/components/ui/toast";
 import {
   indexRequests,
   isOverrideFieldDirty,
@@ -80,7 +79,6 @@ export type {
   SelectMode,
   WorkspaceContextValue,
 } from "@/components/workspace/workspace-context/types";
-
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
@@ -227,11 +225,6 @@ export function WorkspaceProvider({
     (editor: ActiveEditor | null) => setActiveEditor(editor),
     [],
   );
-  const { show: showToast } = useToast();
-  const showToastRef = useRef(showToast);
-  useEffect(() => {
-    showToastRef.current = showToast;
-  }, [showToast]);
   const httpClientRef = useRef<HttpClient>(
     httpClient ?? createFakeHttpClient(),
   );
@@ -369,7 +362,8 @@ export function WorkspaceProvider({
   // "active" = the active tab AND no editor is active (the editor takes content
   // precedence even when the settings id is still the active tab id).
   const isSettingsOpen = openRequestIds.includes(SETTINGS_TAB_ID);
-  const isSettingsActive = !isEditorActive && activeRequestId === SETTINGS_TAB_ID;
+  const isSettingsActive =
+    !isEditorActive && activeRequestId === SETTINGS_TAB_ID;
 
   // The node whose env scope drives the border + the sidebar env list: the open
   // folder config editor's folder while it's the active editor, else the active
@@ -536,7 +530,6 @@ export function WorkspaceProvider({
       paramsRevealNonce,
       nodeCounter,
       autoNameIds,
-      showToastRef,
       httpClientRef,
       scriptRunnerRef,
       brunoWriterRef,
@@ -643,8 +636,12 @@ export function WorkspaceProvider({
     const { exportBruno, exportPostman, exportOpenapi } =
       createExports(internals);
 
-    const { saveNodeConfig, saveFolder, saveFolderConfigDoc, setFolderEnvColor } =
-      createConfigSaves(internals, persistTree);
+    const {
+      saveNodeConfig,
+      saveFolder,
+      saveFolderConfigDoc,
+      setFolderEnvColor,
+    } = createConfigSaves(internals, persistTree);
 
     const {
       openConfigEditor,
@@ -693,7 +690,11 @@ export function WorkspaceProvider({
         responseStates.get(id) ?? { status: "idle" },
       // The shell border tracks the active env resolved against the focused node:
       // the open folder editor's folder while editing, else the active request.
-      activeAccentColor: accentColorFor(tree, activeScopeId, effectiveEnvironment),
+      activeAccentColor: accentColorFor(
+        tree,
+        activeScopeId,
+        effectiveEnvironment,
+      ),
       // Env combobox options are scoped to the focused node's chain (a folder with
       // no/other envs changes what the sidebar offers); no focus -> all tree envs.
       environmentNames: scopedEnvNames,

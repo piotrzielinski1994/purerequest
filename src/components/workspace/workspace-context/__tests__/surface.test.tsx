@@ -5,7 +5,6 @@ import {
   WorkspaceProvider,
   useWorkspace,
 } from "@/components/workspace/workspace-context";
-import { ToastProvider } from "@/components/ui/toast";
 
 // The full public member set of the context value. This pins the surface so the
 // module split can't silently drop, rename, or add a member.
@@ -137,11 +136,9 @@ describe("workspace-context public surface", () => {
       return null;
     }
     render(
-      <ToastProvider>
-        <WorkspaceProvider>
-          <Probe />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider>
+        <Probe />
+      </WorkspaceProvider>,
     );
 
     expect(captured).not.toBeNull();

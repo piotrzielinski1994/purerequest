@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { ToastProvider } from "@/components/ui/toast";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
@@ -69,15 +68,13 @@ function renderShell(
   });
   return render(
     <SettingsProvider store={store}>
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={baseTree}
-          consoleLines={["[12:00:00] Ready."]}
-          onTreeChange={opts.onTreeChange}
-        >
-          <WorkspaceLayout postmanReader={opts.postmanReader} />
-        </WorkspaceProvider>
-      </ToastProvider>
+      <WorkspaceProvider
+        tree={baseTree}
+        consoleLines={["[12:00:00] Ready."]}
+        onTreeChange={opts.onTreeChange}
+      >
+        <WorkspaceLayout postmanReader={opts.postmanReader} />
+      </WorkspaceProvider>
     </SettingsProvider>,
   );
 }

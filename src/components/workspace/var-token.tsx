@@ -6,8 +6,8 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/components/ui/toast";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import {
   resolvePathTokenPreview,
@@ -21,7 +21,6 @@ export const TOKEN_PATTERN = /(\{\{[^}]+\}\}|:[A-Za-z_][A-Za-z0-9_]*)/g;
 
 function TokenValueEditor({ preview }: { preview: TokenPreview }) {
   const { setTokenValue, revealTokenSource } = useWorkspace();
-  const { show } = useToast();
   // Seed the input with the FULLY-RESOLVED value, not the raw token. A var whose
   // raw value is itself a {{token}} chain (e.g. CUSTOMER_ID = {{process.env.X}})
   // still shows the final string here - hover answers "what does this become?".
@@ -61,7 +60,7 @@ function TokenValueEditor({ preview }: { preview: TokenPreview }) {
         aria-label="Copy value"
         onClick={() => {
           navigator.clipboard?.writeText(preview.value);
-          show("Copied to clipboard");
+          toast("Copied to clipboard");
         }}
         className="flex shrink-0 items-center border-l px-2.5 text-muted-foreground hover:bg-accent hover:text-foreground"
       >
@@ -116,7 +115,10 @@ function TokenChip({
     <HoverCard openDelay={80} closeDelay={40}>
       <HoverCardTrigger asChild>
         <span
-          className={cn("pointer-events-auto cursor-default", colorFor(preview))}
+          className={cn(
+            "pointer-events-auto cursor-default",
+            colorFor(preview),
+          )}
         >
           {token}
         </span>

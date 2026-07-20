@@ -6,7 +6,6 @@ import {
   WorkspaceProvider,
   useWorkspace,
 } from "@/components/workspace/workspace-context";
-import { ToastProvider } from "@/components/ui/toast";
 import type { FolderNode, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
@@ -104,19 +103,17 @@ function renderProbe(
   initialActiveRequestId = "api/get",
 ) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider
-        tree={tree}
-        httpClient={client}
-        processEnv={{ TOKEN: "root" }}
-        envText="TOKEN=root"
-        initialActiveRequestId={initialActiveRequestId}
-        initialOpenRequestIds={[initialActiveRequestId]}
-        onTreeChange={onTreeChange}
-      >
-        <SendProbe />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider
+      tree={tree}
+      httpClient={client}
+      processEnv={{ TOKEN: "root" }}
+      envText="TOKEN=root"
+      initialActiveRequestId={initialActiveRequestId}
+      initialOpenRequestIds={[initialActiveRequestId]}
+      onTreeChange={onTreeChange}
+    >
+      <SendProbe />
+    </WorkspaceProvider>,
   );
 }
 
@@ -128,9 +125,7 @@ describe("send uses the request's folded process env (AC-004)", () => {
     const client = createFakeHttpClient();
     renderProbe(client);
 
-    await user.click(
-      screen.getByRole("button", { name: /send api/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /send api/i }));
 
     await waitFor(() => expect(client.callCount).toBe(1));
     expect(client.calls[0].url).toContain("t=api");

@@ -8,7 +8,6 @@ import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import type { SettingsSection } from "@/lib/settings/settings";
-import { ToastProvider } from "@/components/ui/toast";
 import { fixtureTree } from "./fixtures";
 
 async function renderSettings(section?: SettingsSection) {
@@ -19,11 +18,9 @@ async function renderSettings(section?: SettingsSection) {
   });
   const result = render(
     <SettingsProvider store={store}>
-      <ToastProvider>
-        <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
-          <SettingsView />
-        </WorkspaceProvider>
-      </ToastProvider>
+      <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
+        <SettingsView />
+      </WorkspaceProvider>
     </SettingsProvider>,
   );
   await screen.findByRole("tablist", { name: /settings sections/i });
@@ -34,8 +31,12 @@ describe("SettingsView sub-tabs (AC-001)", () => {
   it("should render a Theme / Env / Shortcuts section tablist", async () => {
     await renderSettings();
     const tablist = screen.getByRole("tablist", { name: /settings sections/i });
-    expect(within(tablist).getByRole("tab", { name: /theme/i })).toBeInTheDocument();
-    expect(within(tablist).getByRole("tab", { name: /env/i })).toBeInTheDocument();
+    expect(
+      within(tablist).getByRole("tab", { name: /theme/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(tablist).getByRole("tab", { name: /env/i }),
+    ).toBeInTheDocument();
     expect(
       within(tablist).getByRole("tab", { name: /shortcut/i }),
     ).toBeInTheDocument();
@@ -84,11 +85,9 @@ describe("SettingsView sub-tabs (AC-001)", () => {
     });
     render(
       <SettingsProvider store={store}>
-        <ToastProvider>
-          <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
-            <SettingsView />
-          </WorkspaceProvider>
-        </ToastProvider>
+        <WorkspaceProvider tree={fixtureTree} initialExpandedIds={[]}>
+          <SettingsView />
+        </WorkspaceProvider>
       </SettingsProvider>,
     );
     await screen.findByRole("tablist", { name: /settings sections/i });

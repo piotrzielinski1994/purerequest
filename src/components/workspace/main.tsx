@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { EditorView } from "@codemirror/view";
 import { openSearchPanel } from "@codemirror/search";
 import type { PanelGroupHandle } from "@/components/workspace/workspace-context/types";
@@ -35,7 +36,6 @@ import {
 } from "@/lib/shortcuts/registry";
 import { cycleThemeMode } from "@/lib/theme/cycle-mode";
 import { themeToggleMessage } from "@/lib/theme/toggle-message";
-import { useToast } from "@/components/ui/toast";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
 import type { BrunoCollectionReader } from "@/lib/bruno/reader";
 import type { PostmanCollectionReader } from "@/lib/postman/reader";
@@ -111,7 +111,6 @@ export function Main({
     registerPanelGroup,
     getPanelGroup,
   } = useWorkspace();
-  const { show: showToast } = useToast();
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [isQuickOpenOpen, setIsQuickOpenOpen] = useState(false);
 
@@ -122,7 +121,7 @@ export function Main({
       typeof window !== "undefined" &&
       !!window.matchMedia &&
       window.matchMedia("(prefers-color-scheme: dark)").matches;
-    showToast(themeToggleMessage(next, prefersDark));
+    toast(themeToggleMessage(next, prefersDark));
   };
 
   const stepRequest = (delta: number) => {
@@ -210,8 +209,9 @@ export function Main({
   // `document.activeElement` alone can't tell a resize which panel is active;
   // this tracks the last-clicked panel (null when the last click was outside a
   // resizable panel, e.g. the content area) as the fallback target.
-  const [pointerTarget, setPointerTarget] =
-    useState<PanelResizeTarget | null>(null);
+  const [pointerTarget, setPointerTarget] = useState<PanelResizeTarget | null>(
+    null,
+  );
   useEffect(() => {
     const onPointerDown = (event: PointerEvent) => {
       const next = resolveFocusedPanel(event.target as Element | null);

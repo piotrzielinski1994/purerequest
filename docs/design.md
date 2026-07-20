@@ -1,6 +1,6 @@
 # Design
 
-UI design rules for this app. Entries are about *visual language and interaction*, not domain logic. Read this before any UI change.
+UI design rules for this app. Entries are about _visual language and interaction_, not domain logic. Read this before any UI change.
 
 ## Corners
 
@@ -52,6 +52,12 @@ UI design rules for this app. Entries are about *visual language and interaction
 - Theme via CSS tokens (`bg-background`, `bg-muted/30`, `text-foreground`, `border-border`), not hard-coded colors, so light/dark both work. The theme is **user-selectable** (light / dark / system) and **per-mode customizable** (Settings -> Theme): mode lives in `settings.json`, custom token overrides in `theme.json`, applied as inline CSS vars on `<html>` over the `:root`/`.dark` defaults in `index.css`. The `.dark` class is live (was dead before themes shipped). Always use the tokens, never hard-coded hex - that's what lets a user's custom colors and the mode switch take effect. CodeMirror editors theme via the `useEditorExtensions` hook (color-driven factories in `editor-theme.ts`), not hardcoded hex.
 - Status colors: success green (`text-green-600 dark:text-green-400`), error/destructive red (`text-red-600 dark:text-red-400`). A destructive action button (e.g. Disconnect) is filled red.
 - Status dots are a small `size-2` filled circle, right-aligned, never with a text label leaking into an accessible name (give the row an explicit `aria-label`).
+
+## Toasts
+
+- **Toasts = sonner.** sonner IS the canonical shadcn toast (the old radix `toast`/`useToast` is deprecated). Call `toast(...)` from `sonner` directly - it's a global sink, no context/provider/ref to thread. The thin wrapper lives at [src/components/ui/sonner.tsx](../src/components/ui/sonner.tsx) (`Toaster`, `theme="system"`, `position="bottom-right"`). Never hand-roll a toast provider.
+- The single `<Toaster/>` mounts in [src/routes/\_\_root.tsx](../src/routes/__root.tsx) so every route/state can raise a toast. A persistent toast (e.g. the update prompt) uses `{ id, duration: Infinity, closeButton: true, action }` and is updated in place by re-calling `toast(msg, { id, duration: Infinity })` on the same id (see `show-update-toast.ts`).
+- **In tests**, sonner is the observable boundary: `vi.mock("sonner", ...)` (with `Toaster: () => null`) and assert on `mockToast.mock.calls`, not on rendered DOM (an unmounted `<Toaster/>` renders no text). `src/test/setup.ts` stubs `window.matchMedia` because the mounted `Toaster` reads it.
 
 ## Layout
 

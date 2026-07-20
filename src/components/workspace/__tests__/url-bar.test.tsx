@@ -7,7 +7,6 @@ import {
   useWorkspace,
 } from "@/components/workspace/workspace-context";
 import { UrlBar } from "@/components/workspace/url-bar";
-import { ToastProvider } from "@/components/ui/toast";
 import { fixtureTree } from "./fixtures";
 
 function NewRequestButton() {
@@ -132,16 +131,16 @@ describe("UrlBar", () => {
   it("should focus the URL input when the first request is created from the empty state", async () => {
     const user = userEvent.setup();
     render(
-      <ToastProvider>
-        <WorkspaceProvider tree={[]}>
-          <NewRequestButton />
-          <UrlBar />
-        </WorkspaceProvider>
-      </ToastProvider>,
+      <WorkspaceProvider tree={[]}>
+        <NewRequestButton />
+        <UrlBar />
+      </WorkspaceProvider>,
     );
 
     // empty state: no URL input yet.
-    expect(screen.queryByRole("textbox", { name: /url/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("textbox", { name: /url/i }),
+    ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /new request/i }));
 

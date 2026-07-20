@@ -1,16 +1,28 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { toast } from "sonner";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { Main } from "@/components/workspace/main";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { ThemeProvider } from "@/lib/theme/theme-context";
-import { ToastProvider } from "@/components/ui/toast";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS, type ThemeMode } from "@/lib/settings/settings";
 import { createFakeHttpClient } from "./fake-http-client";
 import { fixtureTree } from "./fixtures";
+
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), {
+    error: vi.fn(),
+    success: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+  Toaster: () => null,
+}));
+
+const mockToast = vi.mocked(toast);
 
 // jsdom has no matchMedia; the ThemeProvider subscribes to it.
 function stubMatchMedia(matches = false) {
@@ -38,14 +50,12 @@ function renderMain(mode: ThemeMode) {
   return render(
     <SettingsProvider store={store}>
       <ThemeProvider>
-        <ToastProvider>
-          <WorkspaceProvider
-            tree={fixtureTree}
-            httpClient={createFakeHttpClient()}
-          >
-            <Main />
-          </WorkspaceProvider>
-        </ToastProvider>
+        <WorkspaceProvider
+          tree={fixtureTree}
+          httpClient={createFakeHttpClient()}
+        >
+          <Main />
+        </WorkspaceProvider>
       </ThemeProvider>
     </SettingsProvider>,
   );
@@ -83,6 +93,10 @@ describe("toggle-theme shortcut", () => {
 
     await user.keyboard("{Control>}{Shift>}l{/Shift}{/Control}");
 
-    expect(await screen.findByText(/theme: dark/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        mockToast.mock.calls.some((c) => /theme: dark/i.test(String(c[0]))),
+      ).toBe(true);
+    });
   });
 });

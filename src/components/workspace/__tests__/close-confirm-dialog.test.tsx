@@ -7,7 +7,6 @@ import {
   useWorkspace,
 } from "@/components/workspace/workspace-context";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
-import { ToastProvider } from "@/components/ui/toast";
 import type { TreeNode } from "@/lib/workspace/model";
 import { bodyFixtureTree } from "./fixtures";
 
@@ -60,17 +59,15 @@ function CloseDriver() {
 
 function renderDialog(onTreeChange?: OnTreeChange) {
   return render(
-    <ToastProvider>
-      <WorkspaceProvider
-        tree={bodyFixtureTree}
-        initialActiveRequestId="req-json-body"
-        initialOpenRequestIds={["req-json-body", "req-other-body"]}
-        onTreeChange={onTreeChange}
-      >
-        <CloseDriver />
-        <CloseConfirmDialog />
-      </WorkspaceProvider>
-    </ToastProvider>,
+    <WorkspaceProvider
+      tree={bodyFixtureTree}
+      initialActiveRequestId="req-json-body"
+      initialOpenRequestIds={["req-json-body", "req-other-body"]}
+      onTreeChange={onTreeChange}
+    >
+      <CloseDriver />
+      <CloseConfirmDialog />
+    </WorkspaceProvider>,
   );
 }
 

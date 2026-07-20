@@ -8,7 +8,6 @@ import {
 } from "@/components/workspace/workspace-context";
 import { SidebarTree } from "@/components/workspace/sidebar-tree";
 import { ContentHeader } from "@/components/workspace/content-header";
-import { ToastProvider } from "@/components/ui/toast";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
@@ -42,13 +41,11 @@ async function renderTree(
   });
   const result = render(
     <SettingsProvider store={store}>
-      <ToastProvider>
-        <WorkspaceProvider tree={fixtureTree} initialExpandedIds={expanded}>
-          <SidebarTree />
-          <ContentHeader />
-          <Probe />
-        </WorkspaceProvider>
-      </ToastProvider>
+      <WorkspaceProvider tree={fixtureTree} initialExpandedIds={expanded}>
+        <SidebarTree />
+        <ContentHeader />
+        <Probe />
+      </WorkspaceProvider>
     </SettingsProvider>,
   );
   // SettingsProvider renders null until its async store.load resolves; wait for

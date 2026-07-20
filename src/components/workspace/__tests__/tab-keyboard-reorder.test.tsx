@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { ContentHeader } from "@/components/workspace/content-header";
-import { ToastProvider } from "@/components/ui/toast";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
@@ -17,15 +16,13 @@ async function renderHeader(openIds: string[], activeId = openIds[0]) {
   });
   const result = render(
     <SettingsProvider store={store}>
-      <ToastProvider>
-        <WorkspaceProvider
-          tree={fixtureTree}
-          initialOpenRequestIds={openIds}
-          initialActiveRequestId={activeId}
-        >
-          <ContentHeader />
-        </WorkspaceProvider>
-      </ToastProvider>
+      <WorkspaceProvider
+        tree={fixtureTree}
+        initialOpenRequestIds={openIds}
+        initialActiveRequestId={activeId}
+      >
+        <ContentHeader />
+      </WorkspaceProvider>
     </SettingsProvider>,
   );
   // SettingsProvider renders null until its async store.load resolves.

@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import type { RequestNode } from "@/lib/workspace/model";
 import type {
   BodyMode,
@@ -9,7 +10,10 @@ import type {
 import { extractPathParams } from "@/lib/http/path-params";
 import { syncParamsFromUrl, syncUrlFromParams } from "@/lib/http/query-sync";
 import { insertNode } from "@/lib/workspace/tree-edit";
-import { updateRequest, type RequestPatch } from "@/lib/workspace/update-request";
+import {
+  updateRequest,
+  type RequestPatch,
+} from "@/lib/workspace/update-request";
 import {
   indexRequests,
   type RequestOverride,
@@ -48,7 +52,6 @@ export function createRequestEdits(
     activeRequestId,
     activeEditor,
     autoNameIds,
-    showToastRef,
     setRequestOverrides,
     setDraftRequests,
     setExpandedFolderIds,
@@ -84,7 +87,10 @@ export function createRequestEdits(
   };
   const setRequestForm = (id: string, rows: KeyValue[]) => {
     const node = requestsById.get(id);
-    if (!node || (node.body.active !== "form" && node.body.active !== "multipart")) {
+    if (
+      !node ||
+      (node.body.active !== "form" && node.body.active !== "multipart")
+    ) {
       return;
     }
     mergeOverride(id, {
@@ -341,13 +347,13 @@ export function createRequestEdits(
         activeEditor.save();
         return;
       }
-      showToastRef.current("Saved");
+      toast("Saved");
       return;
     }
     if (saveActiveRequest()) {
       return;
     }
-    showToastRef.current("Saved");
+    toast("Saved");
   };
 
   return {

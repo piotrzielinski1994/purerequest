@@ -19,7 +19,6 @@ import { TreeDndProvider } from "@/components/workspace/tree-dnd";
 import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
-import { ToastProvider } from "@/components/ui/toast";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient } from "./fake-http-client";
@@ -31,7 +30,9 @@ const tree: TreeNode[] = [
     kind: "folder",
     id: "folder-1",
     name: "Folder",
-    config: { variables: [{ key: "baseUrl", value: "https://api.example.com" }] },
+    config: {
+      variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+    },
     children: [
       {
         kind: "request",
@@ -80,9 +81,7 @@ describe("Sidebar row edit-config control", () => {
 
     // config editing lives in the row context menu now (no hover pencil).
     fireEvent.contextMenu(reqRow);
-    await user.click(
-      await screen.findByRole("menuitem", { name: /^edit$/i }),
-    );
+    await user.click(await screen.findByRole("menuitem", { name: /^edit$/i }));
 
     // The editor seeds with the node's config JSON; assert the live CM doc shows it.
     await waitFor(() => {
@@ -108,23 +107,21 @@ describe("root .env relocated out of the sidebar", () => {
   it("should show the root .env editor in the Settings view", async () => {
     const user = userEvent.setup();
     render(
-      <ToastProvider>
-        <SettingsProvider
-          store={createInMemorySettingsStore({
-            ...DEFAULT_SETTINGS,
-            shortcuts: {},
-          })}
+      <SettingsProvider
+        store={createInMemorySettingsStore({
+          ...DEFAULT_SETTINGS,
+          shortcuts: {},
+        })}
+      >
+        <WorkspaceProvider
+          tree={tree}
+          envText="TOKEN=seed"
+          httpClient={createFakeHttpClient()}
         >
-          <WorkspaceProvider
-            tree={tree}
-            envText="TOKEN=seed"
-            httpClient={createFakeHttpClient()}
-          >
-            <OpenSettingsButton />
-            <Content />
-          </WorkspaceProvider>
-        </SettingsProvider>
-      </ToastProvider>,
+          <OpenSettingsButton />
+          <Content />
+        </WorkspaceProvider>
+      </SettingsProvider>,
     );
 
     await user.click(
@@ -183,9 +180,7 @@ describe("TreeRow edit-config control wiring", () => {
 
     const folderRow = screen.getByRole("treeitem", { name: /Folder/i });
     fireEvent.contextMenu(folderRow);
-    await user.click(
-      await screen.findByRole("menuitem", { name: /^edit$/i }),
-    );
+    await user.click(await screen.findByRole("menuitem", { name: /^edit$/i }));
 
     expect(screen.getByTestId("has-edit-target")).toHaveTextContent("yes");
   });
