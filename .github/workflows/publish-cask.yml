@@ -1,0 +1,83 @@
+name: Publish Cask
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish the cask for (e.g. v0.1.0)'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish-cask:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag and version
+        id: meta
+        run: |
+          TAG="${{ github.event.release.tag_name || github.event.inputs.tag }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download dmg and compute sha256
+        id: sha
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ASSET="purerequest_${{ steps.meta.outputs.version }}_universal.dmg"
+          gh release download "${{ steps.meta.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --pattern "$ASSET" \
+            --dir /tmp
+          SHA=$(sha256sum "/tmp/$ASSET" | awk '{print $1}')
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tap
+        uses: actions/checkout@v4
+        with:
+          repository: piotrzielinski1994/homebrew-tap
+          ssh-key: ${{ secrets.TAP_DEPLOY_KEY }}
+          path: tap
+
+      - name: Write cask
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          SHA: ${{ steps.sha.outputs.sha256 }}
+        run: |
+          cat > tap/Casks/purerequest.rb <<EOF
+          cask "purerequest" do
+            version "$VERSION"
+            sha256 "$SHA"
+
+            url "https://github.com/piotrzielinski1994/purerequest/releases/download/v#{version}/purerequest_#{version}_universal.dmg"
+            name "purerequest"
+            desc "HTTP request client"
+            homepage "https://github.com/piotrzielinski1994/purerequest"
+
+            app "purerequest.app"
+
+            zap trash: [
+              "~/Library/Application Support/com.pzielinski.purerequest",
+              "~/Library/Caches/com.pzielinski.purerequest",
+              "~/Library/Preferences/com.pzielinski.purerequest.plist",
+              "~/Library/Saved Application State/com.pzielinski.purerequest.savedState",
+            ]
+          end
+          EOF
+
+      - name: Commit and push
+        working-directory: tap
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/purerequest.rb
+          if git diff --cached --quiet; then
+            echo "Cask already up to date for ${{ steps.meta.outputs.version }}"
+            exit 0
+          fi
+          git commit -m "purerequest ${{ steps.meta.outputs.version }}"
+          git push
