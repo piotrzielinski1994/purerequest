@@ -1,11 +1,11 @@
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
-  type ReactNode,
 } from "react";
 import {
   DEFAULT_SETTINGS,
@@ -203,8 +203,7 @@ export function SettingsProvider({ store, children }: SettingsProviderProps) {
   );
 
   const saveDraftTabs = useCallback(
-    (draftTabs: DraftTab[]) =>
-      update((base) => ({ ...base, draftTabs })),
+    (draftTabs: DraftTab[]) => update((base) => ({ ...base, draftTabs })),
     [update],
   );
 

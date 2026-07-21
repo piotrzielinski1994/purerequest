@@ -1,19 +1,19 @@
-import { useMemo } from "react";
 import type { Extension } from "@codemirror/state";
-import { useThemeOptional } from "@/lib/theme/theme-context";
-import { applyDefaults } from "@/lib/theme/overrides";
-import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
-import {
-  makeChrome,
-  makeHighlight,
-  makeEditorExtensions,
-  makeViewerExtensions,
-  type EditorColors,
-} from "@/components/workspace/editor-theme";
+import { useMemo } from "react";
 import { editorFind } from "@/components/workspace/editor-find";
+import {
+  type EditorColors,
+  makeChrome,
+  makeEditorExtensions,
+  makeHighlight,
+  makeViewerExtensions,
+} from "@/components/workspace/editor-theme";
 import { useShortcutOverrides } from "@/lib/settings/settings-context";
 import { resolveShortcuts } from "@/lib/shortcuts/resolve";
 import { toCodeMirrorKey } from "@/lib/shortcuts/to-codemirror-key";
+import { applyDefaults } from "@/lib/theme/overrides";
+import { useThemeOptional } from "@/lib/theme/theme-context";
+import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
 
 export type EditorExtensionSets = {
   // Request body editor: JSON + close-brackets + lint.

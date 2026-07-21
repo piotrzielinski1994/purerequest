@@ -187,13 +187,15 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
   {
     id: "import-postman",
     name: "Import Postman collection",
-    description: "Pick a Postman collection JSON file to import as a new folder.",
+    description:
+      "Pick a Postman collection JSON file to import as a new folder.",
     defaultHotkey: "Mod+Shift+P",
   },
   {
     id: "import-openapi",
     name: "Import OpenAPI document",
-    description: "Pick an OpenAPI 3.x JSON/YAML document to import as a new folder.",
+    description:
+      "Pick an OpenAPI 3.x JSON/YAML document to import as a new folder.",
     defaultHotkey: "Mod+Shift+O",
   },
   {

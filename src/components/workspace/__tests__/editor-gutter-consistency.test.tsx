@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import { BodyEditor } from "@/components/workspace/body-editor";
 import { JsonViewer } from "@/components/workspace/json-viewer";
@@ -17,8 +17,7 @@ function foldMarkersHidden(): boolean {
   return css
     .split("}")
     .some(
-      (rule) =>
-        /\.cm-foldGutter/.test(rule) && /opacity:\s*0\b/.test(rule),
+      (rule) => /\.cm-foldGutter/.test(rule) && /opacity:\s*0\b/.test(rule),
     );
 }
 

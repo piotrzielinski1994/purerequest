@@ -1,16 +1,16 @@
-import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import type { PostmanFileMap } from "@/lib/postman/postman-to-tree";
+import type { PostmanExportWriter } from "@/lib/postman/writer";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
-import type { PostmanExportWriter } from "@/lib/postman/writer";
-import type { PostmanFileMap } from "@/lib/postman/postman-to-tree";
 
 function req(id: string, name: string, url: string): RequestNode {
   return {

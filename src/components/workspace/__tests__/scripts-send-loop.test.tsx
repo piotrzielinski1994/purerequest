@@ -1,24 +1,19 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 import {
-  WorkspaceProvider,
   useWorkspace,
+  WorkspaceProvider,
 } from "@/components/workspace/workspace-context";
 import type { ResponseState } from "@/lib/http/model";
-import type {
-  FolderNode,
-  RequestNode,
-  TreeNode,
-} from "@/lib/workspace/model";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
-import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
-
 // The script runner port + fake adapter don't exist yet: imported so RED fails
 // on the missing module, not a typo.
 import { createFakeScriptRunner } from "@/lib/scripts/fake-runner";
 import type { ScriptApi, ScriptRunner } from "@/lib/scripts/model";
+import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
 
 // ---- fixtures ---------------------------------------------------------------
 // A folder defines `v` (so a {{v}} interpolation has a value) and holds a single
@@ -99,7 +94,9 @@ function Probe() {
   const { sendRequest, responseState, consoleLines } = useWorkspace();
   return (
     <div>
-      <span data-testid="state">{describeState(responseState("req-main"))}</span>
+      <span data-testid="state">
+        {describeState(responseState("req-main"))}
+      </span>
       <span data-testid="console">{consoleLines.join("\n")}</span>
       <button type="button" onClick={() => sendRequest("req-main")}>
         send main
@@ -156,9 +153,9 @@ describe("send loop - pre script wire mutation (TC-003 / AC-001)", () => {
     await waitFor(() => expect(client.callCount).toBe(1));
     const wire = client.calls[0];
     expect(wire.url).toContain("https://changed/vee");
-    expect(
-      wire.headers.find((h) => h.key.toLowerCase() === "x-a")?.value,
-    ).toBe("1");
+    expect(wire.headers.find((h) => h.key.toLowerCase() === "x-a")?.value).toBe(
+      "1",
+    );
   });
 });
 
@@ -441,7 +438,15 @@ describe("send loop - edge cases (spec §9)", () => {
       name: "main",
       method: "POST",
       url: "{{baseUrl}}/thing",
-      body: { active: "json", types: { json: '{"a":1}', form: [], multipart: [], graphql: { query: "", variables: "" } } },
+      body: {
+        active: "json",
+        types: {
+          json: '{"a":1}',
+          form: [],
+          multipart: [],
+          graphql: { query: "", variables: "" },
+        },
+      },
       params: emptyParams(),
       config: { scripts: { pre: "/* pre */" } },
     };
@@ -489,9 +494,7 @@ describe("send loop - edge cases (spec §9)", () => {
 
     await waitFor(() => expect(onTreeChange).toHaveBeenCalledTimes(1));
     const persisted = onTreeChange.mock.calls[0][0];
-    expect(
-      findRequest(persisted, "req-main")?.config.variables,
-    ).toEqual(
+    expect(findRequest(persisted, "req-main")?.config.variables).toEqual(
       expect.arrayContaining([
         { key: "a", value: "1" },
         { key: "b", value: "2" },
@@ -526,7 +529,9 @@ describe("send loop - edge cases (spec §9)", () => {
     await user.click(screen.getByRole("button", { name: /send main/i }));
 
     await waitFor(() =>
-      expect(screen.getByTestId("console").textContent).toContain("after clear"),
+      expect(screen.getByTestId("console").textContent).toContain(
+        "after clear",
+      ),
     );
     const text = screen.getByTestId("console").textContent ?? "";
     expect(text).not.toContain("old line 1");
@@ -567,10 +572,12 @@ describe("send loop - edge cases (spec §9)", () => {
     await waitFor(() => expect(onTreeChange).toHaveBeenCalled());
     const persisted =
       onTreeChange.mock.calls[onTreeChange.mock.calls.length - 1][0];
-    expect(findRequest(persisted, "req-main")?.config.variables).toContainEqual({
-      key: "saved",
-      value: "yes",
-    });
+    expect(findRequest(persisted, "req-main")?.config.variables).toContainEqual(
+      {
+        key: "saved",
+        value: "yes",
+      },
+    );
     expect(screen.getByTestId("console").textContent).toContain("late boom");
   });
 });

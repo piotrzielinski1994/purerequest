@@ -1,11 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   parsePostmanCollection,
   parsePostmanEnvironment,
 } from "@/lib/postman/parse-postman";
-import { authOf } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { authOf } from "@/lib/workspace/model";
 
 const SCHEMA =
   "https://schema.getpostman.com/json/collection/v2.1.0/collection.json";
@@ -21,7 +21,7 @@ function parseRoot(
   fallback = "fallback",
 ): FolderNode {
   const parsed = parsePostmanCollection(JSON.stringify(doc), fallback);
-  if (!parsed || parsed.kind !== "folder") {
+  if (parsed?.kind !== "folder") {
     throw new Error("expected a folder node");
   }
   return parsed;
@@ -333,7 +333,9 @@ describe("parsePostmanCollection - event scripts (AC-006)", () => {
           event: [
             {
               listen: "prerequest",
-              script: { exec: ["const a = 1;", "purerequest.setVar('a', String(a));"] },
+              script: {
+                exec: ["const a = 1;", "purerequest.setVar('a', String(a));"],
+              },
             },
             {
               listen: "test",

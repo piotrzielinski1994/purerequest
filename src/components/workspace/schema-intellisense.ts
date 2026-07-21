@@ -1,15 +1,15 @@
 import { jsonLanguage } from "@codemirror/lang-json";
-import { hoverTooltip, type EditorView } from "@codemirror/view";
-import { linter, type Diagnostic } from "@codemirror/lint";
+import { type Diagnostic, linter } from "@codemirror/lint";
 import type { Extension } from "@codemirror/state";
-import type { JSONSchema7 } from "json-schema";
+import { type EditorView, hoverTooltip } from "@codemirror/view";
 import {
-  jsonCompletion,
-  jsonSchemaLinter,
-  jsonSchemaHover,
-  stateExtensions,
   handleRefresh,
+  jsonCompletion,
+  jsonSchemaHover,
+  jsonSchemaLinter,
+  stateExtensions,
 } from "codemirror-json-schema";
+import type { JSONSchema7 } from "json-schema";
 
 // The schema linter emits `severity:"error"` for every schema violation, which
 // would make malformed-vs-merely-invalid indistinguishable and (in spirit) gate

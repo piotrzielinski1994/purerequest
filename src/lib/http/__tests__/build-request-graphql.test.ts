@@ -1,8 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { encodeBody } from "@/lib/http/body-encode";
 import { buildHttpRequest } from "@/lib/http/build-request";
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import type {
   Auth,
   HttpMethod,
@@ -10,6 +9,7 @@ import type {
   RequestNode,
 } from "@/lib/workspace/model";
 import { authOf } from "@/lib/workspace/model";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 // A graphql RequestBody: the new `graphql` slot holds a { query, variables } pair
 // alongside the existing side-by-side slots. Typed loosely (`as` the model type)
@@ -81,7 +81,10 @@ describe("encodeBody - graphql mode", () => {
   // TC-003, AC-003 - behavior: a scalar (`5`) parses to JSON but is not an object
   // -> `variables` omitted.
   it("should omit variables if the variables text is a JSON scalar", () => {
-    const encoded = encodeBody(graphqlBody("query { me { id } }", "5"), identity);
+    const encoded = encodeBody(
+      graphqlBody("query { me { id } }", "5"),
+      identity,
+    );
 
     expect(parseBody(encoded.body)).toEqual({ query: "query { me { id } }" });
   });
@@ -90,7 +93,9 @@ describe("encodeBody - graphql mode", () => {
   // via `subst` before the JSON is built (variables parsed after substitution).
   it("should interpolate {{tokens}} in both the query and the variables before encoding", () => {
     const subst = (input: string) =>
-      input.replace(/\{\{id\}\}/g, "42").replace(/\{\{host\}\}/g, "example.com");
+      input
+        .replace(/\{\{id\}\}/g, "42")
+        .replace(/\{\{host\}\}/g, "example.com");
 
     const encoded = encodeBody(
       graphqlBody('query { user(id: "{{id}}") }', '{"h":"{{host}}"}'),
@@ -105,7 +110,7 @@ describe("encodeBody - graphql mode", () => {
 
   // Empty state (UI states table) - behavior: a fully blank graphql body still
   // POSTs `{"query":""}` with the json content type (not a null body).
-  it("should encode a blank graphql body as {\"query\":\"\"} with application/json", () => {
+  it('should encode a blank graphql body as {"query":""} with application/json', () => {
     const encoded = encodeBody(graphqlBody("", ""), identity);
 
     expect(encoded.contentType).toBe("application/json");
@@ -170,7 +175,9 @@ describe("buildHttpRequest - graphql mode", () => {
   it("should keep only the user Content-Type but still send the graphql JSON body", () => {
     const wire = buildHttpRequest(
       graphqlRequest("POST"),
-      effectiveOf({ headers: { "content-type": "application/graphql-response+json" } }),
+      effectiveOf({
+        headers: { "content-type": "application/graphql-response+json" },
+      }),
     );
 
     const cts = contentTypeHeaders(wire.headers);

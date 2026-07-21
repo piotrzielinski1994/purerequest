@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
-import { useState } from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
+import { describe, expect, it, vi } from "vitest";
 
 import { GeneralPanel } from "@/components/workspace/config-panels";
 import type { ConfigScope } from "@/lib/workspace/model";
@@ -70,7 +70,10 @@ describe("GeneralPanel timeout field", () => {
     const onChange = vi.fn();
     render(
       <StatefulPanel
-        initialConfig={{ variables: [{ key: "a", value: "b" }], timeoutMs: 5000 }}
+        initialConfig={{
+          variables: [{ key: "a", value: "b" }],
+          timeoutMs: 5000,
+        }}
         onChange={onChange}
       />,
     );
@@ -84,7 +87,9 @@ describe("GeneralPanel timeout field", () => {
 
   // behavior: an own timeoutMs is shown as the input's value (not just the placeholder).
   it("should display the own timeoutMs as the input value", () => {
-    render(<StatefulPanel initialConfig={{ timeoutMs: 5000 }} onChange={vi.fn()} />);
+    render(
+      <StatefulPanel initialConfig={{ timeoutMs: 5000 }} onChange={vi.fn()} />,
+    );
 
     expect(screen.getByLabelText(/timeout/i)).toHaveDisplayValue("5000");
   });
@@ -240,8 +245,6 @@ describe("GeneralPanel HTTP version selector (TC-010, AC-004)", () => {
     await user.click(screen.getByRole("combobox", { name: /http version/i }));
     await user.click(await screen.findByRole("option", { name: /http\/3/i }));
 
-    await waitFor(() =>
-      expect(onHttpVersionChange).toHaveBeenCalledWith("h3"),
-    );
+    await waitFor(() => expect(onHttpVersionChange).toHaveBeenCalledWith("h3"));
   });
 });

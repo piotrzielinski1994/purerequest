@@ -1,21 +1,21 @@
 import { toast } from "sonner";
-import { insertNode } from "@/lib/workspace/tree-edit";
-import { mergeDotenv } from "@/lib/workspace/environment";
-import { parseCurl, type CurlParseResult } from "@/lib/curl/parse-curl";
-import {
-  brunoToTree,
-  collectDotenv,
-  type BrunoFileMap,
-} from "@/lib/bruno/bruno-to-tree";
-import {
-  postmanToTree,
-  type PostmanFileMap,
-} from "@/lib/postman/postman-to-tree";
-import { openapiToTree } from "@/lib/openapi/openapi-to-tree";
-import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
 import type { PersistApi } from "@/components/workspace/workspace-context/persist";
 import type { SelectionApi } from "@/components/workspace/workspace-context/selection";
 import type { TreeCrudApi } from "@/components/workspace/workspace-context/tree-crud";
+import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
+import {
+  type BrunoFileMap,
+  brunoToTree,
+  collectDotenv,
+} from "@/lib/bruno/bruno-to-tree";
+import { type CurlParseResult, parseCurl } from "@/lib/curl/parse-curl";
+import { openapiToTree } from "@/lib/openapi/openapi-to-tree";
+import {
+  type PostmanFileMap,
+  postmanToTree,
+} from "@/lib/postman/postman-to-tree";
+import { mergeDotenv } from "@/lib/workspace/environment";
+import { insertNode } from "@/lib/workspace/tree-edit";
 
 export type ImportsApi = {
   importCurl: (text: string) => CurlParseResult;
@@ -82,7 +82,7 @@ export function createImports(
 
   const importBruno = (files: BrunoFileMap, name: string) => {
     const [root] = brunoToTree(files, name);
-    if (!root || root.kind !== "folder" || root.children.length === 0) {
+    if (root?.kind !== "folder" || root.children.length === 0) {
       return;
     }
     nodeCounter.current += 1;
@@ -96,7 +96,7 @@ export function createImports(
 
   const importPostman = (files: PostmanFileMap, name: string) => {
     const [root] = postmanToTree(files, name);
-    if (!root || root.kind !== "folder" || root.children.length === 0) {
+    if (root?.kind !== "folder" || root.children.length === 0) {
       return;
     }
     nodeCounter.current += 1;
@@ -114,7 +114,7 @@ export function createImports(
 
   const importOpenapi = (text: string, name: string) => {
     const [root] = openapiToTree(text, name);
-    if (!root || root.kind !== "folder" || root.children.length === 0) {
+    if (root?.kind !== "folder" || root.children.length === 0) {
       toast("No importable operations in OpenAPI document");
       return;
     }

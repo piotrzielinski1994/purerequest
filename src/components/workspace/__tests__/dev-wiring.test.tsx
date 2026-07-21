@@ -1,17 +1,16 @@
-import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-
-import { WorkspaceLoader } from "@/components/workspace/workspace-loader";
+import { describe, expect, it } from "vitest";
 import { createFakeHttpClient } from "@/components/workspace/__tests__/fake-http-client";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { WorkspaceLoader } from "@/components/workspace/workspace-loader";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
-import { createInMemoryWorkspaceFs } from "@/lib/workspace/in-memory-fs";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import {
   DEMO_RESPONSE,
   DEMO_WORKSPACE_PATH,
   demoFiles,
 } from "@/lib/workspace/demo-seed";
+import { createInMemoryWorkspaceFs } from "@/lib/workspace/in-memory-fs";
 
 function renderDevLoader() {
   const fs = createInMemoryWorkspaceFs({
@@ -21,7 +20,10 @@ function renderDevLoader() {
     ...DEFAULT_SETTINGS,
     workspacePath: DEMO_WORKSPACE_PATH,
   });
-  const httpClient = createFakeHttpClient({ ok: true, response: DEMO_RESPONSE });
+  const httpClient = createFakeHttpClient({
+    ok: true,
+    response: DEMO_RESPONSE,
+  });
 
   return render(
     <SettingsProvider store={settingsStore}>

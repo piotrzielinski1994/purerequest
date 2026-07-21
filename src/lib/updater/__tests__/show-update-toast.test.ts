@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { toast } from "sonner";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { showUpdateToast } from "@/lib/updater/show-update-toast";
 import type { UpdateInfo } from "@/lib/updater/update-controller";

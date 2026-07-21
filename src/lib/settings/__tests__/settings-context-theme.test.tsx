@@ -1,13 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import { SettingsProvider, useSettings } from "@/lib/settings/settings-context";
+import { describe, expect, it, vi } from "vitest";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
-import {
-  DEFAULT_SETTINGS,
-  type SettingsStore,
-} from "@/lib/settings/settings";
+import { DEFAULT_SETTINGS, type SettingsStore } from "@/lib/settings/settings";
+import { SettingsProvider, useSettings } from "@/lib/settings/settings-context";
 
 // Stage 1 — Themes feature. saveThemeMode persists the chosen mode through the
 // store (AC-004) and exposes it on settings.theme.mode.

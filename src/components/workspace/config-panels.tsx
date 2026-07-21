@@ -1,13 +1,5 @@
-import { useState } from "react";
 import { CornerLeftUp, Plus, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { HighlightedInput } from "@/components/workspace/highlighted-input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,19 +9,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  PANE_TABS_LIST,
-  PANE_TABS_TRIGGER,
-} from "@/components/workspace/pane-tabs";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip } from "@/components/ui/tooltip";
+import { AccentField } from "@/components/workspace/accent-field";
 import {
   EditableKeyValueTable,
   type TokenHighlightContext,
 } from "@/components/workspace/editable-key-value-table";
+import { HighlightedInput } from "@/components/workspace/highlighted-input";
+import {
+  PANE_TABS_LIST,
+  PANE_TABS_TRIGGER,
+} from "@/components/workspace/pane-tabs";
 import { ScriptEditor } from "@/components/workspace/script-editor";
-import { AccentField } from "@/components/workspace/accent-field";
-import { Tooltip } from "@/components/ui/tooltip";
 import type { ScriptStage } from "@/lib/scripts/model";
+import { cn } from "@/lib/utils";
+import { parseDotenv } from "@/lib/workspace/environment";
 import type {
   Auth,
   AuthMode,
@@ -39,7 +40,6 @@ import type {
 } from "@/lib/workspace/model";
 import { emptyAuth } from "@/lib/workspace/model";
 import type { ResolvedValue } from "@/lib/workspace/resolve";
-import { parseDotenv } from "@/lib/workspace/environment";
 
 const AUTH_TYPE_LABELS: Record<AuthMode, string> = {
   inherit: "Inherit",
@@ -325,230 +325,231 @@ export function EnvPanel({
 
   return (
     <>
-    <Tabs
-      value={view}
-      onValueChange={(next) => setView(next as "envs" | "dotenv")}
-      className="flex h-full min-h-0 flex-col gap-0"
-    >
-      <div className="flex h-10.25 items-stretch overflow-x-auto border-b bg-muted/30">
-        <TabsList aria-label="Env views" className={PANE_TABS_LIST}>
-          <TabsTrigger value="envs" className={PANE_TABS_TRIGGER}>
-            Envs
-          </TabsTrigger>
-          <TabsTrigger value="dotenv" className={PANE_TABS_TRIGGER}>
-            .env
-          </TabsTrigger>
-        </TabsList>
-      </div>
-      <TabsContent value="envs" className="min-h-0 flex-1">
+      <Tabs
+        value={view}
+        onValueChange={(next) => setView(next as "envs" | "dotenv")}
+        className="flex h-full min-h-0 flex-col gap-0"
+      >
         <div className="flex h-10.25 items-stretch overflow-x-auto border-b bg-muted/30">
-          <Select
-            value={activePicked ?? ""}
-            onValueChange={setPicked}
-            disabled={available.length === 0}
-          >
-            {inheritedFrom !== null ? (
-              <Tooltip content={`Inherited from ${inheritedFrom}`}>
+          <TabsList aria-label="Env views" className={PANE_TABS_LIST}>
+            <TabsTrigger value="envs" className={PANE_TABS_TRIGGER}>
+              Envs
+            </TabsTrigger>
+            <TabsTrigger value="dotenv" className={PANE_TABS_TRIGGER}>
+              .env
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="envs" className="min-h-0 flex-1">
+          <div className="flex h-10.25 items-stretch overflow-x-auto border-b bg-muted/30">
+            <Select
+              value={activePicked ?? ""}
+              onValueChange={setPicked}
+              disabled={available.length === 0}
+            >
+              {inheritedFrom !== null ? (
+                <Tooltip content={`Inherited from ${inheritedFrom}`}>
+                  <SelectTrigger
+                    aria-label="Environment"
+                    className="h-full! w-fit min-w-32 rounded-none border-0 border-r border-r-border bg-transparent text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
+                  >
+                    <span className="flex w-full items-center gap-1.5">
+                      {activePicked}
+                      <CornerLeftUp
+                        aria-label={`Inherited from ${inheritedFrom}`}
+                        className="size-3.5 text-muted-foreground"
+                      />
+                    </span>
+                  </SelectTrigger>
+                </Tooltip>
+              ) : (
                 <SelectTrigger
                   aria-label="Environment"
                   className="h-full! w-fit min-w-32 rounded-none border-0 border-r border-r-border bg-transparent text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
                 >
-                  <span className="flex w-full items-center gap-1.5">
-                    {activePicked}
-                    <CornerLeftUp
-                      aria-label={`Inherited from ${inheritedFrom}`}
-                      className="size-3.5 text-muted-foreground"
-                    />
-                  </span>
+                  {activePicked ?? "No environment"}
                 </SelectTrigger>
-              </Tooltip>
-            ) : (
-              <SelectTrigger
-                aria-label="Environment"
-                className="h-full! w-fit min-w-32 rounded-none border-0 border-r border-r-border bg-transparent text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
-              >
-                {activePicked ?? "No environment"}
-              </SelectTrigger>
-            )}
-            <SelectContent position="popper">
-              {available.map((name) => {
-                const from = inheritedOrigin(name);
-                if (from === null) {
-                  return (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  );
-                }
-                return (
-                  <Tooltip
-                    key={name}
-                    side="right"
-                    content={`Inherited from ${from}`}
-                  >
-                    <SelectItem value={name}>
-                      <span className="flex w-full items-center gap-1.5">
+              )}
+              <SelectContent position="popper">
+                {available.map((name) => {
+                  const from = inheritedOrigin(name);
+                  if (from === null) {
+                    return (
+                      <SelectItem key={name} value={name}>
                         {name}
-                        <CornerLeftUp
-                          aria-label={`Inherited from ${from}`}
-                          className="size-3.5 text-muted-foreground"
-                        />
-                      </span>
-                    </SelectItem>
-                  </Tooltip>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <button
-            type="button"
-            aria-label="Add environment"
-            onClick={() => setIsAddOpen(true)}
-            className="flex h-full items-center border-0 border-r border-r-border px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
-          >
-            <Plus className="size-4" />
-          </button>
-          {isPickedDeletable && (
+                      </SelectItem>
+                    );
+                  }
+                  return (
+                    <Tooltip
+                      key={name}
+                      side="right"
+                      content={`Inherited from ${from}`}
+                    >
+                      <SelectItem value={name}>
+                        <span className="flex w-full items-center gap-1.5">
+                          {name}
+                          <CornerLeftUp
+                            aria-label={`Inherited from ${from}`}
+                            className="size-3.5 text-muted-foreground"
+                          />
+                        </span>
+                      </SelectItem>
+                    </Tooltip>
+                  );
+                })}
+              </SelectContent>
+            </Select>
             <button
               type="button"
-              aria-label={`Delete environment ${activePicked}`}
-              onClick={() => setPendingDeleteEnv(activePicked)}
+              aria-label="Add environment"
+              onClick={() => setIsAddOpen(true)}
               className="flex h-full items-center border-0 border-r border-r-border px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
-              <Trash2 className="size-4" />
+              <Plus className="size-4" />
             </button>
-          )}
-          {onEnvColorChange && (
-            <AccentField
-              value={
-                activePicked !== null
-                  ? (envColors?.[activePicked] ?? null)
-                  : null
-              }
-              disabled={activePicked === null}
-              onChange={(color) =>
-                activePicked !== null &&
-                onEnvColorChange(activePicked, color)
+            {isPickedDeletable && (
+              <button
+                type="button"
+                aria-label={`Delete environment ${activePicked}`}
+                onClick={() => setPendingDeleteEnv(activePicked)}
+                className="flex h-full items-center border-0 border-r border-r-border px-3 text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            )}
+            {onEnvColorChange && (
+              <AccentField
+                value={
+                  activePicked !== null
+                    ? (envColors?.[activePicked] ?? null)
+                    : null
+                }
+                disabled={activePicked === null}
+                onChange={(color) =>
+                  activePicked !== null && onEnvColorChange(activePicked, color)
+                }
+              />
+            )}
+          </div>
+          {activePicked === null ? (
+            <p className="p-3 text-sm text-muted-foreground">
+              No environments yet. Add one to edit its variables.
+            </p>
+          ) : (
+            <EditableKeyValueTable
+              rows={envRows}
+              keyPlaceholder="name"
+              highlight={highlight}
+              onChange={(next) =>
+                onConfigChange({
+                  ...config,
+                  environments: findEnv(activePicked)
+                    ? envList.map((env) =>
+                        env.name === activePicked
+                          ? { ...env, variables: next }
+                          : env,
+                      )
+                    : [...envList, { name: activePicked, variables: next }],
+                })
               }
             />
           )}
-        </div>
-        {activePicked === null ? (
-          <p className="p-3 text-sm text-muted-foreground">
-            No environments yet. Add one to edit its variables.
-          </p>
-        ) : (
+        </TabsContent>
+        <TabsContent value="dotenv" className="min-h-0 flex-1">
           <EditableKeyValueTable
-            rows={envRows}
-            keyPlaceholder="name"
+            rows={dotenvRows}
             highlight={highlight}
             onChange={(next) =>
-              onConfigChange({
-                ...config,
-                environments: findEnv(activePicked)
-                  ? envList.map((env) =>
-                      env.name === activePicked
-                        ? { ...env, variables: next }
-                        : env,
-                    )
-                  : [...envList, { name: activePicked, variables: next }],
-              })
+              onDotenvChange(next.map((r) => `${r.key}=${r.value}`).join("\n"))
             }
           />
-        )}
-      </TabsContent>
-      <TabsContent value="dotenv" className="min-h-0 flex-1">
-        <EditableKeyValueTable
-          rows={dotenvRows}
-          highlight={highlight}
-          onChange={(next) =>
-            onDotenvChange(next.map((r) => `${r.key}=${r.value}`).join("\n"))
+        </TabsContent>
+      </Tabs>
+      <Dialog
+        open={isAddOpen}
+        onOpenChange={(next) => {
+          setIsAddOpen(next);
+          if (!next) {
+            setNewEnv("");
           }
-        />
-      </TabsContent>
-    </Tabs>
-    <Dialog
-      open={isAddOpen}
-      onOpenChange={(next) => {
-        setIsAddOpen(next);
-        if (!next) {
-          setNewEnv("");
-        }
-      }}
-    >
-      <DialogContent showCloseButton={false}>
-        <DialogHeader>
-          <DialogTitle>New environment</DialogTitle>
-        </DialogHeader>
-        <input
-          aria-label="Environment name"
-          value={newEnv}
-          placeholder="name"
-          autoComplete="off"
-          spellCheck={false}
-          autoFocus
-          onChange={(event) => setNewEnv(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              addEnv();
-            }
-          }}
-          className="w-full bg-transparent p-2 font-mono text-xs shadow-none outline-none ring-1 ring-border focus-visible:ring-ring"
-        />
-        <DialogFooter>
-          <Button
-            type="button"
-            disabled={
-              newEnv.trim() === "" || available.includes(newEnv.trim())
-            }
-            onClick={addEnv}
-          >
-            Add
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setIsAddOpen(false)}
-          >
-            Cancel
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-    <Dialog
-      open={pendingDeleteEnv !== null}
-      onOpenChange={(next) => {
-        if (!next) {
-          setPendingDeleteEnv(null);
-        }
-      }}
-    >
-      <DialogContent showCloseButton={false}>
-        <DialogHeader>
-          <DialogTitle>Delete environment "{pendingDeleteEnv ?? ""}"?</DialogTitle>
-          <DialogDescription>
-            Removes this environment&apos;s variables from this folder. This
-            cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setPendingDeleteEnv(null)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={() => deleteEnv(pendingDeleteEnv!)}
-          >
-            Delete
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        }}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>New environment</DialogTitle>
+          </DialogHeader>
+          <input
+            aria-label="Environment name"
+            value={newEnv}
+            placeholder="name"
+            autoComplete="off"
+            spellCheck={false}
+            autoFocus
+            onChange={(event) => setNewEnv(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                addEnv();
+              }
+            }}
+            className="w-full bg-transparent p-2 font-mono text-xs shadow-none outline-none ring-1 ring-border focus-visible:ring-ring"
+          />
+          <DialogFooter>
+            <Button
+              type="button"
+              disabled={
+                newEnv.trim() === "" || available.includes(newEnv.trim())
+              }
+              onClick={addEnv}
+            >
+              Add
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsAddOpen(false)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={pendingDeleteEnv !== null}
+        onOpenChange={(next) => {
+          if (!next) {
+            setPendingDeleteEnv(null);
+          }
+        }}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>
+              Delete environment "{pendingDeleteEnv ?? ""}"?
+            </DialogTitle>
+            <DialogDescription>
+              Removes this environment&apos;s variables from this folder. This
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPendingDeleteEnv(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => deleteEnv(pendingDeleteEnv!)}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -610,7 +611,9 @@ export function GeneralPanel({
         <div className={cn(AUTH_CELL, "relative")}>
           <input
             aria-label="Timeout"
-            value={config.timeoutMs !== undefined ? String(config.timeoutMs) : ""}
+            value={
+              config.timeoutMs !== undefined ? String(config.timeoutMs) : ""
+            }
             placeholder={placeholder}
             inputMode="numeric"
             autoComplete="off"

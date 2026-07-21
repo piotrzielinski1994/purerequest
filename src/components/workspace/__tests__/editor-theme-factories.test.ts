@@ -1,22 +1,19 @@
-import { describe, it, expect } from "vitest";
-import { EditorView, keymap } from "@codemirror/view";
+import { diagnosticCount, forceLinting } from "@codemirror/lint";
 import { EditorState } from "@codemirror/state";
-import { forceLinting, diagnosticCount } from "@codemirror/lint";
+import { EditorView, keymap } from "@codemirror/view";
+import { describe, expect, it } from "vitest";
 
 // Stage 3 (Themes): editor-theme.ts becomes COLOR-DRIVEN FACTORIES. These names
 // don't exist yet (the module still exports darculaChrome/darculaHighlight/
 // jsonViewerExtensions) - so the import itself fails RED until the factories ship.
 import {
-  makeChrome,
-  makeHighlight,
-  makeEditorExtensions,
-  makeViewerExtensions,
   emptyTolerantJsonLinter,
+  makeChrome,
+  makeEditorExtensions,
+  makeHighlight,
+  makeViewerExtensions,
 } from "@/components/workspace/editor-theme";
-import type {
-  EditorTokenName,
-  FullThemeColors,
-} from "@/lib/settings/settings";
+import type { EditorTokenName, FullThemeColors } from "@/lib/settings/settings";
 
 // CodeMirror themes/highlights are global StyleModule rules injected into
 // <style> tags in document.head, DEDUPED across the whole run (learnings #49).
@@ -111,8 +108,12 @@ describe("makeHighlight", () => {
   // (so CodeMirror reconfigures on a theme change). Cheap structural check that
   // backstops the CSS presence assertions above.
   it("should produce distinct extensions for distinct color inputs", () => {
-    const a = makeHighlight(sentinelEditorColors({ string: "oklch(0.7 0.1 1)" }));
-    const b = makeHighlight(sentinelEditorColors({ string: "oklch(0.7 0.1 2)" }));
+    const a = makeHighlight(
+      sentinelEditorColors({ string: "oklch(0.7 0.1 1)" }),
+    );
+    const b = makeHighlight(
+      sentinelEditorColors({ string: "oklch(0.7 0.1 2)" }),
+    );
 
     expect(a).not.toBe(b);
   });
@@ -145,9 +146,7 @@ describe("makeChrome", () => {
     const transparent = injectedCss()
       .split("}")
       .filter((rule) => !/\.cm-/.test(rule))
-      .some((rule) =>
-        /\{[^{]*background-color:\s*transparent/i.test(rule),
-      );
+      .some((rule) => /\{[^{]*background-color:\s*transparent/i.test(rule));
     view.destroy();
 
     expect(transparent).toBe(true);
@@ -158,9 +157,7 @@ describe("makeChrome", () => {
     const transparent = injectedCss()
       .split("}")
       .filter((rule) => !/\.cm-/.test(rule))
-      .some((rule) =>
-        /\{[^{]*background-color:\s*transparent/i.test(rule),
-      );
+      .some((rule) => /\{[^{]*background-color:\s*transparent/i.test(rule));
     view.destroy();
 
     expect(transparent).toBe(true);

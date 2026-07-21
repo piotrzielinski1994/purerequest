@@ -1,12 +1,12 @@
+import { interpolate } from "@/lib/http/interpolate";
+import type { HttpResponse } from "@/lib/http/model";
+import type { ScriptApi, ScriptStage } from "@/lib/scripts/model";
+import type { HttpMethod } from "@/lib/workspace/model";
 import type {
   EffectiveConfig,
   Provenance,
   ResolvedValue,
 } from "@/lib/workspace/resolve";
-import type { HttpMethod } from "@/lib/workspace/model";
-import type { HttpResponse } from "@/lib/http/model";
-import type { ScriptApi, ScriptStage } from "@/lib/scripts/model";
-import { interpolate } from "@/lib/http/interpolate";
 
 export type ReqDraft = {
   method: HttpMethod;
@@ -82,12 +82,16 @@ export function buildScriptApi(ctx: ScriptContext): ScriptApi {
     return vars;
   };
   const resolveVar = (raw: string | undefined): string | undefined =>
-    raw === undefined ? undefined : interpolate(raw, liveVars(), ctx.processEnv);
+    raw === undefined
+      ? undefined
+      : interpolate(raw, liveVars(), ctx.processEnv);
 
   const api: ScriptApi = {
     purerequest: {
       getVar: (name) =>
-        resolveVar(ctx.runtimeVars.get(name) ?? ctx.effective.variables[name]?.value),
+        resolveVar(
+          ctx.runtimeVars.get(name) ?? ctx.effective.variables[name]?.value,
+        ),
       setVar: (name, value) => {
         ctx.runtimeVars.set(name, value);
         ctx.varWrites.push({ name, value });
@@ -143,9 +147,8 @@ export function buildScriptApi(ctx: ScriptContext): ScriptApi {
 
   const response = ctx.response;
   if (response) {
-    const headerMap = response.headers.reduce<Record<string, string>>(
-      (acc, { key, value }) => ({ ...acc, [key]: value }),
-      {},
+    const headerMap = Object.fromEntries(
+      response.headers.map(({ key, value }) => [key, value] as const),
     );
     api.res = {
       getStatus: () => response.status,
@@ -190,7 +193,9 @@ export function applyPreToEffective(
     const lower = name.toLowerCase();
     Object.keys(headers)
       .filter((key) => key.toLowerCase() === lower)
-      .forEach((key) => delete headers[key]);
+      .forEach((key) => {
+        delete headers[key];
+      });
     headers[name] = { value, from: SCRIPT_PROVENANCE };
   });
 

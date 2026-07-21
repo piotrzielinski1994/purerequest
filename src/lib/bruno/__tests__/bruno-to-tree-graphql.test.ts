@@ -1,10 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { brunoToTree, type BrunoFileMap } from "@/lib/bruno/bruno-to-tree";
-import type { FolderNode, RequestBody, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { type BrunoFileMap, brunoToTree } from "@/lib/bruno/bruno-to-tree";
+import type {
+  FolderNode,
+  RequestBody,
+  RequestNode,
+  TreeNode,
+} from "@/lib/workspace/model";
 
 function asFolder(node: TreeNode | undefined): FolderNode {
-  if (!node || node.kind !== "folder") {
+  if (node?.kind !== "folder") {
     throw new Error("expected a folder node");
   }
   return node;
@@ -12,15 +17,13 @@ function asFolder(node: TreeNode | undefined): FolderNode {
 
 function firstRequest(nodes: TreeNode[]): RequestNode {
   const found = nodes.find((node) => node.kind === "request");
-  if (!found || found.kind !== "request") {
+  if (found?.kind !== "request") {
     throw new Error("expected a request node");
   }
   return found;
 }
 
-const graphqlSlot = (
-  body: RequestBody,
-): { query: string; variables: string } =>
+const graphqlSlot = (body: RequestBody): { query: string; variables: string } =>
   (body.types as unknown as { graphql: { query: string; variables: string } })
     .graphql;
 
@@ -43,9 +46,9 @@ describe("brunoToTree - graphql import (AC-005)", () => {
         "  query { me { id } }",
         "}",
         "body:graphql:vars {",
-        '  {',
+        "  {",
         '    "x": 1',
-        '  }',
+        "  }",
         "}",
       ].join("\n"),
     };

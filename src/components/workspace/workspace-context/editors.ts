@@ -1,12 +1,15 @@
-import type { RequestNode } from "@/lib/workspace/model";
-import { insertNode } from "@/lib/workspace/tree-edit";
-import { updateRequest, type RequestPatch } from "@/lib/workspace/update-request";
+import type { PersistApi } from "@/components/workspace/workspace-context/persist";
+import type { TabsApi } from "@/components/workspace/workspace-context/tabs";
 import {
   indexRequests,
   type WorkspaceInternals,
 } from "@/components/workspace/workspace-context/types";
-import type { PersistApi } from "@/components/workspace/workspace-context/persist";
-import type { TabsApi } from "@/components/workspace/workspace-context/tabs";
+import type { RequestNode } from "@/lib/workspace/model";
+import { insertNode } from "@/lib/workspace/tree-edit";
+import {
+  type RequestPatch,
+  updateRequest,
+} from "@/lib/workspace/update-request";
 
 export type EditorsApi = {
   openConfigEditor: (id: string) => void;
@@ -155,14 +158,18 @@ export function createEditors(
     if (promotedDraftIds.length > 0) {
       setDraftRequests((current) => {
         const next = new Map(current);
-        promotedDraftIds.forEach((id) => next.delete(id));
+        promotedDraftIds.forEach((id) => {
+          next.delete(id);
+        });
         return next;
       });
     }
     if (foldedOverrideIds.length > 0) {
       setRequestOverrides((current) => {
         const nextOverrides = new Map(current);
-        foldedOverrideIds.forEach((id) => nextOverrides.delete(id));
+        foldedOverrideIds.forEach((id) => {
+          nextOverrides.delete(id);
+        });
         return nextOverrides;
       });
     }

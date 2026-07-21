@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HotkeysProvider } from "@tanstack/react-hotkeys";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type ReactNode, useEffect, useState } from "react";
 import { installContextMenuSuppressor } from "@/app/suppress-native-context-menu";
 
 export function AppProviders({ children }: { children: ReactNode }) {

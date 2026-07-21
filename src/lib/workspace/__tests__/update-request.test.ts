@@ -1,17 +1,16 @@
-import { describe, it, expect } from "vitest";
-
-// Imported even though it does not exist yet: the test must fail on the missing
-// feature (module), not on a typo. Once update-request.ts ships, these
-// assertions pin updateRequest's purity + targeted url/method/body patch
-// (AC-001). Mirrors update-config.test.ts.
-import { updateRequest } from "@/lib/workspace/update-request";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { describe, expect, it } from "vitest";
 import type {
   ConfigScope,
   FolderNode,
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
+// Imported even though it does not exist yet: the test must fail on the missing
+// feature (module), not on a typo. Once update-request.ts ships, these
+// assertions pin updateRequest's purity + targeted url/method/body patch
+// (AC-001). Mirrors update-config.test.ts.
+import { updateRequest } from "@/lib/workspace/update-request";
 
 const request = (id: string, config: ConfigScope = {}): RequestNode => ({
   kind: "request",
@@ -26,7 +25,12 @@ const request = (id: string, config: ConfigScope = {}): RequestNode => ({
 
 const jsonBody = (json: string): RequestNode["body"] => ({
   active: "json",
-  types: { json, form: [], multipart: [], graphql: { query: "", variables: "" } },
+  types: {
+    json,
+    form: [],
+    multipart: [],
+    graphql: { query: "", variables: "" },
+  },
 });
 
 const folder = (

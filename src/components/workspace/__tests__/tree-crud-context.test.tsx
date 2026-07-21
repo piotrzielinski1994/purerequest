@@ -1,14 +1,14 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 import {
-  WorkspaceProvider,
   useWorkspace,
+  WorkspaceProvider,
 } from "@/components/workspace/workspace-context";
-import type { MoveTarget } from "@/lib/workspace/move";
+import { deserialize, serialize } from "@/lib/workspace/disk-format";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
-import { serialize, deserialize } from "@/lib/workspace/disk-format";
+import type { MoveTarget } from "@/lib/workspace/move";
 import { fixtureTree } from "./fixtures";
 
 // The tree-crud surface on the context, narrowed onto the existing value for the
@@ -338,7 +338,7 @@ describe("WorkspaceProvider create request (draft)", () => {
     const usersFolder = collect(persisted).find(
       (node) => node.kind === "folder" && node.id === "folder-users",
     );
-    if (!usersFolder || usersFolder.kind !== "folder") {
+    if (usersFolder?.kind !== "folder") {
       throw new Error("expected the Users folder");
     }
     const created = usersFolder.children.find((node) => node.id === activeId);
@@ -427,7 +427,7 @@ describe("WorkspaceProvider create request (draft)", () => {
     const usersFolder = persisted.find(
       (node) => node.kind === "folder" && node.id === "folder-users",
     );
-    if (!usersFolder || usersFolder.kind !== "folder") {
+    if (usersFolder?.kind !== "folder") {
       throw new Error("expected the users folder");
     }
     expect(usersFolder.children.some((node) => node.id === activeId)).toBe(
@@ -629,7 +629,7 @@ describe("WorkspaceProvider rename (AC-004, TC-004/005/006)", () => {
       (node) => node.kind === "folder" && node.name === "Renamed Users",
     );
     expect(renamed?.kind).toBe("folder");
-    if (!renamed || renamed.kind !== "folder") {
+    if (renamed?.kind !== "folder") {
       throw new Error("expected the renamed folder");
     }
     // its descendant (profile request) survives the path rewrite.

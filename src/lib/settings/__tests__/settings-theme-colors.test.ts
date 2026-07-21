@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { DEFAULT_SETTINGS, mergeSettings } from "@/lib/settings/settings";
 
@@ -39,9 +39,7 @@ describe("mergeSettings theme.colors", () => {
       },
     });
 
-    expect(merged.theme.colors.dark.editor.string).toBe(
-      "oklch(0.74 0.15 60)",
-    );
+    expect(merged.theme.colors.dark.editor.string).toBe("oklch(0.74 0.15 60)");
   });
 
   // §7 edge case - behavior: an unknown token key is dropped (keyed to the union).
@@ -79,9 +77,7 @@ describe("mergeSettings theme.colors", () => {
       },
     });
 
-    expect(merged.theme.colors.dark.editor.string).toBe(
-      "oklch(0.74 0.15 60)",
-    );
+    expect(merged.theme.colors.dark.editor.string).toBe("oklch(0.74 0.15 60)");
     expect(merged.theme.colors.dark.editor).not.toHaveProperty("nope");
   });
 

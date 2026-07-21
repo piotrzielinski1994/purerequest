@@ -1,16 +1,15 @@
-import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
-import { RequestPane } from "@/components/workspace/request-pane";
-import { ScriptPanel, AuthPanel } from "@/components/workspace/config-panels";
+import { describe, expect, it } from "vitest";
 import { BodyPanel } from "@/components/workspace/body-panel";
+import { AuthPanel, ScriptPanel } from "@/components/workspace/config-panels";
 import { FolderPane } from "@/components/workspace/folder-pane";
+import { RequestPane } from "@/components/workspace/request-pane";
 import { ResponsePane } from "@/components/workspace/response-pane";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import { fixtureTree, tokenRequest } from "./fixtures";
 
 // Slice A is a CSS-contract: each section bar (the `h-10.25 items-stretch`
@@ -37,10 +36,7 @@ describe("section bar horizontal overflow (AC-001/002)", () => {
   // AC-001, TC-001 — behavior (CSS-contract)
   it("should let the request section bar scroll horizontally if its tabs overflow", () => {
     render(
-      <WorkspaceProvider
-        tree={fixtureTree}
-        initialActiveRequestId="req-token"
-      >
+      <WorkspaceProvider tree={fixtureTree} initialActiveRequestId="req-token">
         <RequestPane />
       </WorkspaceProvider>,
     );
@@ -136,6 +132,8 @@ describe("section bar horizontal overflow (AC-001/002)", () => {
 
     const tabs = screen.getAllByRole("tab");
     expect(tabs.length).toBeGreaterThan(0);
-    tabs.forEach((tab) => expect(tab.className).toContain("after:hidden"));
+    tabs.forEach((tab) => {
+      expect(tab.className).toContain("after:hidden");
+    });
   });
 });

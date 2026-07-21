@@ -1,27 +1,26 @@
-import { describe, it, expect, vi } from "vitest";
-
-// Imported even though it does not exist yet: the test must fail on the missing
-// feature (module), not on a typo. Once tree-edit.ts ships, these assertions pin
-// the pure tree ops (rename / duplicate / collect / count / insert / remove /
-// findNode / containsId) for tree-crud (AC-004, AC-005, AC-006, AC-007).
-// Mirrors update-request.test.ts / move.test.ts (pure-layer style).
-import {
-  insertNode,
-  removeNode,
-  renameNode,
-  duplicateNode,
-  collectRequestIds,
-  countDescendants,
-  containsId,
-} from "@/lib/workspace/tree-edit";
-import { findNode } from "@/lib/workspace/tree-locate";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { describe, expect, it, vi } from "vitest";
 import type {
   ConfigScope,
   FolderNode,
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
+// Imported even though it does not exist yet: the test must fail on the missing
+// feature (module), not on a typo. Once tree-edit.ts ships, these assertions pin
+// the pure tree ops (rename / duplicate / collect / count / insert / remove /
+// findNode / containsId) for tree-crud (AC-004, AC-005, AC-006, AC-007).
+// Mirrors update-request.test.ts / move.test.ts (pure-layer style).
+import {
+  collectRequestIds,
+  containsId,
+  countDescendants,
+  duplicateNode,
+  insertNode,
+  removeNode,
+  renameNode,
+} from "@/lib/workspace/tree-edit";
+import { findNode } from "@/lib/workspace/tree-locate";
 
 const request = (
   id: string,
@@ -295,9 +294,13 @@ describe("duplicateNode", () => {
     // four fresh ids, one per node in the subtree.
     expect(copyIds).toHaveLength(4);
     // no copy id collides with any original id.
-    copyIds.forEach((id) => expect(originalIds.has(id)).toBe(false));
+    copyIds.forEach((id) => {
+      expect(originalIds.has(id)).toBe(false);
+    });
     // every copy id came from mint (the "new-" sequence).
-    copyIds.forEach((id) => expect(id).toMatch(/^new-\d+$/));
+    copyIds.forEach((id) => {
+      expect(id).toMatch(/^new-\d+$/);
+    });
   });
 
   // TC-004, AC-005 - side-effect-contract: a folder copy is a deep clone -

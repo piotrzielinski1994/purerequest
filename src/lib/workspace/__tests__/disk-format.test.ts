@@ -1,9 +1,8 @@
-import { describe, it, expect } from "vitest";
-
-import { serialize, deserialize } from "@/lib/workspace/disk-format";
+import { describe, expect, it } from "vitest";
 import type { FileMap } from "@/lib/workspace/disk-format";
-import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
+import { deserialize, serialize } from "@/lib/workspace/disk-format";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const request = (
   name: string,
@@ -23,7 +22,12 @@ const request = (
 
 const jsonBody = (json: string): RequestNode["body"] => ({
   active: "json",
-  types: { json, form: [], multipart: [], graphql: { query: "", variables: "" } },
+  types: {
+    json,
+    form: [],
+    multipart: [],
+    graphql: { query: "", variables: "" },
+  },
 });
 
 const folder = (
@@ -70,16 +74,20 @@ describe("disk-format round-trip", () => {
   // AC-007, AC-012, TC-004, TC-008 - behavior
   it("should deserialize a serialized tree into a structurally equivalent tree", () => {
     const tree: TreeNode[] = [
-      folder("Users API", { variables: [{ key: "baseUrl", value: "https://prod" }] }, [
-        folder("Admin", { headers: [{ key: "X-Admin", value: "1" }] }, [
-          request(
-            "Get User",
-            { auth: authOf({ active: "bearer", token: "secret" }) },
-            { params: { path: [], query: [{ key: "id", value: "42" }] } },
-          ),
-        ]),
-        request("List Users", { variables: [{ key: "page", value: "1" }] }),
-      ]),
+      folder(
+        "Users API",
+        { variables: [{ key: "baseUrl", value: "https://prod" }] },
+        [
+          folder("Admin", { headers: [{ key: "X-Admin", value: "1" }] }, [
+            request(
+              "Get User",
+              { auth: authOf({ active: "bearer", token: "secret" }) },
+              { params: { path: [], query: [{ key: "id", value: "42" }] } },
+            ),
+          ]),
+          request("List Users", { variables: [{ key: "page", value: "1" }] }),
+        ],
+      ),
       request("Health", {}),
     ];
 
@@ -122,7 +130,10 @@ describe("disk-format round-trip", () => {
   // body-codec - behavior: a legacy (v2) bare-string body still deserializes.
   it("should deserialize a legacy bare-string body (pre-v3 workspace)", () => {
     const legacy: FileMap = {
-      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 2, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({
+        schemaVersion: 2,
+        name: "W",
+      }),
       "token.req.json": JSON.stringify({
         name: "Token",
         method: "POST",
@@ -232,9 +243,7 @@ describe("disk-format folder dotenv (AC-001, TC-003)", () => {
   // AC-001, TC-003 - behavior: a folder with non-empty dotenv emits <dir>/.env
   // with KEY=value lines.
   it("should emit a <dir>/.env file if a folder has a non-empty dotenv", () => {
-    const tree: TreeNode[] = [
-      folder("Api", {}, [request("Get")]),
-    ];
+    const tree: TreeNode[] = [folder("Api", {}, [request("Get")])];
     (tree[0] as FolderNode).dotenv = "A=1\nB=2";
 
     const map = serialize(tree);
@@ -283,18 +292,21 @@ describe("disk-format folder dotenv (AC-001, TC-003)", () => {
     const emptyMap = serialize(empty);
     const absentMap = serialize(absent);
 
-    expect(
-      Object.keys(emptyMap).some((path) => path.endsWith("/.env")),
-    ).toBe(false);
-    expect(
-      Object.keys(absentMap).some((path) => path.endsWith("/.env")),
-    ).toBe(false);
+    expect(Object.keys(emptyMap).some((path) => path.endsWith("/.env"))).toBe(
+      false,
+    );
+    expect(Object.keys(absentMap).some((path) => path.endsWith("/.env"))).toBe(
+      false,
+    );
   });
 
   // AC-002 - behavior: a folder .env at any depth deserializes into its node.
   it("should collect a nested folder .env into the deep folder node", () => {
     const files: FileMap = {
-      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({
+        schemaVersion: 3,
+        name: "W",
+      }),
       "api/folder.json": JSON.stringify({ name: "Api", config: {}, order: 0 }),
       "api/v2/folder.json": JSON.stringify({
         name: "V2",

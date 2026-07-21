@@ -1,15 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
-import { RequestPane } from "@/components/workspace/request-pane";
-import { ContentHeader } from "@/components/workspace/content-header";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
+import { ContentHeader } from "@/components/workspace/content-header";
+import { RequestPane } from "@/components/workspace/request-pane";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import type { ConfigScope, RequestNode, TreeNode } from "@/lib/workspace/model";
 import { authOf, emptyBody } from "@/lib/workspace/model";
 
@@ -112,7 +111,7 @@ const savedRequest = (onTreeChange: ReturnType<typeof vi.fn>): RequestNode => {
   const calls = onTreeChange.mock.calls;
   const lastTree = calls[calls.length - 1][0] as TreeNode[];
   const node = lastTree.find((n) => n.id === "req-1");
-  if (!node || node.kind !== "request") {
+  if (node?.kind !== "request") {
     throw new Error("req-1 not found in persisted tree");
   }
   return node;

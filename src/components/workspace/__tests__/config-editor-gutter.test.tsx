@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import { ConfigEditorForm } from "@/components/workspace/config-editor";
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";

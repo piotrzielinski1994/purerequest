@@ -1,26 +1,26 @@
-import { useState } from "react";
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
-import { SettingsProvider } from "@/lib/settings/settings-context";
-import { createTauriSettingsStore } from "@/lib/settings/tauri-store";
+import { isTauri } from "@tauri-apps/api/core";
+import { useState } from "react";
+import { Toaster } from "@/components/ui/sonner";
+import { isDevBrowser } from "@/lib/runtime/environment";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
-import { isTauri } from "@tauri-apps/api/core";
-import { isDevBrowser } from "@/lib/runtime/environment";
-import { DEMO_WORKSPACE_PATH } from "@/lib/workspace/demo-seed";
-import { Toaster } from "@/components/ui/sonner";
+import { SettingsProvider } from "@/lib/settings/settings-context";
+import { createTauriSettingsStore } from "@/lib/settings/tauri-store";
 import { ThemeProvider } from "@/lib/theme/theme-context";
-import {
-  createNoopWindowController,
-  createWindowController,
-} from "@/lib/window/window-controller";
-import { WindowFullscreenSync } from "@/lib/window/window-fullscreen-sync";
+import { UpdateChecker } from "@/lib/updater/update-checker";
 import {
   createNoopUpdateController,
   createUpdateController,
   getAppVersion,
 } from "@/lib/updater/update-controller";
-import { UpdateChecker } from "@/lib/updater/update-checker";
 import { UpdaterProvider } from "@/lib/updater/updater-context";
+import {
+  createNoopWindowController,
+  createWindowController,
+} from "@/lib/window/window-controller";
+import { WindowFullscreenSync } from "@/lib/window/window-fullscreen-sync";
+import { DEMO_WORKSPACE_PATH } from "@/lib/workspace/demo-seed";
 
 function createSettingsStore() {
   if (isDevBrowser()) {

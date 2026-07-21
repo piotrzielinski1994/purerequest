@@ -5,8 +5,8 @@ import type {
 } from "@codemirror/autocomplete";
 import {
   applyTokenCandidate,
-  tokenCompletionAt,
   type TokenCandidate,
+  tokenCompletionAt,
 } from "@/components/workspace/token-complete";
 
 // A CodeMirror CompletionSource that offers `{{token}}` candidates inside an open
@@ -47,7 +47,10 @@ export function tokenCompletionSource(
         }
         const next = applyTokenCandidate(docText, at, to, candidate);
         const suffixLength = docText.length - to;
-        const insert = next.text.slice(at.start, next.text.length - suffixLength);
+        const insert = next.text.slice(
+          at.start,
+          next.text.length - suffixLength,
+        );
         view.dispatch({
           changes: { from: at.start, to, insert },
           selection: { anchor: next.caret },

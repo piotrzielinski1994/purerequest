@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
 
 import {
-  WorkspaceProvider,
   useWorkspace,
+  WorkspaceProvider,
 } from "@/components/workspace/workspace-context";
 import type { TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
@@ -127,11 +127,11 @@ describe("env scope - reset on tab change out of scope (AC-010)", () => {
         id: "f-a",
         name: "A",
         config: {
-      environments: [
-        { name: "prod", variables: [] },
-        { name: "local", variables: [] },
-      ],
-    },
+          environments: [
+            { name: "prod", variables: [] },
+            { name: "local", variables: [] },
+          ],
+        },
         children: [
           {
             kind: "request",

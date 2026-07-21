@@ -107,7 +107,9 @@ function toRows(value: unknown): KeyValue[] {
     if (key === "") {
       return [];
     }
-    return [{ key, value: asString(row?.value), enabled: row?.disabled !== true }];
+    return [
+      { key, value: asString(row?.value), enabled: row?.disabled !== true },
+    ];
   });
 }
 
@@ -116,10 +118,12 @@ function authRecord(value: unknown): Record<string, string> {
   if (!isRowArray(value)) {
     return {};
   }
-  return value.reduce<Record<string, string>>((acc, row) => {
-    const key = asString(row?.key);
-    return key === "" ? acc : { ...acc, [key]: asString(row?.value) };
-  }, {});
+  return Object.fromEntries(
+    value.flatMap((row) => {
+      const key = asString(row?.key);
+      return key === "" ? [] : [[key, asString(row?.value)] as const];
+    }),
+  );
 }
 
 const METHOD_FROM = (value: unknown): HttpMethod => {
@@ -157,7 +161,9 @@ function urlOf(url: unknown): string {
     return obj.raw;
   }
   const protocol = asString(obj.protocol);
-  const host = Array.isArray(obj.host) ? obj.host.map(asString).join(".") : asString(obj.host);
+  const host = Array.isArray(obj.host)
+    ? obj.host.map(asString).join(".")
+    : asString(obj.host);
   const path = Array.isArray(obj.path)
     ? obj.path.map(asString).join("/")
     : asString(obj.path);
@@ -187,7 +193,9 @@ function pathParamsOf(url: unknown): KeyValue[] {
   }
   return variable.flatMap<KeyValue>((row) => {
     const key = asString(row?.key);
-    return key === "" ? [] : [{ key, value: asString(row?.value), enabled: true }];
+    return key === ""
+      ? []
+      : [{ key, value: asString(row?.value), enabled: true }];
   });
 }
 
@@ -213,7 +221,11 @@ function bodyOf(value: unknown): RequestBody {
     body.types.multipart = toRows(doc.formdata);
     return body;
   }
-  if (doc.mode === "graphql" && typeof doc.graphql === "object" && doc.graphql !== null) {
+  if (
+    doc.mode === "graphql" &&
+    typeof doc.graphql === "object" &&
+    doc.graphql !== null
+  ) {
     const gql = doc.graphql as { query?: unknown; variables?: unknown };
     body.active = "graphql";
     body.types.graphql = {
@@ -234,7 +246,10 @@ function authOfPostman(value: unknown): Auth | undefined {
   }
   const auth = value as PostmanAuth;
   if (auth.type === "bearer") {
-    return authOf({ active: "bearer", token: authRecord(auth.bearer).token ?? "" });
+    return authOf({
+      active: "bearer",
+      token: authRecord(auth.bearer).token ?? "",
+    });
   }
   if (auth.type === "basic") {
     const record = authRecord(auth.basic);
@@ -330,7 +345,10 @@ function toRequestNode(item: PostmanItem, nextId: IdGen): RequestNode {
     method: METHOD_FROM(request.method),
     url: urlOf(request.url),
     body: bodyOf(request.body),
-    params: { path: pathParamsOf(request.url), query: queryParamsOf(request.url) },
+    params: {
+      path: pathParamsOf(request.url),
+      query: queryParamsOf(request.url),
+    },
     config: requestConfig(request, item.event),
   };
 }
@@ -375,7 +393,11 @@ export function parsePostmanCollection(
   if (typeof doc !== "object" || doc === null) {
     return null;
   }
-  if (typeof doc.info !== "object" || doc.info === null || !Array.isArray(doc.item)) {
+  if (
+    typeof doc.info !== "object" ||
+    doc.info === null ||
+    !Array.isArray(doc.item)
+  ) {
     return null;
   }
   const nextId = makeIdGen();
@@ -419,7 +441,9 @@ export function parsePostmanEnvironment(text: string): Environment | null {
       return [];
     }
     const value = asString(row?.value);
-    return [row?.enabled === false ? { key, value, enabled: false } : { key, value }];
+    return [
+      row?.enabled === false ? { key, value, enabled: false } : { key, value },
+    ];
   });
   return { name, variables };
 }

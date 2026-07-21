@@ -1,8 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { serialize, deserialize, bodyField } from "@/lib/workspace/disk-format";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { bodyField, deserialize, serialize } from "@/lib/workspace/disk-format";
 import type { RequestBody, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const request = (
   overrides: Partial<RequestNode> & { name: string },

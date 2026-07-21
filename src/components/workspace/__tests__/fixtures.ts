@@ -1,8 +1,8 @@
 import type {
+  FolderNode,
   KeyValue,
   RequestBody,
   RequestNode,
-  FolderNode,
   TreeNode,
 } from "@/lib/workspace/model";
 import { authOf } from "@/lib/workspace/model";
@@ -11,7 +11,12 @@ import { authOf } from "@/lib/workspace/model";
 // and request params carrying just query rows (path empty unless a test sets it).
 const jsonBody = (json: string): RequestBody => ({
   active: "json",
-  types: { json, form: [], multipart: [], graphql: { query: "", variables: "" } },
+  types: {
+    json,
+    form: [],
+    multipart: [],
+    graphql: { query: "", variables: "" },
+  },
 });
 const emptyBody = (): RequestBody => jsonBody("");
 const queryParams = (query: KeyValue[]) => ({ path: [], query });
@@ -64,7 +69,10 @@ export const profileRequest: RequestNode = {
   method: "GET",
   url: "{{baseUrl}}/users/:id",
   body: emptyBody(),
-  params: { path: [{ key: "id", value: "1" }], query: [{ key: "expand", value: "roles" }] },
+  params: {
+    path: [{ key: "id", value: "1" }],
+    query: [{ key: "expand", value: "roles" }],
+  },
   config: {
     headers: [{ key: "Accept", value: "application/json" }],
     auth: authOf({ active: "basic", username: "admin", password: "s3cret" }),

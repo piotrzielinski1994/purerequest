@@ -1,25 +1,24 @@
-import { describe, it, expect } from "vitest";
-import { EditorState } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
 import {
   CompletionContext,
   type CompletionResult,
 } from "@codemirror/autocomplete";
 import { json } from "@codemirror/lang-json";
 import {
+  type Diagnostic,
   forceLinting,
   forEachDiagnostic,
-  type Diagnostic,
 } from "@codemirror/lint";
-
+import { EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
 import { jsonSchemaHover } from "codemirror-json-schema";
-import { makeSchemaExtensions } from "@/components/workspace/schema-intellisense";
+import { describe, expect, it } from "vitest";
+import type { EditorColors } from "@/components/workspace/editor-theme";
 import { makeEditorExtensions } from "@/components/workspace/editor-theme";
+import { makeSchemaExtensions } from "@/components/workspace/schema-intellisense";
 import {
   configScopeJsonSchema,
   requestSettingsJsonSchema,
 } from "@/lib/config-schema/json-schemas";
-import type { EditorColors } from "@/components/workspace/editor-theme";
 import type { EditorTokenName } from "@/lib/settings/settings";
 
 // Unique sentinel colors (mirrors editor-theme-factories.test.ts) so a present
@@ -151,7 +150,9 @@ describe("makeSchemaExtensions completion", () => {
     });
     const ctx = new CompletionContext(state, pos, true);
     const sources = state.languageDataAt<
-      (c: CompletionContext) => CompletionResult | null | Promise<CompletionResult | null>
+      (
+        c: CompletionContext,
+      ) => CompletionResult | null | Promise<CompletionResult | null>
     >("autocomplete", pos);
     const results = await Promise.all(sources.map((source) => source(ctx)));
     return results.find((r): r is CompletionResult => r != null) ?? null;
@@ -223,9 +224,7 @@ describe("makeSchemaExtensions hover", () => {
 
     const pos = doc.indexOf('"auth"') + 2;
     const tooltip = await jsonSchemaHover()(view, pos, 1);
-    const text = tooltip
-      ? (tooltip.create(view).dom.textContent ?? "")
-      : "";
+    const text = tooltip ? (tooltip.create(view).dom.textContent ?? "") : "";
     view.destroy();
 
     expect(tooltip).toBeTruthy();
@@ -243,7 +242,9 @@ describe("makeSchemaExtensions themed chrome", () => {
       state: EditorState.create({
         doc: '"x"',
         extensions: makeSchemaExtensions(
-          schemaBase(sentinelEditorColors({ string: "oklch(0.123 0.321 321)" })),
+          schemaBase(
+            sentinelEditorColors({ string: "oklch(0.123 0.321 321)" }),
+          ),
           configScopeJsonSchema,
         ) as never,
       }),

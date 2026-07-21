@@ -1,41 +1,41 @@
-import { useWorkspace } from "@/components/workspace/workspace-context";
-import { cn } from "@/lib/utils";
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  horizontalListSortingStrategy,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Folder, Plus, Settings, X } from "lucide-react";
+import { useState } from "react";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { useState } from "react";
-import { Folder, Plus, Settings, X } from "lucide-react";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
-import { TabLabel } from "@/components/workspace/tab-label";
 import {
   EDITOR_TAB_ID,
   SETTINGS_TAB_ID,
 } from "@/components/workspace/pane-tabs";
+import { TabLabel } from "@/components/workspace/tab-label";
 import { openContextMenuOnKey } from "@/components/workspace/tree-nav";
+import { useWorkspace } from "@/components/workspace/workspace-context";
 import { useShortcutOverrides } from "@/lib/settings/settings-context";
 import { resolveShortcuts } from "@/lib/shortcuts/resolve";
+import { cn } from "@/lib/utils";
 import type { TreeNode } from "@/lib/workspace/model";
 import { findNode } from "@/lib/workspace/tree-locate";
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  horizontalListSortingStrategy,
-  sortableKeyboardCoordinates,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 
 function editorTabLabel(
   editTarget: NonNullable<ReturnType<typeof useWorkspace>["editTarget"]>,

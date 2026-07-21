@@ -5,11 +5,11 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { ContentHeader } from "@/components/workspace/content-header";
-import { UrlBar } from "@/components/workspace/url-bar";
+import { FolderPane } from "@/components/workspace/folder-pane";
 import { RequestPane } from "@/components/workspace/request-pane";
 import { ResponsePane } from "@/components/workspace/response-pane";
-import { FolderPane } from "@/components/workspace/folder-pane";
 import { SettingsView } from "@/components/workspace/settings-view";
+import { UrlBar } from "@/components/workspace/url-bar";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import { useSettings } from "@/lib/settings/settings-context";
 

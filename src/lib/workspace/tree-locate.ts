@@ -134,14 +134,14 @@ export function rawDropTarget(
   const emptyZoneFolderId = parseEmptyZoneId(overId);
   if (emptyZoneFolderId !== null) {
     const folder = findNode(tree, emptyZoneFolderId);
-    if (!folder || folder.kind !== "folder") {
+    if (folder?.kind !== "folder") {
       return null;
     }
     return { parentId: emptyZoneFolderId, index: folder.children.length };
   }
   if (position === "inside") {
     const over = findNode(tree, overId);
-    if (!over || over.kind !== "folder") {
+    if (over?.kind !== "folder") {
       return null;
     }
     return { parentId: overId, index: over.children.length };

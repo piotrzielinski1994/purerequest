@@ -20,8 +20,8 @@ import { useEditorExtensions } from "@/components/workspace/use-editor-extension
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import {
   CODE_TARGETS,
-  codeTargetById,
   type CodeTargetId,
+  codeTargetById,
 } from "@/lib/codegen/targets";
 
 export function CodeGenDialog() {

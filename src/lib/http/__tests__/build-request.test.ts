@@ -1,9 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { buildHttpRequest } from "@/lib/http/build-request";
-import { resolveConfig } from "@/lib/workspace/resolve";
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
-import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 import type {
   Auth,
   HttpMethod,
@@ -11,6 +8,9 @@ import type {
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
+import { resolveConfig } from "@/lib/workspace/resolve";
 
 const request = (
   overrides: Partial<RequestNode> & { id: string },
@@ -183,7 +183,11 @@ describe("buildHttpRequest - auth mapping", () => {
     const wire = buildHttpRequest(
       node,
       effectiveOf({
-        auth: authOf({ active: "basic", username: "alice", password: "s3cret" }),
+        auth: authOf({
+          active: "basic",
+          username: "alice",
+          password: "s3cret",
+        }),
       }),
     );
 
@@ -220,7 +224,15 @@ describe("buildHttpRequest - body per method", () => {
       const node = request({
         id: "r",
         method,
-        body: { active: "json", types: { json: '{"a":1}', form: [], multipart: [], graphql: { query: "", variables: "" } } },
+        body: {
+          active: "json",
+          types: {
+            json: '{"a":1}',
+            form: [],
+            multipart: [],
+            graphql: { query: "", variables: "" },
+          },
+        },
       });
 
       const wire = buildHttpRequest(node, effectiveOf({}));
@@ -235,7 +247,15 @@ describe("buildHttpRequest - body per method", () => {
       const node = request({
         id: "r",
         method,
-        body: { active: "json", types: { json: '{"a":1}', form: [], multipart: [], graphql: { query: "", variables: "" } } },
+        body: {
+          active: "json",
+          types: {
+            json: '{"a":1}',
+            form: [],
+            multipart: [],
+            graphql: { query: "", variables: "" },
+          },
+        },
       });
 
       const wire = buildHttpRequest(node, effectiveOf({}));
@@ -297,13 +317,22 @@ describe("buildHttpRequest - integration with resolveConfig", () => {
 describe("buildHttpRequest - QUERY body (AC-006)", () => {
   const jsonBody = (json: string): RequestNode["body"] => ({
     active: "json",
-    types: { json, form: [], multipart: [], graphql: { query: "", variables: "" } },
+    types: {
+      json,
+      form: [],
+      multipart: [],
+      graphql: { query: "", variables: "" },
+    },
   });
 
   // TC-002, AC-006 - behavior: QUERY is NOT bodyless, so the encoded payload is
   // carried through (body is the json text, not null) and the method survives.
   it("should carry the body and method for QUERY", () => {
-    const node = request({ id: "r", method: "QUERY", body: jsonBody('{"q":1}') });
+    const node = request({
+      id: "r",
+      method: "QUERY",
+      body: jsonBody('{"q":1}'),
+    });
 
     const wire = buildHttpRequest(node, effectiveOf({}));
 

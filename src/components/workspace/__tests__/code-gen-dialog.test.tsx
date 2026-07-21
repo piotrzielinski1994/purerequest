@@ -1,14 +1,14 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, within, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { EditorView } from "@codemirror/view";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
+import { describe, expect, it, vi } from "vitest";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 import { authOf, emptyParams } from "@/lib/workspace/model";
 
@@ -55,10 +55,7 @@ const postWithBody: RequestNode = {
 const exportTree: TreeNode[] = [postWithBody];
 
 function renderShell(
-  opts: {
-    initialActiveRequestId?: string;
-    onTreeChange?: OnTreeChange;
-  } = {},
+  opts: { initialActiveRequestId?: string; onTreeChange?: OnTreeChange } = {},
 ) {
   const store = createInMemorySettingsStore({
     ...DEFAULT_SETTINGS,

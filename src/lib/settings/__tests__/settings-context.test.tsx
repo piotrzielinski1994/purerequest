@@ -1,8 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import { SettingsProvider, useSettings } from "@/lib/settings/settings-context";
+import { describe, expect, it, vi } from "vitest";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import {
   DEFAULT_SETTINGS,
@@ -10,6 +8,7 @@ import {
   type Settings,
   type SettingsStore,
 } from "@/lib/settings/settings";
+import { SettingsProvider, useSettings } from "@/lib/settings/settings-context";
 
 // Consumer that exercises the shortcut/console additions to the context.
 function ShortcutProbe() {
@@ -429,7 +428,9 @@ describe("SettingsProvider shortcut actions", () => {
       );
     });
 
-    await user.click(screen.getByRole("button", { name: /^remove shortcut$/i }));
+    await user.click(
+      screen.getByRole("button", { name: /^remove shortcut$/i }),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
@@ -452,7 +453,9 @@ describe("SettingsProvider shortcut actions", () => {
     await screen.findByTestId("toggle-console-binding");
 
     // Seed a second binding so we can assert the replaced one keeps its slot.
-    await user.click(screen.getByRole("button", { name: /add second shortcut/i }));
+    await user.click(
+      screen.getByRole("button", { name: /add second shortcut/i }),
+    );
     await waitFor(() => {
       expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
         JSON.stringify(["Mod+J", "Mod+G"]),
@@ -509,7 +512,9 @@ describe("SettingsProvider shortcut actions", () => {
 
     await screen.findByTestId("toggle-console-binding");
 
-    await user.click(screen.getByRole("button", { name: /add second shortcut/i }));
+    await user.click(
+      screen.getByRole("button", { name: /add second shortcut/i }),
+    );
     await waitFor(() => {
       expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
         JSON.stringify(["Mod+J", "Mod+G"]),

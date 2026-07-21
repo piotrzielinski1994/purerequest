@@ -1,9 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import { WorkspaceProvider } from "@/components/workspace/workspace-context";
+import { describe, expect, it, vi } from "vitest";
 import { UrlBar } from "@/components/workspace/url-bar";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import type { TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
@@ -79,7 +78,9 @@ describe("UrlBar token hover preview", () => {
     await screen.findByRole("textbox", { name: /value/i });
     expect(screen.queryByText("=")).not.toBeInTheDocument();
     // the value appears exactly once - in the input, not duplicated in a line.
-    expect(screen.queryByText("https://api.example.com")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("https://api.example.com"),
+    ).not.toBeInTheDocument();
   });
 
   // behavior: switching the active env changes the previewed value on hover

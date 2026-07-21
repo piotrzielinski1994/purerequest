@@ -10,7 +10,10 @@ const LABEL: Record<ThemeMode, string> = {
 // The toast shown when the theme is toggled. For `system` it spells out the
 // resolved scheme so switching System->Dark on an already-dark OS still reads as
 // a clear, distinct message.
-export function themeToggleMessage(mode: ThemeMode, prefersDark: boolean): string {
+export function themeToggleMessage(
+  mode: ThemeMode,
+  prefersDark: boolean,
+): string {
   if (mode === "system") {
     return `Theme: System (${resolveEffectiveMode("system", prefersDark)})`;
   }

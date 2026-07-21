@@ -1,12 +1,12 @@
-import { describe, it, expect, afterEach } from "vitest";
-import { render, waitFor, act } from "@testing-library/react";
-import { EditorView } from "@codemirror/view";
 import {
-  startCompletion,
-  CompletionContext,
+  type CompletionContext,
   type CompletionResult,
+  startCompletion,
 } from "@codemirror/autocomplete";
-
+import { EditorView } from "@codemirror/view";
+import { act, render, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { ThemeSection } from "@/components/settings/theme-section";
 // config-editor.tsx / theme-section.tsx / script-editor.tsx already exist; this
 // file is RED because the token completion source is NOT yet wired into the
 // folder-config and request-Settings editors (TC-009). The theme + script editor
@@ -16,19 +16,18 @@ import {
   RequestSettingsForm,
 } from "@/components/workspace/config-editor";
 import { ScriptEditor } from "@/components/workspace/script-editor";
-import { ThemeSection } from "@/components/settings/theme-section";
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
-import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import { ThemeProvider } from "@/lib/theme/theme-context";
-import { createFakeHttpClient } from "./fake-http-client";
 import {
   emptyBody,
   emptyParams,
   type RequestNode,
   type TreeNode,
 } from "@/lib/workspace/model";
+import { createFakeHttpClient } from "./fake-http-client";
 
 function liveView(): EditorView {
   const el = document.querySelector<HTMLElement>(".cm-editor");

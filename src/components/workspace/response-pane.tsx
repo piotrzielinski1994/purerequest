@@ -1,23 +1,23 @@
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { KeyValueTable } from "@/components/workspace/key-value-table";
-import { JsonViewer } from "@/components/workspace/json-viewer";
-import { TimingWaterfall } from "@/components/workspace/timing-waterfall";
-import { ProtocolDissection } from "@/components/workspace/protocol-dissection";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { JsonViewer } from "@/components/workspace/json-viewer";
+import { KeyValueTable } from "@/components/workspace/key-value-table";
 import {
   PANE_TABS_LIST,
   PANE_TABS_TRIGGER,
 } from "@/components/workspace/pane-tabs";
+import { ProtocolDissection } from "@/components/workspace/protocol-dissection";
+import { TimingWaterfall } from "@/components/workspace/timing-waterfall";
 import { useWorkspace } from "@/components/workspace/workspace-context";
-import type { RequestResponse } from "@/lib/workspace/model";
 import { filterJson } from "@/lib/http/filter";
 import {
-  RESPONSE_RENDER_LIMIT_BYTES,
   formatBytes,
   formatDuration,
+  RESPONSE_RENDER_LIMIT_BYTES,
 } from "@/lib/http/format";
+import type { RequestResponse } from "@/lib/workspace/model";
 
 function TooLargeBody({ body }: { body: string }) {
   const preview = body.slice(0, RESPONSE_RENDER_LIMIT_BYTES);

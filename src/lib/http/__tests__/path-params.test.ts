@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { extractPathParams, applyPathParams } from "@/lib/http/path-params";
+import { applyPathParams, extractPathParams } from "@/lib/http/path-params";
 
 // `subst` stand-ins: `identity` leaves a value untouched (no {{var}} resolution),
 // while `vars(map)` interpolates a single {{name}} token from a lookup so the
@@ -11,8 +11,9 @@ const identity = (value: string) => value;
 const vars =
   (map: Record<string, string>) =>
   (value: string): string =>
-    value.replace(/\{\{([^}]+)\}\}/g, (_match, name: string) =>
-      map[name.trim()] ?? `{{${name}}}`,
+    value.replace(
+      /\{\{([^}]+)\}\}/g,
+      (_match, name: string) => map[name.trim()] ?? `{{${name}}}`,
     );
 
 describe("extractPathParams - detection", () => {

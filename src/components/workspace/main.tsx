@@ -1,45 +1,45 @@
+import { openSearchPanel } from "@codemirror/search";
+import { EditorView } from "@codemirror/view";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { EditorView } from "@codemirror/view";
-import { openSearchPanel } from "@codemirror/search";
-import type { PanelGroupHandle } from "@/components/workspace/workspace-context/types";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import {
-  PANEL_RESIZE_STEP,
-  resolveFocusedPanel,
-  stepLayout,
-  type PanelResizeTarget,
-} from "@/lib/workspace/panel-resize";
-import { Content } from "@/components/workspace/content";
-import { Console } from "@/components/workspace/console";
+import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
+import { CodeGenDialog } from "@/components/workspace/code-gen-dialog";
 import {
   CommandPalette,
   type PaletteCommand,
 } from "@/components/workspace/command-palette";
-import { RequestQuickOpen } from "@/components/workspace/request-quick-open";
-import { buildQuickOpenEntries } from "@/lib/workspace/quick-open";
-import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
-import { DeleteConfirmDialog } from "@/components/workspace/delete-confirm-dialog";
+import { Console } from "@/components/workspace/console";
+import { Content } from "@/components/workspace/content";
 import { CurlImportDialog } from "@/components/workspace/curl-import-dialog";
-import { CodeGenDialog } from "@/components/workspace/code-gen-dialog";
+import { DeleteConfirmDialog } from "@/components/workspace/delete-confirm-dialog";
+import { RequestQuickOpen } from "@/components/workspace/request-quick-open";
 import { useWorkspace } from "@/components/workspace/workspace-context";
+import type { PanelGroupHandle } from "@/components/workspace/workspace-context/types";
+import type { BrunoCollectionReader } from "@/lib/bruno/reader";
+import type { OpenapiReader } from "@/lib/openapi/reader";
+import type { PostmanCollectionReader } from "@/lib/postman/reader";
 import { useSettings } from "@/lib/settings/settings-context";
-import { useActionHotkeys } from "@/lib/shortcuts/use-action-hotkeys";
-import { resolveShortcuts } from "@/lib/shortcuts/resolve";
 import {
   SHORTCUT_ACTIONS,
   type ShortcutActionId,
 } from "@/lib/shortcuts/registry";
+import { resolveShortcuts } from "@/lib/shortcuts/resolve";
+import { useActionHotkeys } from "@/lib/shortcuts/use-action-hotkeys";
 import { cycleThemeMode } from "@/lib/theme/cycle-mode";
 import { themeToggleMessage } from "@/lib/theme/toggle-message";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
-import type { BrunoCollectionReader } from "@/lib/bruno/reader";
-import type { PostmanCollectionReader } from "@/lib/postman/reader";
-import type { OpenapiReader } from "@/lib/openapi/reader";
+import {
+  PANEL_RESIZE_STEP,
+  type PanelResizeTarget,
+  resolveFocusedPanel,
+  stepLayout,
+} from "@/lib/workspace/panel-resize";
+import { buildQuickOpenEntries } from "@/lib/workspace/quick-open";
 
 // Open the find panel on a snapshotted CodeMirror view. Find has no global toggle - each
 // editor owns its own Cmd+F (CM keymap) - so the palette can't just re-fire the keystroke:

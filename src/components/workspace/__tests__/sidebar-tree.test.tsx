@@ -1,16 +1,15 @@
-import { describe, it, expect } from "vitest";
 import {
+  fireEvent,
   render,
   screen,
-  within,
-  fireEvent,
   waitFor,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import { WorkspaceProvider } from "@/components/workspace/workspace-context";
-import { SidebarTree } from "@/components/workspace/sidebar-tree";
+import { describe, expect, it } from "vitest";
 import { ContentHeader } from "@/components/workspace/content-header";
+import { SidebarTree } from "@/components/workspace/sidebar-tree";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { fixtureTree } from "./fixtures";
 
 describe("SidebarTree", () => {

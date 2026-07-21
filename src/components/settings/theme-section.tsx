@@ -1,14 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { RawJsonEditor } from "@/components/workspace/config-editor";
-import { useSettings } from "@/lib/settings/settings-context";
+import { themeColorsJsonSchema } from "@/lib/config-schema/json-schemas";
 import type {
   ThemeColorOverrides,
   ThemeColors,
   ThemeMode,
 } from "@/lib/settings/settings";
-import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
+import { useSettings } from "@/lib/settings/settings-context";
 import { applyDefaults, diffOverrides } from "@/lib/theme/overrides";
-import { themeColorsJsonSchema } from "@/lib/config-schema/json-schemas";
+import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
 
 const MODES: { id: ThemeMode; label: string }[] = [
   { id: "light", label: "Light" },

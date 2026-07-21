@@ -1,6 +1,6 @@
-import type { HttpRequest } from "@/lib/http/model";
-import { toCurl } from "@/lib/curl/to-curl";
 import { toFetch } from "@/lib/codegen/to-fetch";
+import { toCurl } from "@/lib/curl/to-curl";
+import type { HttpRequest } from "@/lib/http/model";
 
 export type CodeTargetId = "curl" | "fetch";
 

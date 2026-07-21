@@ -1,13 +1,13 @@
-import { useMemo } from "react";
-import { javascript } from "@codemirror/lang-javascript";
 import { autocompletion, closeBrackets } from "@codemirror/autocomplete";
+import { javascript } from "@codemirror/lang-javascript";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
-import { scriptApiCompletion } from "@/components/workspace/script-api-complete";
-import { jsSyntaxLinter } from "@/components/workspace/script-lint";
-import { jsUndefLinter } from "@/components/workspace/script-eslint";
+import { useMemo } from "react";
 import { CodeEditor } from "@/components/workspace/code-editor";
+import { scriptApiCompletion } from "@/components/workspace/script-api-complete";
+import { jsUndefLinter } from "@/components/workspace/script-eslint";
+import { jsSyntaxLinter } from "@/components/workspace/script-lint";
+import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
 import type { ScriptStage } from "@/lib/scripts/model";
 
 type ScriptEditorProps = {
@@ -34,7 +34,10 @@ export function ScriptEditor({
       autocompletion({ override: [scriptApiCompletion(stage)] }),
       // Two linters: parse errors (Lezer) + undefined-variable semantics (ESLint
       // no-undef, stage-aware globals).
-      linter((view) => [...jsSyntaxLinter()(view), ...jsUndefLinter(stage)(view)]),
+      linter((view) => [
+        ...jsSyntaxLinter()(view),
+        ...jsUndefLinter(stage)(view),
+      ]),
       lintGutter(),
       scriptChrome,
       scriptHighlight,

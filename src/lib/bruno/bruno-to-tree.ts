@@ -1,3 +1,6 @@
+import { type ParsedBru, parseBru } from "@/lib/bruno/parse-bru";
+import { parseOpenCollection } from "@/lib/bruno/parse-opencollection";
+import { mergeDotenv } from "@/lib/workspace/environment";
 import type {
   ConfigScope,
   Environment,
@@ -6,9 +9,6 @@ import type {
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
-import { parseBru, type ParsedBru } from "@/lib/bruno/parse-bru";
-import { parseOpenCollection } from "@/lib/bruno/parse-opencollection";
-import { mergeDotenv } from "@/lib/workspace/environment";
 
 // A Bruno collection captured as collection-relative path -> file text.
 export type BrunoFileMap = Record<string, string>;
@@ -40,7 +40,9 @@ function isRequestFile(name: string): boolean {
   if (FOLDER_FILES.has(name) || COLLECTION_FILES.has(name)) {
     return false;
   }
-  return name.endsWith(".bru") || name.endsWith(".yml") || name.endsWith(".yaml");
+  return (
+    name.endsWith(".bru") || name.endsWith(".yml") || name.endsWith(".yaml")
+  );
 }
 
 // Dispatch the per-file parser by extension: .bru -> bru markup, .yml/.yaml ->
@@ -100,7 +102,12 @@ function bodyFrom(parsed: ParsedBru): RequestBody {
 }
 
 function fileBaseName(path: string): string {
-  return path.split("/").pop()?.replace(/\.(bru|ya?ml)$/, "") ?? path;
+  return (
+    path
+      .split("/")
+      .pop()
+      ?.replace(/\.(bru|ya?ml)$/, "") ?? path
+  );
 }
 
 type IdGen = () => string;
@@ -146,7 +153,8 @@ function folderConfigFor(
   if (candidate === undefined) {
     return undefined;
   }
-  const path = files[`${dir}/folder.bru`] !== undefined ? "folder.bru" : "x.yml";
+  const path =
+    files[`${dir}/folder.bru`] !== undefined ? "folder.bru" : "x.yml";
   return parseFile(candidate, path);
 }
 
@@ -222,9 +230,7 @@ function collectEnvironments(
         return false;
       }
       return (
-        rest.endsWith(".bru") ||
-        rest.endsWith(".yml") ||
-        rest.endsWith(".yaml")
+        rest.endsWith(".bru") || rest.endsWith(".yml") || rest.endsWith(".yaml")
       );
     })
     .map((path) => ({
@@ -248,9 +254,12 @@ export function brunoToTree(
     files["collection.bru"] ??
     files["opencollection.yml"] ??
     files["opencollection.yaml"];
-  const rootPath = files["collection.bru"] !== undefined ? "collection.bru" : "x.yml";
+  const rootPath =
+    files["collection.bru"] !== undefined ? "collection.bru" : "x.yml";
   const rootParsed =
-    rootConfigText !== undefined ? parseFile(rootConfigText, rootPath) : undefined;
+    rootConfigText !== undefined
+      ? parseFile(rootConfigText, rootPath)
+      : undefined;
 
   const environments = collectEnvironments(files, "");
   const baseConfig = rootParsed ? configFrom(rootParsed) : {};

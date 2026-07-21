@@ -1,17 +1,16 @@
-import { describe, it, expect, afterEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
-import { useState } from "react";
 import { EditorView } from "@codemirror/view";
-
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
+import { afterEach, describe, expect, it } from "vitest";
+import { BodyEditor } from "@/components/workspace/body-editor";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import {
   DEFAULT_SETTINGS,
   type ThemeColors,
   type ThemeMode,
 } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import { ThemeProvider, useTheme } from "@/lib/theme/theme-context";
-import { BodyEditor } from "@/components/workspace/body-editor";
 
 // Stage 3 (Themes), AC-012: switching the active mode re-themes the open editors
 // LIVE, WITHOUT remounting the editor - the open document recolors in place.
@@ -72,11 +71,10 @@ function renderBody(initialMode: ThemeMode, colors?: ThemeColors) {
     ...DEFAULT_SETTINGS,
     theme: {
       mode: initialMode,
-      colors:
-        colors ?? {
-          light: { tokens: {}, editor: {} },
-          dark: { tokens: {}, editor: {} },
-        },
+      colors: colors ?? {
+        light: { tokens: {}, editor: {} },
+        dark: { tokens: {}, editor: {} },
+      },
     },
   });
   return render(
@@ -135,7 +133,9 @@ describe("BodyEditor follows the theme", () => {
     stubMatchMedia(false);
     renderBody("dark");
 
-    await waitFor(() => expect(document.querySelector(".cm-editor")).not.toBeNull());
+    await waitFor(() =>
+      expect(document.querySelector(".cm-editor")).not.toBeNull(),
+    );
 
     // Seed a known edit through the live view (jsdom can't type into the
     // contentEditable - learnings #46/#130).
@@ -170,7 +170,9 @@ describe("BodyEditor follows the theme", () => {
     stubMatchMedia(false);
     renderBody("light");
 
-    await waitFor(() => expect(document.querySelector(".cm-editor")).not.toBeNull());
+    await waitFor(() =>
+      expect(document.querySelector(".cm-editor")).not.toBeNull(),
+    );
 
     const css = Array.from(document.querySelectorAll("style"))
       .map((s) => s.textContent ?? "")

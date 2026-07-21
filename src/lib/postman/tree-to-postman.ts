@@ -1,3 +1,4 @@
+import type { PostmanFileMap } from "@/lib/postman/postman-to-tree";
 import type {
   Auth,
   ConfigScope,
@@ -9,7 +10,6 @@ import type {
   ScriptConfig,
   TreeNode,
 } from "@/lib/workspace/model";
-import type { PostmanFileMap } from "@/lib/postman/postman-to-tree";
 import { slugify, uniqueSlug } from "@/lib/workspace/slug";
 
 export type PostmanExportRoot = {
@@ -91,9 +91,7 @@ function authObject(auth: Auth | undefined): Record<string, unknown> | null {
 
 function eventsOf(scripts: ScriptConfig | undefined): PostmanEvent[] {
   return [
-    ...(scripts?.pre
-      ? [scriptEvent("prerequest", scripts.pre)]
-      : []),
+    ...(scripts?.pre ? [scriptEvent("prerequest", scripts.pre)] : []),
     ...(scripts?.post ? [scriptEvent("test", scripts.post)] : []),
   ];
 }
@@ -132,7 +130,12 @@ function scopeExtras(config: ConfigScope): Record<string, unknown> {
   const variables = config.variables ?? [];
   return {
     ...(variables.length > 0
-      ? { variable: variables.map((row) => ({ key: row.key, value: row.value })) }
+      ? {
+          variable: variables.map((row) => ({
+            key: row.key,
+            value: row.value,
+          })),
+        }
       : {}),
     ...(auth ? { auth } : {}),
     ...(events.length > 0 ? { event: events } : {}),

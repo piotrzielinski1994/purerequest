@@ -1,9 +1,12 @@
-import { describe, it, expect } from "vitest";
-
-import { serialize, deserialize } from "@/lib/workspace/disk-format";
+import { describe, expect, it } from "vitest";
 import type { FileMap } from "@/lib/workspace/disk-format";
-import { emptyBody, emptyParams, requestHttpVersion } from "@/lib/workspace/model";
+import { deserialize, serialize } from "@/lib/workspace/disk-format";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
+import {
+  emptyBody,
+  emptyParams,
+  requestHttpVersion,
+} from "@/lib/workspace/model";
 
 const request = (
   name: string,
@@ -81,7 +84,10 @@ describe("disk-format httpVersion", () => {
   // to a node whose requestHttpVersion is "h3".
   it("should deserialize httpVersion h3 back to a request whose version is h3", () => {
     const files: FileMap = {
-      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 6, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({
+        schemaVersion: 6,
+        name: "W",
+      }),
       "h3.req.json": JSON.stringify({
         name: "H3",
         method: "GET",
@@ -101,7 +107,10 @@ describe("disk-format httpVersion", () => {
   // auto.
   it("should deserialize a doc with no httpVersion to a request whose version is auto", () => {
     const files: FileMap = {
-      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 5, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({
+        schemaVersion: 5,
+        name: "W",
+      }),
       "legacy.req.json": JSON.stringify({
         name: "Legacy",
         method: "GET",

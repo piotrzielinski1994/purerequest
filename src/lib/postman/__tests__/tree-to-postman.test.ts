@@ -1,15 +1,20 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
-  postmanToTree,
   type PostmanFileMap,
+  postmanToTree,
 } from "@/lib/postman/postman-to-tree";
 import {
-  treeToPostmanFiles,
   type PostmanExportRoot,
+  treeToPostmanFiles,
 } from "@/lib/postman/tree-to-postman";
-import { authOf, emptyAuth, emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import {
+  authOf,
+  emptyAuth,
+  emptyBody,
+  emptyParams,
+} from "@/lib/workspace/model";
 
 const SCHEMA =
   "https://schema.getpostman.com/json/collection/v2.1.0/collection.json";
@@ -42,7 +47,7 @@ function folder(overrides: Partial<FolderNode>): FolderNode {
 }
 
 function asFolder(node: TreeNode | undefined): FolderNode {
-  if (!node || node.kind !== "folder") {
+  if (node?.kind !== "folder") {
     throw new Error("expected a folder node");
   }
   return node;
@@ -79,7 +84,7 @@ function collectionDoc(files: PostmanFileMap): PostmanDoc {
 
 function requestOf(doc: PostmanDoc, name: string): Record<string, unknown> {
   const item = doc.item.find((i) => i.name === name && i.request !== undefined);
-  if (!item || !item.request) {
+  if (!item?.request) {
     throw new Error(`no request item named ${name}`);
   }
   return item.request;
@@ -203,7 +208,10 @@ describe("treeToPostmanFiles - body types (AC-004)", () => {
             active: "graphql",
             types: {
               ...emptyBody().types,
-              graphql: { query: "query { me { id } }", variables: '{ "x": 1 }' },
+              graphql: {
+                query: "query { me { id } }",
+                variables: '{ "x": 1 }',
+              },
             },
           },
         }),
@@ -279,7 +287,10 @@ describe("treeToPostmanFiles - bearer auth (AC-005)", () => {
       ],
     };
 
-    const request = requestOf(collectionDoc(treeToPostmanFiles(root)), "Secured");
+    const request = requestOf(
+      collectionDoc(treeToPostmanFiles(root)),
+      "Secured",
+    );
 
     expect(request.auth).toEqual({
       type: "bearer",

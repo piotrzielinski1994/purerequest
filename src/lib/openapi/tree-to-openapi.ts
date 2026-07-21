@@ -31,7 +31,10 @@ type OpEntry = {
 function toOpenapiPath(url: string): string {
   const withoutQuery = url.split("?")[0];
   const withoutToken = withoutQuery.replace(/^\{\{[^}]+\}\}/, "");
-  const withoutHost = withoutToken.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]*/, "");
+  const withoutHost = withoutToken.replace(
+    /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]*/,
+    "",
+  );
   const templated = withoutHost.replace(/:([^/]+)/g, "{$1}");
   return templated.startsWith("/") ? templated : `/${templated}`;
 }
@@ -72,7 +75,9 @@ function requestBodyOf(body: RequestBody): Record<string, unknown> | null {
   }
   if (body.active === "json") {
     return {
-      content: { [JSON_MEDIA_TYPE]: { example: parseJsonMaybe(body.types.json) } },
+      content: {
+        [JSON_MEDIA_TYPE]: { example: parseJsonMaybe(body.types.json) },
+      },
     };
   }
   if (body.active === "graphql") {
@@ -130,12 +135,18 @@ function collectOps(nodes: TreeNode[], tag: string | undefined): OpEntry[] {
 }
 
 function pathsObject(ops: OpEntry[]): Record<string, unknown> {
-  return ops.reduce<Record<string, Record<string, unknown>>>(
-    (acc, { path, method, operation }) => ({
-      ...acc,
-      [path]: { ...(acc[path] ?? {}), [method]: operation },
-    }),
-    {},
+  return Object.fromEntries(
+    [...new Set(ops.map(({ path }) => path))].map(
+      (path) =>
+        [
+          path,
+          Object.fromEntries(
+            ops
+              .filter((op) => op.path === path)
+              .map(({ method, operation }) => [method, operation] as const),
+          ),
+        ] as const,
+    ),
   );
 }
 
@@ -181,7 +192,9 @@ export function treeToOpenapiDoc(root: OpenapiExportRoot): OpenapiDocument {
     openapi: OPENAPI_VERSION,
     info: { title: root.name, version: INFO_VERSION },
     ...(servers.length > 0 ? { servers } : {}),
-    ...(tagNames.length > 0 ? { tags: tagNames.map((name) => ({ name })) } : {}),
+    ...(tagNames.length > 0
+      ? { tags: tagNames.map((name) => ({ name })) }
+      : {}),
     paths: pathsObject(ops),
     ...(security
       ? {

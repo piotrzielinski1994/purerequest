@@ -8,8 +8,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useWorkspace } from "@/components/workspace/workspace-context";
-import { findNode } from "@/lib/workspace/tree-locate";
 import { countDescendants } from "@/lib/workspace/tree-edit";
+import { findNode } from "@/lib/workspace/tree-locate";
 
 export function DeleteConfirmDialog() {
   const { pendingDelete, tree, confirmPendingDelete, cancelPendingDelete } =

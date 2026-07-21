@@ -1,14 +1,13 @@
-import { describe, it, expect, expectTypeOf } from "vitest";
-
+import { describe, expect, expectTypeOf, it } from "vitest";
+import type { z } from "zod";
 import {
   configScopeSchema,
   requestSettingsSchema,
-  themeColorsSchema,
+  type themeColorsSchema,
 } from "@/lib/config-schema/zod-schemas";
-import type { ConfigScope, HttpMethod, BodyMode } from "@/lib/workspace/model";
-import { authOf } from "@/lib/workspace/model";
 import type { ThemeColors } from "@/lib/settings/settings";
-import type { z } from "zod";
+import type { BodyMode, ConfigScope, HttpMethod } from "@/lib/workspace/model";
+import { authOf } from "@/lib/workspace/model";
 
 type KeyValueRow = { key: string; value: string; enabled?: boolean };
 
@@ -47,12 +46,16 @@ type RequestSettingsDoc = {
 describe("zod config schemas drift guard", () => {
   // AC-007 - side-effect-contract: the ConfigScope zod infer matches the hand-written TS model.
   it("should infer a type matching ConfigScope for configScopeSchema", () => {
-    expectTypeOf<z.infer<typeof configScopeSchema>>().toEqualTypeOf<ConfigScope>();
+    expectTypeOf<
+      z.infer<typeof configScopeSchema>
+    >().toEqualTypeOf<ConfigScope>();
   });
 
   // AC-007 - side-effect-contract: the ThemeColors zod infer matches the settings TS model.
   it("should infer a type matching ThemeColors for themeColorsSchema", () => {
-    expectTypeOf<z.infer<typeof themeColorsSchema>>().toEqualTypeOf<ThemeColors>();
+    expectTypeOf<
+      z.infer<typeof themeColorsSchema>
+    >().toEqualTypeOf<ThemeColors>();
   });
 
   // AC-007 - side-effect-contract: the request-settings zod infer matches the document shape.

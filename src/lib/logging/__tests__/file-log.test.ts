@@ -1,7 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import { logMessage } from "@/lib/logging/file-log";
 import { invoke } from "@tauri-apps/api/core";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { logMessage } from "@/lib/logging/file-log";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),

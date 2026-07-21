@@ -1,18 +1,18 @@
-import { json, jsonParseLinter } from "@codemirror/lang-json";
-import { EditorView, keymap } from "@codemirror/view";
-import {
-  HighlightStyle,
-  syntaxHighlighting,
-  foldGutter,
-  codeFolding,
-  foldKeymap,
-  foldCode,
-  unfoldCode,
-} from "@codemirror/language";
 import { closeBrackets } from "@codemirror/autocomplete";
 import { defaultKeymap } from "@codemirror/commands";
-import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
+import { json, jsonParseLinter } from "@codemirror/lang-json";
+import {
+  codeFolding,
+  foldCode,
+  foldGutter,
+  foldKeymap,
+  HighlightStyle,
+  syntaxHighlighting,
+  unfoldCode,
+} from "@codemirror/language";
+import { type Diagnostic, linter, lintGutter } from "@codemirror/lint";
 import { EditorState, type Extension } from "@codemirror/state";
+import { EditorView, keymap } from "@codemirror/view";
 import { tags as t } from "@lezer/highlight";
 import type { EditorTokenName } from "@/lib/settings/settings";
 

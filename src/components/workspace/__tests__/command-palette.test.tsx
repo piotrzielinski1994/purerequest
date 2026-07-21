@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
+import { formatForDisplay } from "@tanstack/hotkeys";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { formatForDisplay } from "@tanstack/hotkeys";
+import { describe, expect, it, vi } from "vitest";
 
 import { CommandPalette } from "@/components/workspace/command-palette";
 import {
@@ -51,11 +51,7 @@ describe("CommandPalette", () => {
     const disabled: Command = { action: TOGGLE_CONSOLE, binding: "", run };
 
     render(
-      <CommandPalette
-        open
-        onOpenChange={onOpenChange}
-        commands={[disabled]}
-      />,
+      <CommandPalette open onOpenChange={onOpenChange} commands={[disabled]} />,
     );
 
     await screen.findByText(TOGGLE_CONSOLE.name);

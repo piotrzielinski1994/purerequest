@@ -15,7 +15,7 @@ export function moveNode(
   }
   if (target.parentId !== null) {
     const parent = findNode(tree, target.parentId);
-    if (!parent || parent.kind !== "folder") {
+    if (parent?.kind !== "folder") {
       return tree;
     }
     if (containsId(dragged, target.parentId)) {
@@ -74,7 +74,7 @@ export function moveNodes(
   }
   if (target.parentId !== null) {
     const parent = findNode(tree, target.parentId);
-    if (!parent || parent.kind !== "folder") {
+    if (parent?.kind !== "folder") {
       return tree;
     }
     // Reject dropping into any dragged folder (its own subtree) - a cycle.

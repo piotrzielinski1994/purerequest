@@ -1,17 +1,17 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { openapiToTree } from "@/lib/openapi/openapi-to-tree";
 import {
-  treeToOpenapiDoc,
   type OpenapiExportRoot,
+  treeToOpenapiDoc,
 } from "@/lib/openapi/tree-to-openapi";
-import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 import type {
   FolderNode,
   KeyValue,
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 
 // ---- fixture builders (realistic nodes via model helpers + overrides) --------
 
@@ -41,7 +41,7 @@ function folder(overrides: Partial<FolderNode>): FolderNode {
 }
 
 function asFolder(node: TreeNode | undefined): FolderNode {
-  if (!node || node.kind !== "folder") {
+  if (node?.kind !== "folder") {
     throw new Error("expected a folder node");
   }
   return node;
@@ -94,7 +94,11 @@ function operationOf(
   return op;
 }
 
-function paramOf(op: OpenapiOperation, where: string, name: string): OpenapiParam {
+function paramOf(
+  op: OpenapiOperation,
+  where: string,
+  name: string,
+): OpenapiParam {
   const param = (op.parameters ?? []).find(
     (p) => p.in === where && p.name === name,
   );
@@ -104,7 +108,10 @@ function paramOf(op: OpenapiOperation, where: string, name: string): OpenapiPara
   return param;
 }
 
-function rowValue(rows: KeyValue[] | undefined, key: string): string | undefined {
+function rowValue(
+  rows: KeyValue[] | undefined,
+  key: string,
+): string | undefined {
   return rows?.find((row) => row.key === key)?.value;
 }
 
@@ -115,7 +122,9 @@ describe("treeToOpenapiDoc - document root + single request (AC-001, AC-002, AC-
   it("should emit a 3.0.3 document with info.title, a server, and a get operation if the root has one request", () => {
     const root: OpenapiExportRoot = {
       name: "My API",
-      config: { variables: [{ key: "baseUrl", value: "https://api.example.com" }] },
+      config: {
+        variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+      },
       children: [
         req({ name: "List Users", method: "GET", url: "{{baseUrl}}/users" }),
       ],
@@ -263,7 +272,9 @@ describe("treeToOpenapiDoc - json request body (AC-005)", () => {
 
     const op = operationOf(docOf(root), "/x", "post");
 
-    expect(op.requestBody?.content["application/json"].example).toEqual({ a: 1 });
+    expect(op.requestBody?.content["application/json"].example).toEqual({
+      a: 1,
+    });
   });
 });
 
@@ -308,7 +319,10 @@ describe("treeToOpenapiDoc - non-json body media types (AC-005)", () => {
             active: "graphql",
             types: {
               ...emptyBody().types,
-              graphql: { query: "query { me { id } }", variables: '{ "x": 1 }' },
+              graphql: {
+                query: "query { me { id } }",
+                variables: '{ "x": 1 }',
+              },
             },
           },
         }),
@@ -425,7 +439,9 @@ describe("treeToOpenapiDoc - single server from baseUrl (AC-007)", () => {
   it("should emit one server from the baseUrl variable and strip the {{baseUrl}} prefix from paths", () => {
     const root: OpenapiExportRoot = {
       name: "C",
-      config: { variables: [{ key: "baseUrl", value: "https://api.example.com" }] },
+      config: {
+        variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+      },
       children: [
         req({ name: "List", method: "GET", url: "{{baseUrl}}/users" }),
       ],
@@ -449,11 +465,19 @@ describe("treeToOpenapiDoc - environments to servers (AC-007)", () => {
       config: {
         variables: [{ key: "baseUrl", value: "https://dev.example.com" }],
         environments: [
-          { name: "dev", variables: [{ key: "baseUrl", value: "https://dev.example.com" }] },
-          { name: "prod", variables: [{ key: "baseUrl", value: "https://api.example.com" }] },
+          {
+            name: "dev",
+            variables: [{ key: "baseUrl", value: "https://dev.example.com" }],
+          },
+          {
+            name: "prod",
+            variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+          },
         ],
       },
-      children: [req({ name: "List", method: "GET", url: "{{baseUrl}}/users" })],
+      children: [
+        req({ name: "List", method: "GET", url: "{{baseUrl}}/users" }),
+      ],
     };
 
     const doc = docOf(root);
@@ -471,8 +495,12 @@ describe("treeToOpenapiDoc - bearer security (AC-008)", () => {
   it("should emit an http+bearer scheme + security requirement and leak no token", () => {
     const root: OpenapiExportRoot = {
       name: "C",
-      config: { auth: authOf({ active: "bearer", token: "supersecret-token" }) },
-      children: [req({ name: "List", method: "GET", url: "{{baseUrl}}/users" })],
+      config: {
+        auth: authOf({ active: "bearer", token: "supersecret-token" }),
+      },
+      children: [
+        req({ name: "List", method: "GET", url: "{{baseUrl}}/users" }),
+      ],
     };
 
     const doc = docOf(root);
@@ -494,9 +522,15 @@ describe("treeToOpenapiDoc - basic security (AC-008)", () => {
     const root: OpenapiExportRoot = {
       name: "C",
       config: {
-        auth: authOf({ active: "basic", username: "admin-user", password: "hunter2pw" }),
+        auth: authOf({
+          active: "basic",
+          username: "admin-user",
+          password: "hunter2pw",
+        }),
       },
-      children: [req({ name: "List", method: "GET", url: "{{baseUrl}}/users" })],
+      children: [
+        req({ name: "List", method: "GET", url: "{{baseUrl}}/users" }),
+      ],
     };
 
     const doc = docOf(root);
@@ -519,7 +553,9 @@ describe("treeToOpenapiDoc - no security (AC-008)", () => {
     const root: OpenapiExportRoot = {
       name: "C",
       config: { auth: authOf({ active: "inherit" }) },
-      children: [req({ name: "List", method: "GET", url: "{{baseUrl}}/users" })],
+      children: [
+        req({ name: "List", method: "GET", url: "{{baseUrl}}/users" }),
+      ],
     };
 
     const doc = docOf(root);
@@ -537,7 +573,9 @@ describe("treeToOpenapiDoc - round-trip via openapiToTree (AC-009)", () => {
   // importer produces {key,value} rows); compare the JSON body by its PARSED value;
   // compare auth by MODE only (secret reset). Children are name-sorted, same
   // discipline as the Bruno/Postman round-trip tests.
-  function rows(list: KeyValue[] | undefined): Array<{ key: string; value: string }> {
+  function rows(
+    list: KeyValue[] | undefined,
+  ): Array<{ key: string; value: string }> {
     return (list ?? []).map(({ key, value }) => ({ key, value }));
   }
 

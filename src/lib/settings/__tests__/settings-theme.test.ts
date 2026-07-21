@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_SETTINGS,
@@ -91,9 +91,9 @@ describe("mergeSettings theme.mode", () => {
     const modes: ThemeMode[] = ["light", "dark", "system"];
 
     for (const mode of modes) {
-      expect(mergeSettings(DEFAULT_SETTINGS, { theme: { mode } }).theme.mode).toBe(
-        mode,
-      );
+      expect(
+        mergeSettings(DEFAULT_SETTINGS, { theme: { mode } }).theme.mode,
+      ).toBe(mode);
     }
   });
 });

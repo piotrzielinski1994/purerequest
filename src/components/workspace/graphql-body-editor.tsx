@@ -1,18 +1,18 @@
-import { useMemo } from "react";
-import { graphqlLanguageSupport } from "cm6-graphql";
 import { autocompletion } from "@codemirror/autocomplete";
 import { EditorView } from "@codemirror/view";
+import { graphqlLanguageSupport } from "cm6-graphql";
+import { useMemo } from "react";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { CodeEditor } from "@/components/workspace/code-editor";
 import { BodyEditor } from "@/components/workspace/body-editor";
-import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
+import { CodeEditor } from "@/components/workspace/code-editor";
+import type { TokenCandidate } from "@/components/workspace/token-complete";
 import { tokenCompletionSource } from "@/components/workspace/token-complete-source";
 import { tokenCompletionConfig } from "@/components/workspace/token-suggestion-style";
-import type { TokenCandidate } from "@/components/workspace/token-complete";
+import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
 
 type GraphqlBodyEditorProps = {
   query: string;
@@ -24,7 +24,8 @@ type GraphqlBodyEditorProps = {
   candidates?: TokenCandidate[];
 };
 
-const PANE_LABEL = "px-3 py-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase";
+const PANE_LABEL =
+  "px-3 py-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase";
 
 export function GraphqlBodyEditor({
   query,

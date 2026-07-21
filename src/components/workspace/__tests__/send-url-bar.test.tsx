@@ -1,14 +1,13 @@
-import { describe, it, expect } from "vitest";
-import { render, screen, within, act, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { describe, expect, it } from "vitest";
 import { UrlBar } from "@/components/workspace/url-bar";
-import { fixtureTree } from "./fixtures";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
+import { fixtureTree } from "./fixtures";
 
 function ActiveUrlReadout() {
   const { activeRequest } = useWorkspace();

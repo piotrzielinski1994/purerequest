@@ -1,9 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { serialize } from "@/lib/workspace/disk-format";
 import { createInMemoryWorkspaceFs } from "@/lib/workspace/in-memory-fs";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const request = (id: string, name = id): RequestNode => ({
   kind: "request",

@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { upsertRow } from "@/lib/workspace/model";
+import { describe, expect, it } from "vitest";
 import type { KeyValue } from "@/lib/workspace/model";
+import { upsertRow } from "@/lib/workspace/model";
 
 describe("upsertRow", () => {
   // behavior: appends a new row when the key is absent.

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { createFakeHttpClient } from "@/lib/http/fake-client";
 import type { HttpRequest } from "@/lib/http/model";

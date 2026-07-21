@@ -1,9 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  PANE_TABS_LIST,
-  PANE_TABS_TRIGGER,
-} from "@/components/workspace/pane-tabs";
 import { ConfigEditorForm } from "@/components/workspace/config-editor";
 import {
   AuthPanel,
@@ -13,7 +9,12 @@ import {
   ScriptPanel,
   VarsPanel,
 } from "@/components/workspace/config-panels";
+import {
+  PANE_TABS_LIST,
+  PANE_TABS_TRIGGER,
+} from "@/components/workspace/pane-tabs";
 import { useWorkspace } from "@/components/workspace/workspace-context";
+import type { ConfigScope } from "@/lib/workspace/model";
 import {
   environmentNamesForScope,
   environmentOrigins,
@@ -23,7 +24,6 @@ import {
 import { findNode } from "@/lib/workspace/tree-locate";
 import { updateNodeConfig } from "@/lib/workspace/update-config";
 import { updateFolderDotenv } from "@/lib/workspace/update-folder-dotenv";
-import type { ConfigScope } from "@/lib/workspace/model";
 
 type FolderTab =
   | "vars"
@@ -138,7 +138,11 @@ function FolderStructuredEditor({
         <AuthPanel config={draft} onChange={setDraft} highlight={highlight} />
       </TabsContent>
       <TabsContent value="headers">
-        <HeadersPanel config={draft} onChange={setDraft} highlight={highlight} />
+        <HeadersPanel
+          config={draft}
+          onChange={setDraft}
+          highlight={highlight}
+        />
       </TabsContent>
       <TabsContent value="script">
         <ScriptPanel config={draft} onChange={setDraft} />

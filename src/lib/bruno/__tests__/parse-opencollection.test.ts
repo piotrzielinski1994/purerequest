@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { parseOpenCollection } from "@/lib/bruno/parse-opencollection";
 import { authOf } from "@/lib/workspace/model";
@@ -201,9 +201,14 @@ describe("parseOpenCollection - auth (AC-011)", () => {
   // AC-011 - behavior: auth string "inherit" -> {type:"inherit"}.
   it("should map a string auth of inherit to type inherit", () => {
     const parsed = parseOpenCollection(
-      ["info:", "  name: A", "http:", "  method: get", "  url: https://x.test", "  auth: inherit"].join(
-        "\n",
-      ),
+      [
+        "info:",
+        "  name: A",
+        "http:",
+        "  method: get",
+        "  url: https://x.test",
+        "  auth: inherit",
+      ].join("\n"),
     );
 
     expect(parsed.auth).toEqual(authOf({ active: "inherit" }));
@@ -212,9 +217,14 @@ describe("parseOpenCollection - auth (AC-011)", () => {
   // AC-011 - behavior: auth string "none" -> {type:"none"}.
   it("should map a string auth of none to type none", () => {
     const parsed = parseOpenCollection(
-      ["info:", "  name: A", "http:", "  method: get", "  url: https://x.test", "  auth: none"].join(
-        "\n",
-      ),
+      [
+        "info:",
+        "  name: A",
+        "http:",
+        "  method: get",
+        "  url: https://x.test",
+        "  auth: none",
+      ].join("\n"),
     );
 
     expect(parsed.auth).toEqual(authOf({ active: "none" }));
@@ -235,7 +245,9 @@ describe("parseOpenCollection - auth (AC-011)", () => {
       ].join("\n"),
     );
 
-    expect(parsed.auth).toEqual(authOf({ active: "bearer", token: "{{BEARER_TOKEN}}" }));
+    expect(parsed.auth).toEqual(
+      authOf({ active: "bearer", token: "{{BEARER_TOKEN}}" }),
+    );
   });
 
   // AC-011 - behavior: auth object {type:basic, username, password} -> basic auth.

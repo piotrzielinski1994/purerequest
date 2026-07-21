@@ -1,9 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { openSearchPanel } from "@codemirror/search";
+import { EditorState, type Extension } from "@codemirror/state";
+import { EditorView, runScopeHandlers } from "@codemirror/view";
 import { waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { EditorView, runScopeHandlers } from "@codemirror/view";
-import { EditorState, type Extension } from "@codemirror/state";
-import { openSearchPanel } from "@codemirror/search";
+import { describe, expect, it } from "vitest";
 
 // Imported before it exists: the suite must fail RED on the missing module, not
 // on a typo. editorFind(openKey) is a CodeMirror extension that binds openKey to
@@ -54,7 +54,9 @@ describe("editorFind", () => {
     pressOpenKey(view);
 
     await waitFor(() => {
-      expect(container.querySelector('input[aria-label="Find"]')).not.toBeNull();
+      expect(
+        container.querySelector('input[aria-label="Find"]'),
+      ).not.toBeNull();
     });
 
     view.destroy();
@@ -68,7 +70,9 @@ describe("editorFind", () => {
     pressOpenKey(view);
 
     await waitFor(() => {
-      expect(container.querySelector('input[aria-label="Find"]')).not.toBeNull();
+      expect(
+        container.querySelector('input[aria-label="Find"]'),
+      ).not.toBeNull();
     });
 
     const topPanels = container.querySelector(".cm-panels-top");
@@ -87,7 +91,9 @@ describe("editorFind", () => {
     expect(editorFind).toHaveLength(1);
 
     const extension = editorFind(OPEN_KEY);
-    const flat = Array.isArray(extension) ? extension.flat(Infinity) : [extension];
+    const flat = Array.isArray(extension)
+      ? extension.flat(Infinity)
+      : [extension];
     expect(flat.length).toBeGreaterThan(0);
   });
 
@@ -127,7 +133,9 @@ describe("editorFind", () => {
     openSearchPanel(view);
 
     await waitFor(() => {
-      expect(container.querySelector('input[aria-label="Find"]')).not.toBeNull();
+      expect(
+        container.querySelector('input[aria-label="Find"]'),
+      ).not.toBeNull();
     });
 
     view.destroy();

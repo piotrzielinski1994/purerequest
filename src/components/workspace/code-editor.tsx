@@ -1,5 +1,5 @@
-import CodeMirror from "@uiw/react-codemirror";
 import type { Extension } from "@codemirror/state";
+import CodeMirror from "@uiw/react-codemirror";
 
 type BasicSetup = NonNullable<
   React.ComponentProps<typeof CodeMirror>["basicSetup"]

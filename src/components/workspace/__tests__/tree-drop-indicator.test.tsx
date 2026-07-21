@@ -1,15 +1,14 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
 import { DndContext } from "@dnd-kit/core";
-
-import { WorkspaceProvider } from "@/components/workspace/workspace-context";
-import { TreeRow } from "@/components/workspace/tree-row";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import {
-  TreeDndProvider,
   type DropIndicator,
+  TreeDndProvider,
 } from "@/components/workspace/tree-dnd";
-import { fixtureTree } from "./fixtures";
+import { TreeRow } from "@/components/workspace/tree-row";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import type { TreeNode } from "@/lib/workspace/model";
+import { fixtureTree } from "./fixtures";
 
 function renderRow(node: TreeNode, indicator: DropIndicator | null) {
   return render(

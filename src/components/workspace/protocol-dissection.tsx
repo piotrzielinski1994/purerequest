@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type {
@@ -59,9 +59,7 @@ function HexView({
       <div className="flex flex-wrap gap-x-1 gap-y-0.5">
         {bytes.map((byte, index) => {
           const isLit =
-            highlight !== null &&
-            index >= highlight[0] &&
-            index < highlight[1];
+            highlight !== null && index >= highlight[0] && index < highlight[1];
           return (
             <span
               key={index}
@@ -108,11 +106,7 @@ function byteLabel(field: DissectionField): string | null {
   return `bytes ${field.byteOffset}-${field.byteOffset + field.byteLength - 1}`;
 }
 
-function FieldTree({
-  segment,
-}: {
-  segment: DissectionSegment;
-}) {
+function FieldTree({ segment }: { segment: DissectionSegment }) {
   const rows = flattenFields(segment.fields);
   const [selectedKey, setSelectedKey] = useState<string | null>(
     rows[0]?.key ?? null,
@@ -219,9 +213,7 @@ function CollapsibleHeader({
       aria-expanded={expanded}
       className={cn(
         "flex w-full items-baseline gap-2 px-3 text-left",
-        tone === "layer"
-          ? "bg-muted/50 py-2"
-          : "bg-muted/20 py-1 text-[11px]",
+        tone === "layer" ? "bg-muted/50 py-2" : "bg-muted/20 py-1 text-[11px]",
         reach === "unreachable" && "opacity-60",
       )}
     >

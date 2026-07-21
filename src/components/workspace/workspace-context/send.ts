@@ -1,14 +1,7 @@
-import type { RequestNode } from "@/lib/workspace/model";
-import type { HttpRequest, ResponseState } from "@/lib/http/model";
+import type { PersistApi } from "@/components/workspace/workspace-context/persist";
+import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
 import { buildHttpRequest } from "@/lib/http/build-request";
-import {
-  resolveConfig,
-  resolveProcessEnv,
-  resolveProcessEnvProvenance,
-} from "@/lib/workspace/resolve";
-import { parseDotenv, setDotenvValue } from "@/lib/workspace/environment";
-import { updateFolderDotenv } from "@/lib/workspace/update-folder-dotenv";
-import { findNode } from "@/lib/workspace/tree-locate";
+import type { HttpRequest, ResponseState } from "@/lib/http/model";
 import {
   applyPreToEffective,
   buildScriptApi,
@@ -16,8 +9,15 @@ import {
   type VarWrite,
 } from "@/lib/scripts/script-context";
 import { resolveVarWriteTarget, setNodeVar } from "@/lib/scripts/var-write";
-import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
-import type { PersistApi } from "@/components/workspace/workspace-context/persist";
+import { parseDotenv, setDotenvValue } from "@/lib/workspace/environment";
+import type { RequestNode } from "@/lib/workspace/model";
+import {
+  resolveConfig,
+  resolveProcessEnv,
+  resolveProcessEnvProvenance,
+} from "@/lib/workspace/resolve";
+import { findNode } from "@/lib/workspace/tree-locate";
+import { updateFolderDotenv } from "@/lib/workspace/update-folder-dotenv";
 
 export type SendApi = {
   sendRequest: (id: string) => Promise<void>;
@@ -29,7 +29,10 @@ export type SendApi = {
 
 export function createSend(
   internals: WorkspaceInternals,
-  deps: { persistTree: PersistApi["persistTree"]; saveEnv: PersistApi["saveEnv"] },
+  deps: {
+    persistTree: PersistApi["persistTree"];
+    saveEnv: PersistApi["saveEnv"];
+  },
 ): SendApi {
   const {
     tree,
@@ -96,32 +99,35 @@ export function createSend(
           const target = resolveVarWriteTarget(acc.tree, id, write.name);
           if (target.kind === "config") {
             return {
-              ...acc,
-              tree: setNodeVar(acc.tree, target.nodeId, write.name, write.value),
+              tree: setNodeVar(
+                acc.tree,
+                target.nodeId,
+                write.name,
+                write.value,
+              ),
+              envText: acc.envText,
             };
           }
           const owner =
-            resolveProcessEnvProvenance(
-              acc.tree,
-              id,
-              parseDotenv(acc.envText),
-            )[target.key]?.scopeId ?? null;
+            resolveProcessEnvProvenance(acc.tree, id, parseDotenv(acc.envText))[
+              target.key
+            ]?.scopeId ?? null;
           if (owner === null) {
             return {
-              ...acc,
+              tree: acc.tree,
               envText: setDotenvValue(acc.envText, target.key, write.value),
             };
           }
           const folder = findNode(acc.tree, owner);
           const folderDotenv =
-            folder?.kind === "folder" ? folder.dotenv ?? "" : "";
+            folder?.kind === "folder" ? (folder.dotenv ?? "") : "";
           return {
-            ...acc,
             tree: updateFolderDotenv(
               acc.tree,
               owner,
               setDotenvValue(folderDotenv, target.key, write.value),
             ),
+            envText: acc.envText,
           };
         },
         { tree, envText },
@@ -175,7 +181,10 @@ export function createSend(
       ...node,
       method: reqDraft.method,
       url: reqDraft.url,
-      body: { ...node.body, types: { ...node.body.types, json: reqDraft.body } },
+      body: {
+        ...node.body,
+        types: { ...node.body.types, json: reqDraft.body },
+      },
     };
     const wire = buildHttpRequest(
       node2,
@@ -239,7 +248,9 @@ export function createSend(
     sendGeneration.current.set(id, (sendGeneration.current.get(id) ?? 0) + 1);
     const requestId = inFlightRequestId.current.get(id);
     inFlightRequestId.current.delete(id);
-    setResponseStates((current) => new Map(current).set(id, { status: "idle" }));
+    setResponseStates((current) =>
+      new Map(current).set(id, { status: "idle" }),
+    );
     if (requestId) {
       void httpClientRef.current.cancel(requestId);
     }
@@ -268,5 +279,11 @@ export function createSend(
   };
   const closeCodeGen = () => setIsCodeGenOpen(false);
 
-  return { sendRequest, cancelRequest, resolveActiveWire, openCodeGen, closeCodeGen };
+  return {
+    sendRequest,
+    cancelRequest,
+    resolveActiveWire,
+    openCodeGen,
+    closeCodeGen,
+  };
 }

@@ -1,7 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import { isDevBrowser } from "@/lib/runtime/environment";
 import { isTauri } from "@tauri-apps/api/core";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isDevBrowser } from "@/lib/runtime/environment";
 
 vi.mock("@tauri-apps/api/core", () => ({
   isTauri: vi.fn(),

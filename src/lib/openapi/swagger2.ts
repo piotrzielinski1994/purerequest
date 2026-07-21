@@ -28,7 +28,9 @@ function serverUrl(doc: Record<string, unknown>): string | undefined {
 // Rewrite one operation: an `in: "body"` param's schema becomes the JSON
 // requestBody schema, and every body param is dropped from `parameters` (non-body
 // params stay verbatim). Operations without a body param are returned unchanged.
-function normalizeOperation(op: Record<string, unknown>): Record<string, unknown> {
+function normalizeOperation(
+  op: Record<string, unknown>,
+): Record<string, unknown> {
   if (!Array.isArray(op.parameters)) {
     return op;
   }
@@ -53,10 +55,13 @@ function normalizeOperation(op: Record<string, unknown>): Record<string, unknown
 function normalizePathItem(
   pathItem: Record<string, unknown>,
 ): Record<string, unknown> {
-  return BODY_METHODS.reduce<Record<string, unknown>>((acc, method) => {
-    const op = acc[method];
-    return isRecord(op) ? { ...acc, [method]: normalizeOperation(op) } : acc;
-  }, pathItem);
+  const normalized = Object.fromEntries(
+    BODY_METHODS.flatMap((method) => {
+      const op = pathItem[method];
+      return isRecord(op) ? [[method, normalizeOperation(op)] as const] : [];
+    }),
+  );
+  return { ...pathItem, ...normalized };
 }
 
 function normalizePaths(paths: unknown): Record<string, unknown> {

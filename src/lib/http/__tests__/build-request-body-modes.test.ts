@@ -1,7 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { buildHttpRequest } from "@/lib/http/build-request";
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import type {
   Auth,
   HttpMethod,
@@ -9,6 +8,7 @@ import type {
   RequestNode,
 } from "@/lib/workspace/model";
 import { authOf } from "@/lib/workspace/model";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 // The test authors requests in the legacy flat style (`body` string + `bodyMode`
 // + `bodyForm`); the builder folds those into the new `body` object so the many

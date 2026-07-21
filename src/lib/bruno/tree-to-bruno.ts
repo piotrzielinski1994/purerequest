@@ -1,3 +1,4 @@
+import type { BrunoFileMap } from "@/lib/bruno/bruno-to-tree";
 import type {
   Auth,
   ConfigScope,
@@ -9,7 +10,6 @@ import type {
   ScriptConfig,
   TreeNode,
 } from "@/lib/workspace/model";
-import type { BrunoFileMap } from "@/lib/bruno/bruno-to-tree";
 import { slugify, uniqueSlug } from "@/lib/workspace/slug";
 
 export type BrunoExportRoot = {
@@ -58,7 +58,11 @@ function authSelector(auth: Auth | undefined): string | null {
   if (!auth) {
     return null;
   }
-  if (auth.active === "bearer" || auth.active === "basic" || auth.active === "none") {
+  if (
+    auth.active === "bearer" ||
+    auth.active === "basic" ||
+    auth.active === "none"
+  ) {
     return auth.active;
   }
   return null;
@@ -97,7 +101,11 @@ function bodyBlocks(body: RequestBody): string[] {
 
 function authBlocks(auth: Auth | undefined): string[] {
   if (auth?.active === "bearer") {
-    return [dictBlock("auth:bearer", [{ key: "token", value: auth.types.bearer.token }])];
+    return [
+      dictBlock("auth:bearer", [
+        { key: "token", value: auth.types.bearer.token },
+      ]),
+    ];
   }
   if (auth?.active === "basic") {
     return [

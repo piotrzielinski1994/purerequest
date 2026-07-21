@@ -34,15 +34,15 @@ export function parseUrlQuery(url: string): KeyValue[] {
   if (query === "") {
     return [];
   }
-  return query.split("&").reduce<KeyValue[]>((acc, pair) => {
-    if (pair === "") {
-      return acc;
-    }
-    const eq = pair.indexOf("=");
-    const key = eq === -1 ? pair : pair.slice(0, eq);
-    const value = eq === -1 ? "" : pair.slice(eq + 1);
-    return [...acc, { key, value }];
-  }, []);
+  return query
+    .split("&")
+    .filter((pair) => pair !== "")
+    .map((pair) => {
+      const eq = pair.indexOf("=");
+      const key = eq === -1 ? pair : pair.slice(0, eq);
+      const value = eq === -1 ? "" : pair.slice(eq + 1);
+      return { key, value };
+    });
 }
 
 // Apply a URL edit to the grid rows. Keys now in the URL become enabled rows with

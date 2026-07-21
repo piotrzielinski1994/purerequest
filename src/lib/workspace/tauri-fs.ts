@@ -82,7 +82,10 @@ export function createTauriWorkspaceFs(): WorkspaceFs {
         })(),
       );
       if (!written.ok) {
-        return { ok: false, error: `Failed to write workspace: ${written.error}` };
+        return {
+          ok: false,
+          error: `Failed to write workspace: ${written.error}`,
+        };
       }
       return { ok: true };
     },

@@ -1,9 +1,8 @@
-import { describe, it, expect } from "vitest";
-
-import { resolveTreeKey, treeMoveTarget } from "@/lib/workspace/tree-keyboard";
+import { describe, expect, it } from "vitest";
 import { resolveShortcuts } from "@/lib/shortcuts/resolve";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { resolveTreeKey, treeMoveTarget } from "@/lib/workspace/tree-keyboard";
 
 const request = (id: string): RequestNode => ({
   kind: "request",
@@ -200,9 +199,9 @@ describe("resolveTreeKey - alt move (default bindings)", () => {
 
 describe("resolveTreeKey - modifier leak guard (bug #3)", () => {
   it("should be a no-op if a bare Cmd/Meta+ArrowRight fires (matches no tree binding)", () => {
-    expect(resolve(keyEvent("ArrowRight", { meta: true }), "f1", collapsed)).toEqual(
-      { type: "none" },
-    );
+    expect(
+      resolve(keyEvent("ArrowRight", { meta: true }), "f1", collapsed),
+    ).toEqual({ type: "none" });
   });
 
   it("should be a no-op if a bare Ctrl+ArrowDown fires", () => {
@@ -220,9 +219,9 @@ describe("resolveTreeKey - custom bindings", () => {
   it("should honour a rebound tree-move-up key", () => {
     const custom = resolveShortcuts({ "tree-move-up": ["Mod+Shift+ArrowUp"] });
     // Default Alt+ArrowUp must no longer trigger the move.
-    expect(resolve(keyEvent("ArrowUp", { alt: true }), "c2", expandedAll, custom)).toEqual(
-      { type: "none" },
-    );
+    expect(
+      resolve(keyEvent("ArrowUp", { alt: true }), "c2", expandedAll, custom),
+    ).toEqual({ type: "none" });
     // The custom combo does. The vitest env detects as "windows", so Mod == Ctrl.
     const command = resolve(
       keyEvent("ArrowUp", { shift: true, ctrl: true }),

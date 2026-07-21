@@ -1,13 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { openapiToTree } from "@/lib/openapi/openapi-to-tree";
-import { authOf } from "@/lib/workspace/model";
 import type {
   FolderNode,
   KeyValue,
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
+import { authOf } from "@/lib/workspace/model";
 
 function collectNodes(nodes: TreeNode[]): TreeNode[] {
   return nodes.flatMap((node) =>
@@ -21,7 +21,10 @@ function collectRequests(nodes: TreeNode[]): RequestNode[] {
   );
 }
 
-function treeRoot(doc: Record<string, unknown>, fallback = "fallback"): FolderNode {
+function treeRoot(
+  doc: Record<string, unknown>,
+  fallback = "fallback",
+): FolderNode {
   const tree = openapiToTree(JSON.stringify(doc), fallback);
   const root = tree[0];
   if (tree.length !== 1 || !root || root.kind !== "folder") {
@@ -30,7 +33,10 @@ function treeRoot(doc: Record<string, unknown>, fallback = "fallback"): FolderNo
   return root;
 }
 
-function rowValue(rows: KeyValue[] | undefined, key: string): string | undefined {
+function rowValue(
+  rows: KeyValue[] | undefined,
+  key: string,
+): string | undefined {
   return rows?.find((row) => row.key === key)?.value;
 }
 
@@ -100,7 +106,9 @@ describe("openapiToTree - operation -> request (AC-002)", () => {
   // AC-002, TC-002 - behavior: name uses summary when present.
   it("should name the request from summary when present", () => {
     const root = treeRoot(
-      doc({ paths: { "/x": { get: { summary: "Get X", operationId: "getX" } } } }),
+      doc({
+        paths: { "/x": { get: { summary: "Get X", operationId: "getX" } } },
+      }),
     );
 
     expect(collectRequests(root.children)[0].name).toBe("Get X");
@@ -157,9 +165,24 @@ describe("openapiToTree - parameters (AC-004)", () => {
           "/users/{id}": {
             get: {
               parameters: [
-                { name: "id", in: "path", schema: { type: "string" }, example: "42" },
-                { name: "verbose", in: "query", schema: { type: "boolean" }, example: "true" },
-                { name: "X-Trace", in: "header", schema: { type: "string" }, example: "abc" },
+                {
+                  name: "id",
+                  in: "path",
+                  schema: { type: "string" },
+                  example: "42",
+                },
+                {
+                  name: "verbose",
+                  in: "query",
+                  schema: { type: "boolean" },
+                  example: "true",
+                },
+                {
+                  name: "X-Trace",
+                  in: "header",
+                  schema: { type: "string" },
+                  example: "abc",
+                },
               ],
             },
           },
@@ -182,7 +205,12 @@ describe("openapiToTree - parameters (AC-004)", () => {
           "/x": {
             get: {
               parameters: [
-                { name: "withExample", in: "query", schema: { default: "sd" }, example: "ex" },
+                {
+                  name: "withExample",
+                  in: "query",
+                  schema: { default: "sd" },
+                  example: "ex",
+                },
                 { name: "withDefault", in: "query", schema: { default: "sd" } },
               ],
             },
@@ -205,7 +233,11 @@ describe("openapiToTree - parameters (AC-004)", () => {
           "/x": {
             get: {
               parameters: [
-                { name: "q", in: "query", schema: { example: "se", default: "sd" } },
+                {
+                  name: "q",
+                  in: "query",
+                  schema: { example: "se", default: "sd" },
+                },
               ],
             },
           },
@@ -213,7 +245,9 @@ describe("openapiToTree - parameters (AC-004)", () => {
       }),
     );
 
-    expect(rowValue(collectRequests(root.children)[0].params.query, "q")).toBe("se");
+    expect(rowValue(collectRequests(root.children)[0].params.query, "q")).toBe(
+      "se",
+    );
   });
 
   // AC-004, TC-004 - behavior: a path-item-level shared parameter merges with the
@@ -225,7 +259,11 @@ describe("openapiToTree - parameters (AC-004)", () => {
           "/users/{id}": {
             parameters: [
               { name: "id", in: "path", schema: { default: "shared" } },
-              { name: "shared-q", in: "query", schema: { default: "from-path" } },
+              {
+                name: "shared-q",
+                in: "query",
+                schema: { default: "from-path" },
+              },
             ],
             get: {
               parameters: [
@@ -279,7 +317,10 @@ describe("openapiToTree - request body (AC-005)", () => {
               requestBody: {
                 content: {
                   "application/json": {
-                    examples: { first: { value }, second: { value: { id: 2 } } },
+                    examples: {
+                      first: { value },
+                      second: { value: { id: 2 } },
+                    },
                   },
                 },
               },
@@ -401,7 +442,10 @@ describe("openapiToTree - servers (AC-006)", () => {
     );
 
     const environments = root.config.environments ?? [];
-    expect(environments.map((env) => env.name)).toEqual(["Production", "Server 2"]);
+    expect(environments.map((env) => env.name)).toEqual([
+      "Production",
+      "Server 2",
+    ]);
     expect(rowValue(environments[0].variables, "baseUrl")).toBe(
       "https://api.example.com/v1",
     );
@@ -427,8 +471,12 @@ describe("openapiToTree - servers (AC-006)", () => {
     expect(rowValue(root.config.variables, "baseUrl")).toBe("https://a.com");
     const environments = root.config.environments ?? [];
     expect(environments.map((env) => env.name)).toEqual(["Prod", "Dev"]);
-    expect(rowValue(environments[0].variables, "baseUrl")).toBe("https://a.com");
-    expect(rowValue(environments[1].variables, "baseUrl")).toBe("https://b.com");
+    expect(rowValue(environments[0].variables, "baseUrl")).toBe(
+      "https://a.com",
+    );
+    expect(rowValue(environments[1].variables, "baseUrl")).toBe(
+      "https://b.com",
+    );
   });
 
   // AC-006, TC-006, edge §7 - behavior: a server-variable template {host} is
@@ -543,7 +591,9 @@ describe("openapiToTree - $ref resolution (AC-008)", () => {
       doc({
         paths: {
           "/users": {
-            put: { requestBody: { $ref: "#/components/requestBodies/UserBody" } },
+            put: {
+              requestBody: { $ref: "#/components/requestBodies/UserBody" },
+            },
           },
         },
         components: {
@@ -579,7 +629,9 @@ describe("openapiToTree - $ref resolution (AC-008)", () => {
     const root = treeRoot(
       doc({
         paths: {
-          "/x": { get: { parameters: [{ $ref: "#/components/parameters/loop" }] } },
+          "/x": {
+            get: { parameters: [{ $ref: "#/components/parameters/loop" }] },
+          },
         },
         components: {
           parameters: { loop: { $ref: "#/components/parameters/loop" } },
@@ -707,16 +759,19 @@ describe("openapiToTree - root wrap + fallback + empty (AC-011)", () => {
 
   // AC-011, TC-010, edge §7 - behavior: a doc with no operations (paths {}) -> [].
   it("should return an empty array for a doc with no operations", () => {
-    expect(openapiToTree(JSON.stringify(doc({ paths: {} })), "fallback")).toEqual(
-      [],
-    );
+    expect(
+      openapiToTree(JSON.stringify(doc({ paths: {} })), "fallback"),
+    ).toEqual([]);
   });
 
   // AC-010/AC-011 - behavior: an unparseable / unversioned doc -> [].
   it("should return an empty array for an invalid document", () => {
     expect(openapiToTree("not a document {{{", "fallback")).toEqual([]);
     expect(
-      openapiToTree(JSON.stringify({ info: { title: "x" }, paths: {} }), "fallback"),
+      openapiToTree(
+        JSON.stringify({ info: { title: "x" }, paths: {} }),
+        "fallback",
+      ),
     ).toEqual([]);
   });
 

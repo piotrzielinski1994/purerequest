@@ -5,8 +5,8 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { BodyEditor } from "@/components/workspace/body-editor";
-import { GraphqlBodyEditor } from "@/components/workspace/graphql-body-editor";
 import { EditableKeyValueTable } from "@/components/workspace/editable-key-value-table";
+import { GraphqlBodyEditor } from "@/components/workspace/graphql-body-editor";
 import { tokenCandidates } from "@/components/workspace/token-complete";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import type { BodyMode, RequestNode } from "@/lib/workspace/model";

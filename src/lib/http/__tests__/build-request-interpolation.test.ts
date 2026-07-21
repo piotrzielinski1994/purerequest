@@ -1,9 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { buildHttpRequest } from "@/lib/http/build-request";
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
-import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { Auth, RequestNode } from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 const request = (
   overrides: Partial<RequestNode> & { id: string },
@@ -42,7 +42,12 @@ const effectiveOf = (over: {
 
 const jsonBody = (json: string): RequestNode["body"] => ({
   active: "json",
-  types: { json, form: [], multipart: [], graphql: { query: "", variables: "" } },
+  types: {
+    json,
+    form: [],
+    multipart: [],
+    graphql: { query: "", variables: "" },
+  },
 });
 
 const authHeaderOf = (headers: { key: string; value: string }[]) =>
@@ -102,7 +107,9 @@ describe("buildHttpRequest - auth interpolation", () => {
 
     const wire = buildHttpRequest(
       node,
-      effectiveOf({ auth: authOf({ active: "bearer", token: "{{process.env.TOKEN}}" }) }),
+      effectiveOf({
+        auth: authOf({ active: "bearer", token: "{{process.env.TOKEN}}" }),
+      }),
       { TOKEN: "abc123" },
     );
 

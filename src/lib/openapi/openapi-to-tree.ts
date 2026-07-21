@@ -1,3 +1,8 @@
+import {
+  isRecord,
+  parseOpenapiDocument,
+  resolveRef,
+} from "@/lib/openapi/parse-openapi";
 import type {
   Auth,
   ConfigScope,
@@ -10,11 +15,6 @@ import type {
   TreeNode,
 } from "@/lib/workspace/model";
 import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
-import {
-  isRecord,
-  parseOpenapiDocument,
-  resolveRef,
-} from "@/lib/openapi/parse-openapi";
 
 // An OpenAPI 3.x document -> a purerequest subtree: one request per operation, grouped
 // into per-tag folders (untagged operations sit directly under the root), servers
@@ -67,7 +67,9 @@ function serverUrl(server: unknown): string {
 }
 
 function serverName(server: unknown, index: number): string {
-  const description = isRecord(server) ? asString(server.description).trim() : "";
+  const description = isRecord(server)
+    ? asString(server.description).trim()
+    : "";
   return description !== "" ? description : `Server ${index + 1}`;
 }
 
@@ -79,7 +81,10 @@ function serversOf(doc: Record<string, unknown>): {
   // Pair each server with its (original) index BEFORE filtering, so a dropped
   // invalid entry never shifts the "Server N" numbering of the ones that remain.
   const valid = servers
-    .map((server, index) => ({ url: serverUrl(server), name: serverName(server, index) }))
+    .map((server, index) => ({
+      url: serverUrl(server),
+      name: serverName(server, index),
+    }))
     .filter((entry) => entry.url !== "");
   if (valid.length === 0) {
     return { baseUrl: undefined, environments: [] };
@@ -128,7 +133,10 @@ type ParamRow = { key: string; value: string; place: string };
 // Seed a parameter's value from `example`, else a top-level `default` (Swagger 2.0
 // puts a non-body param's default there, not under `schema`), else the schema's
 // `example`/`default` (OpenAPI 3.x).
-function paramValue(root: Record<string, unknown>, param: Record<string, unknown>): string {
+function paramValue(
+  root: Record<string, unknown>,
+  param: Record<string, unknown>,
+): string {
   if (param.example !== undefined) {
     return asString(param.example);
   }
@@ -161,7 +169,11 @@ function paramRows(
   const byKey = new Map<string, ParamRow>();
   for (const entry of raw) {
     const param = resolveRef(root, entry);
-    if (!isRecord(param) || typeof param.name !== "string" || typeof param.in !== "string") {
+    if (
+      !isRecord(param) ||
+      typeof param.name !== "string" ||
+      typeof param.in !== "string"
+    ) {
       continue;
     }
     const key = `${param.in}:${param.name}`;
@@ -205,7 +217,10 @@ function jsonExample(
   return undefined;
 }
 
-function bodyOf(root: Record<string, unknown>, requestBody: unknown): RequestBody {
+function bodyOf(
+  root: Record<string, unknown>,
+  requestBody: unknown,
+): RequestBody {
   const body = emptyBody();
   const resolved = resolveRef(root, requestBody);
   const content = isRecord(resolved) ? resolved.content : undefined;
@@ -230,7 +245,11 @@ function toReqUiPath(path: string): string {
   return path.replace(/\{([^}]+)\}/g, ":$1");
 }
 
-function operationName(method: HttpMethod, path: string, op: Record<string, unknown>): string {
+function operationName(
+  method: HttpMethod,
+  path: string,
+  op: Record<string, unknown>,
+): string {
   if (typeof op.summary === "string" && op.summary !== "") {
     return op.summary;
   }
@@ -348,7 +367,9 @@ function rootConfig(
   auth: Auth | undefined,
 ): ConfigScope {
   return {
-    ...(baseUrl !== undefined ? { variables: [{ key: "baseUrl", value: baseUrl }] } : {}),
+    ...(baseUrl !== undefined
+      ? { variables: [{ key: "baseUrl", value: baseUrl }] }
+      : {}),
     ...(environments.length > 0 ? { environments } : {}),
     ...(auth ? { auth } : {}),
   };

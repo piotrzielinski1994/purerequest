@@ -1,6 +1,6 @@
 import { ensureSyntaxTree } from "@codemirror/language";
-import type { EditorView } from "@codemirror/view";
 import type { Diagnostic } from "@codemirror/lint";
+import type { EditorView } from "@codemirror/view";
 
 const PARSE_TIMEOUT_MS = 1000;
 
@@ -27,7 +27,8 @@ export function jsSyntaxLinter(): (view: EditorView) => Diagnostic[] {
         // A zero-width error node (missing token) gets a 1-char span so the
         // marker is visible; clamp to the doc end.
         const from = node.from;
-        const to = node.to > node.from ? node.to : Math.min(from + 1, doc.length);
+        const to =
+          node.to > node.from ? node.to : Math.min(from + 1, doc.length);
         diagnostics.push({
           from,
           to,

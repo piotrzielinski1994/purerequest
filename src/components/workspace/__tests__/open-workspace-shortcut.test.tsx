@@ -1,15 +1,15 @@
-import { describe, it, expect } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
 
 import { WorkspaceLoader } from "@/components/workspace/workspace-loader";
-import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
-import { createInMemoryWorkspaceFs } from "@/lib/workspace/in-memory-fs";
-import { createNoopFolderPicker } from "@/lib/workspace/folder-picker";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import { serialize } from "@/lib/workspace/disk-format";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
+import { createNoopFolderPicker } from "@/lib/workspace/folder-picker";
+import { createInMemoryWorkspaceFs } from "@/lib/workspace/in-memory-fs";
 import type { TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 

@@ -1,17 +1,16 @@
-import { describe, it, expect, vi } from "vitest";
+import { HotkeysProvider } from "@tanstack/react-hotkeys";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { HotkeysProvider } from "@tanstack/react-hotkeys";
 import type { ReactNode } from "react";
-
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { describe, expect, it, vi } from "vitest";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings/settings";
-import { useActionHotkeys } from "@/lib/shortcuts/use-action-hotkeys";
-import {
-  type ShortcutActionId,
-  type ShortcutOverrides,
+import { SettingsProvider } from "@/lib/settings/settings-context";
+import type {
+  ShortcutActionId,
+  ShortcutOverrides,
 } from "@/lib/shortcuts/registry";
+import { useActionHotkeys } from "@/lib/shortcuts/use-action-hotkeys";
 
 // jsdom reports a non-mac platform, so the lib resolves Mod -> Control (learnings).
 // We therefore fire Control+J to trigger the "Mod+J" toggle-console default.
@@ -74,7 +73,10 @@ describe("useActionHotkeys", () => {
     const user = userEvent.setup();
     const toggle = vi.fn();
 
-    renderHarness({ "toggle-console": toggle }, { "toggle-console": ["Mod+K"] });
+    renderHarness(
+      { "toggle-console": toggle },
+      { "toggle-console": ["Mod+K"] },
+    );
     await screen.findByTestId("ready");
 
     await user.keyboard("{Control>}k{/Control}");

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // AC-006 / TC-006 - the Tauri adapter's persist path is best-effort: when a
 // LazyStore save() rejects, the failure is routed to the file log (logMessage)
@@ -21,9 +21,9 @@ vi.mock("@/lib/logging/file-log", () => ({
   logMessage: vi.fn(),
 }));
 
-import { createTauriSettingsStore } from "@/lib/settings/tauri-store";
-import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import { logMessage } from "@/lib/logging/file-log";
+import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { createTauriSettingsStore } from "@/lib/settings/tauri-store";
 
 const mockedLog = vi.mocked(logMessage);
 

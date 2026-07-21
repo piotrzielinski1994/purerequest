@@ -1,18 +1,18 @@
-import { useCallback, type CSSProperties } from "react";
-import type { PanelGroupHandle } from "@/components/workspace/workspace-context/types";
+import { type CSSProperties, useCallback } from "react";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { Sidebar } from "@/components/workspace/sidebar";
 import { Main } from "@/components/workspace/main";
+import { Sidebar } from "@/components/workspace/sidebar";
 import { useWorkspace } from "@/components/workspace/workspace-context";
+import type { PanelGroupHandle } from "@/components/workspace/workspace-context/types";
+import type { BrunoCollectionReader } from "@/lib/bruno/reader";
+import type { OpenapiReader } from "@/lib/openapi/reader";
+import type { PostmanCollectionReader } from "@/lib/postman/reader";
 import { useSettings } from "@/lib/settings/settings-context";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
-import type { BrunoCollectionReader } from "@/lib/bruno/reader";
-import type { PostmanCollectionReader } from "@/lib/postman/reader";
-import type { OpenapiReader } from "@/lib/openapi/reader";
 
 export function WorkspaceLayout({
   picker,
@@ -35,7 +35,8 @@ export function WorkspaceLayout({
     : undefined;
 
   const groupRef = useCallback(
-    (handle: PanelGroupHandle | null) => registerPanelGroup("workspace", handle),
+    (handle: PanelGroupHandle | null) =>
+      registerPanelGroup("workspace", handle),
     [registerPanelGroup],
   );
 

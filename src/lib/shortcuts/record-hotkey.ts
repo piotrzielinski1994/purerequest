@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  PUNCTUATION_CODE_MAP,
   detectPlatform,
   isModifierKey,
   normalizeHotkeyFromParsed,
   normalizeKeyName,
+  PUNCTUATION_CODE_MAP,
   rawHotkeyToParsedHotkey,
 } from "@tanstack/hotkeys";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Platform = "mac" | "windows" | "linux";
 

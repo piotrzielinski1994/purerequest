@@ -6,11 +6,11 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
-import {
-  scoreQuickOpen,
-  type QuickOpenEntry,
-} from "@/lib/workspace/quick-open";
 import { cn } from "@/lib/utils";
+import {
+  type QuickOpenEntry,
+  scoreQuickOpen,
+} from "@/lib/workspace/quick-open";
 
 type RequestQuickOpenProps = {
   open: boolean;

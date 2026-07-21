@@ -1,15 +1,15 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 import {
-  WorkspaceProvider,
   useWorkspace,
+  WorkspaceProvider,
 } from "@/components/workspace/workspace-context";
-import { fixtureTree } from "./fixtures";
-import { locateNode } from "@/lib/workspace/tree-locate";
-import type { TreeNode } from "@/lib/workspace/model";
 import type { WriteResult } from "@/lib/workspace/fs";
+import type { TreeNode } from "@/lib/workspace/model";
+import { locateNode } from "@/lib/workspace/tree-locate";
+import { fixtureTree } from "./fixtures";
 
 // Drives moveNodes through the context (the multi-drag path) and reads both moved
 // nodes' parents back out of the live tree.
@@ -41,8 +41,8 @@ describe("WorkspaceProvider moveNodes (multi-drag)", () => {
   // AC-005, AC-008 - behavior + side-effect-contract (both selected nodes reparent and persist)
   it("should reparent every dragged node and fire onTreeChange when moveNodes is called", async () => {
     const user = userEvent.setup();
-    const onTreeChange = vi.fn<(tree: TreeNode[]) => Promise<WriteResult>>(
-      () => Promise.resolve({ ok: true }),
+    const onTreeChange = vi.fn<(tree: TreeNode[]) => Promise<WriteResult>>(() =>
+      Promise.resolve({ ok: true }),
     );
 
     render(

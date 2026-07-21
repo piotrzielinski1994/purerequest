@@ -1,14 +1,14 @@
-import { describe, it, expect } from "vitest";
-import { render, screen, act, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
 
 import {
-  WorkspaceProvider,
   useWorkspace,
+  WorkspaceProvider,
 } from "@/components/workspace/workspace-context";
 import type { ResponseState } from "@/lib/http/model";
-import { fixtureTree } from "./fixtures";
 import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
+import { fixtureTree } from "./fixtures";
 
 function describeState(state: ResponseState | undefined): string {
   if (!state) {

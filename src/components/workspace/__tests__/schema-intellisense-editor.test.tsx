@@ -1,25 +1,24 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, within, waitFor, act } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { EditorView } from "@codemirror/view";
 import {
+  type Diagnostic,
   forceLinting,
   forEachDiagnostic,
-  type Diagnostic,
 } from "@codemirror/lint";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { EditorView } from "@codemirror/view";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import { RequestPane } from "@/components/workspace/request-pane";
-import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
-import { createFakeHttpClient } from "./fake-http-client";
 // Importing the schema factory anchors this render-level suite to the feature:
 // until the feature ships, the file fails to resolve (RED), and the warning
 // assertions below pin the wired-in schema lint (absent today).
 import { makeSchemaExtensions } from "@/components/workspace/schema-intellisense";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
+import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { createFakeHttpClient } from "./fake-http-client";
 
 void makeSchemaExtensions;
 

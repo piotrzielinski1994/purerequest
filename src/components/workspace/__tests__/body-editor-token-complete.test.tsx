@@ -1,15 +1,15 @@
-import { describe, it, expect } from "vitest";
-import { render, waitFor } from "@testing-library/react";
-import { EditorView } from "@codemirror/view";
 import { startCompletion } from "@codemirror/autocomplete";
+import { EditorView } from "@codemirror/view";
+import { render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 // The `candidates` prop does not exist on BodyEditor yet - passing it is the RED
 // signal (TS may complain until the prop ships). These assertions pin the token
 // completion wiring the feature adds to the body editor.
 import { BodyEditor } from "@/components/workspace/body-editor";
 import { tokenCandidates } from "@/components/workspace/token-complete";
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import { authOf } from "@/lib/workspace/model";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 const effective: EffectiveConfig = {
   variables: {
@@ -86,7 +86,9 @@ describe("BodyEditor token autocomplete", () => {
     await waitFor(() => {
       expect(document.querySelector(".cm-tooltip-autocomplete")).not.toBeNull();
     });
-    expect(tokenLabelsInTooltip().some((t) => t.includes("BASE_URL"))).toBe(true);
+    expect(tokenLabelsInTooltip().some((t) => t.includes("BASE_URL"))).toBe(
+      true,
+    );
   });
 
   // AC-004/008 boundary - behavior: with NO candidates the body editor does NOT

@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   SHORTCUT_ACTIONS,
   type ShortcutActionId,
 } from "@/lib/shortcuts/registry";
-import { resolveShortcuts, findConflict } from "@/lib/shortcuts/resolve";
+import { findConflict, resolveShortcuts } from "@/lib/shortcuts/resolve";
 
 function findAction(id: ShortcutActionId) {
   return SHORTCUT_ACTIONS.find((action) => action.id === id);

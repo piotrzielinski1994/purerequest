@@ -1,16 +1,16 @@
-import { createRoot, type Root } from "react-dom/client";
-import { EditorView, keymap, type Panel } from "@codemirror/view";
-import { Prec, type Extension } from "@codemirror/state";
 import {
-  search,
+  closeSearchPanel,
   findNext,
   findPrevious,
-  openSearchPanel,
-  closeSearchPanel,
-  setSearchQuery,
   getSearchQuery,
+  openSearchPanel,
   SearchQuery,
+  search,
+  setSearchQuery,
 } from "@codemirror/search";
+import { type Extension, Prec } from "@codemirror/state";
+import { type EditorView, keymap, type Panel } from "@codemirror/view";
+import { createRoot, type Root } from "react-dom/client";
 import { FindBar } from "@/components/workspace/find-bar";
 
 // The current query's total match count + the 1-based index of the match containing (or after) the

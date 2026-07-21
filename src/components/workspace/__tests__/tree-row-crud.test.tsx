@@ -1,16 +1,15 @@
-import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { DndContext } from "@dnd-kit/core";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
-import { TreeRow } from "@/components/workspace/tree-row";
+import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
 import { TreeDndProvider } from "@/components/workspace/tree-dnd";
-import { fixtureTree, profileRequest } from "./fixtures";
+import { TreeRow } from "@/components/workspace/tree-row";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import type { TreeNode } from "@/lib/workspace/model";
+import { fixtureTree, profileRequest } from "./fixtures";
 
 // TreeRow render contract for tree-crud. Driven through the REAL WorkspaceProvider
 // (never mock the system under test) + a tiny probe that calls beginRename so the

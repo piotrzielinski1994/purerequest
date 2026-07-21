@@ -1,9 +1,8 @@
-import { describe, it, expect, afterEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
-
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS, type ThemeMode } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import { ThemeProvider, useTheme } from "@/lib/theme/theme-context";
 
 // Stage 1 — Themes feature. The ThemeProvider mounts INSIDE a SettingsProvider,

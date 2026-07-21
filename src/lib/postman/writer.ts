@@ -1,7 +1,7 @@
 import {
+  type CollectionWriter,
   createNoopCollectionWriter,
   createTauriCollectionWriter,
-  type CollectionWriter,
 } from "@/lib/export/collection-writer";
 
 export type PostmanExportWriter = CollectionWriter;

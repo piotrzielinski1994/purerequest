@@ -1,7 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { javascript } from "@codemirror/lang-javascript";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { javascript } from "@codemirror/lang-javascript";
+import { describe, expect, it } from "vitest";
 
 import { jsUndefLinter } from "@/components/workspace/script-eslint";
 
@@ -68,7 +68,9 @@ describe("jsUndefLinter", () => {
   });
 
   it("should support async/await syntax without a parse error", () => {
-    const view = viewOf("await Promise.resolve(); purerequest.setVar('a','1');");
+    const view = viewOf(
+      "await Promise.resolve(); purerequest.setVar('a','1');",
+    );
 
     expect(jsUndefLinter("pre")(view)).toEqual([]);
   });

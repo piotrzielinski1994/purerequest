@@ -1,9 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { buildHttpRequest } from "@/lib/http/build-request";
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
-import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { RequestNode } from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 const request = (
   overrides: Partial<RequestNode> & { httpVersion?: "auto" | "h3" },

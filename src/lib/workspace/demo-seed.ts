@@ -1,8 +1,8 @@
 import type { HttpResponse } from "@/lib/http/model";
 import {
   deserialize,
-  serialize,
   type FileMap,
+  serialize,
 } from "@/lib/workspace/disk-format";
 import type {
   KeyValue,
@@ -21,7 +21,12 @@ const WORKSPACE_NAME = "Demo";
 
 const jsonBody = (json: string): RequestBody => ({
   active: "json",
-  types: { json, form: [], multipart: [], graphql: { query: "", variables: "" } },
+  types: {
+    json,
+    form: [],
+    multipart: [],
+    graphql: { query: "", variables: "" },
+  },
 });
 const queryParams = (query: KeyValue[]) => ({ path: [], query });
 
@@ -104,7 +109,10 @@ const getUserRequest: RequestNode = {
   method: "GET",
   url: "{{baseUrl}}/users/:id",
   body: emptyBody(),
-  params: { path: [{ key: "id", value: "1" }], query: [{ key: "expand", value: "roles" }] },
+  params: {
+    path: [{ key: "id", value: "1" }],
+    query: [{ key: "expand", value: "roles" }],
+  },
   config: {
     headers: [{ key: "Accept", value: "application/json" }],
     auth: authOf({ active: "basic", username: "admin", password: "s3cret" }),
@@ -189,7 +197,9 @@ const seedSource: TreeNode[] = [
     kind: "folder",
     id: "f-auth",
     name: "auth",
-    config: { variables: [{ key: "baseUrl", value: "https://api.example.com" }] },
+    config: {
+      variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+    },
     children: [
       {
         kind: "folder",
@@ -232,7 +242,9 @@ const parsedSeed = deserialize(seedFiles);
 
 // The canonical, loader-shaped demo tree (path-based ids, no `response`). Equal
 // to `deserialize(demoFiles()).tree` by construction.
-export const demoTree: TreeNode[] = parsedSeed.ok ? parsedSeed.tree : seedSource;
+export const demoTree: TreeNode[] = parsedSeed.ok
+  ? parsedSeed.tree
+  : seedSource;
 
 export const demoConsoleLines: string[] = [
   "[12:00:00] Ready.",
@@ -578,7 +590,8 @@ export const DEMO_RESPONSE: HttpResponse = {
       {
         osi: 1,
         name: "Physical",
-        summary: "Electrical/optical/radio signalling - hardware, no software sees it",
+        summary:
+          "Electrical/optical/radio signalling - hardware, no software sees it",
         reach: "unreachable",
         fields: [
           {

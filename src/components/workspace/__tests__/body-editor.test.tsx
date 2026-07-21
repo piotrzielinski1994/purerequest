@@ -1,7 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
+import { diagnosticCount, forceLinting } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { forceLinting, diagnosticCount } from "@codemirror/lint";
+import { render } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 // Imported even though it does not exist yet: the test must fail on the missing
 // feature (module/component), not on a typo. Once body-editor.tsx ships, these

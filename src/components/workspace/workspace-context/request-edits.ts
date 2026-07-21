@@ -1,25 +1,25 @@
 import { toast } from "sonner";
-import type { RequestNode } from "@/lib/workspace/model";
+import type { PersistApi } from "@/components/workspace/workspace-context/persist";
+import {
+  indexRequests,
+  type RequestOverride,
+  type WorkspaceInternals,
+} from "@/components/workspace/workspace-context/types";
+import { extractPathParams } from "@/lib/http/path-params";
+import { syncParamsFromUrl, syncUrlFromParams } from "@/lib/http/query-sync";
 import type {
   BodyMode,
   ConfigScope,
   HttpMethod,
   HttpVersion,
   KeyValue,
+  RequestNode,
 } from "@/lib/workspace/model";
-import { extractPathParams } from "@/lib/http/path-params";
-import { syncParamsFromUrl, syncUrlFromParams } from "@/lib/http/query-sync";
 import { insertNode } from "@/lib/workspace/tree-edit";
 import {
-  updateRequest,
   type RequestPatch,
+  updateRequest,
 } from "@/lib/workspace/update-request";
-import {
-  indexRequests,
-  type RequestOverride,
-  type WorkspaceInternals,
-} from "@/components/workspace/workspace-context/types";
-import type { PersistApi } from "@/components/workspace/workspace-context/persist";
 
 export type RequestEditsApi = {
   mergeOverride: (id: string, patch: RequestOverride) => void;

@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen, within, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import { fixtureTree } from "./fixtures";
 
 // react-resizable-panels measures the group/panels via offsetWidth/offsetHeight,
@@ -18,8 +18,14 @@ let sizeDescriptors: Array<[string, PropertyDescriptor | undefined]> = [];
 
 beforeEach(() => {
   sizeDescriptors = [
-    ["offsetWidth", Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth")],
-    ["offsetHeight", Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight")],
+    [
+      "offsetWidth",
+      Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth"),
+    ],
+    [
+      "offsetHeight",
+      Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight"),
+    ],
   ];
   Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
     configurable: true,

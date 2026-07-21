@@ -1,19 +1,18 @@
-import { describe, it, expect } from "vitest";
 import {
+  fireEvent,
   render,
   screen,
-  within,
-  fireEvent,
   waitFor,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { describe, expect, it } from "vitest";
 import { SidebarTree } from "@/components/workspace/sidebar-tree";
 import { UrlBar } from "@/components/workspace/url-bar";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import { fixtureTree } from "./fixtures";
 
 // A freshly created request auto-names itself from its URL until the user gives

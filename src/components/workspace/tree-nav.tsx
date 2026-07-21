@@ -1,5 +1,5 @@
+import { type Hotkey, matchesKeyboardEvent } from "@tanstack/hotkeys";
 import { createContext, useContext } from "react";
-import { matchesKeyboardEvent, type Hotkey } from "@tanstack/hotkeys";
 
 // The configurable "open context menu" shortcut (default Shift+F10) and the
 // dedicated ContextMenu key are the keyboard equivalents of a right-click.

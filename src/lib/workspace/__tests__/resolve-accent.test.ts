@@ -1,12 +1,11 @@
-import { describe, it, expect } from "vitest";
-
+import { describe, expect, it } from "vitest";
+import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import {
   accentColorFor,
   environmentNamesForScope,
   environmentOrigins,
 } from "@/lib/workspace/resolve";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
-import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (id: string, name: string): RequestNode => ({
   kind: "request",
@@ -203,12 +202,9 @@ describe("environmentNamesForScope(tree, nodeId) - chain union (AC-009)", () => 
         "root",
         "Root",
         [
-          folder(
-            "mid",
-            "Mid",
-            [request("req-1", "Req")],
-            { config: { environments: [{ name: "staging", variables: [] }] } },
-          ),
+          folder("mid", "Mid", [request("req-1", "Req")], {
+            config: { environments: [{ name: "staging", variables: [] }] },
+          }),
         ],
         {
           config: {
@@ -284,9 +280,11 @@ describe("environmentNamesForScope(tree, nodeId) - chain union (AC-009)", () => 
       folder(
         "asd1",
         "asd1",
-        [folder("asd2", "asd2", [request("req", "Req")], {
-          config: { environments: [{ name: "env-21", variables: [] }] },
-        })],
+        [
+          folder("asd2", "asd2", [request("req", "Req")], {
+            config: { environments: [{ name: "env-21", variables: [] }] },
+          }),
+        ],
         {
           config: {
             environments: [
@@ -313,7 +311,11 @@ describe("environmentNamesForScope(tree, nodeId) - chain union (AC-009)", () => 
       folder(
         "parent",
         "parent",
-        [folder("child", "child", [], { config: { environments: [{ name: "env", variables: [] }] } })],
+        [
+          folder("child", "child", [], {
+            config: { environments: [{ name: "env", variables: [] }] },
+          }),
+        ],
         { config: { environments: [{ name: "env", variables: [] }] } },
       ),
     ];

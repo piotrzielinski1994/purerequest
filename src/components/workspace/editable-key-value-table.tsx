@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
 import { Check, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useEffect, useRef, useState } from "react";
 import { HighlightedInput } from "@/components/workspace/highlighted-input";
+import { cn } from "@/lib/utils";
 import type { KeyValue } from "@/lib/workspace/model";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
 

@@ -1,20 +1,19 @@
-import { describe, it, expect } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { describe, expect, it } from "vitest";
 import { Main } from "@/components/workspace/main";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import {
   SHORTCUT_ACTIONS,
   type ShortcutActionId,
 } from "@/lib/shortcuts/registry";
-import { resolveShortcuts, findConflict } from "@/lib/shortcuts/resolve";
+import { findConflict, resolveShortcuts } from "@/lib/shortcuts/resolve";
 import type { TreeNode } from "@/lib/workspace/model";
 import { fixtureTree } from "./fixtures";
 
@@ -101,9 +100,7 @@ describe("SHORTCUT_ACTIONS tree-crud actions (AC-009)", () => {
   it("should report rename-node as the owner if F2 is recorded for another action", () => {
     const effective = resolveShortcuts({});
 
-    expect(findConflict("F2", "duplicate-node", effective)).toBe(
-      "rename-node",
-    );
+    expect(findConflict("F2", "duplicate-node", effective)).toBe("rename-node");
   });
 });
 

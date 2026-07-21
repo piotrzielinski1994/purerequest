@@ -1,12 +1,12 @@
+import type { PersistApi } from "@/components/workspace/workspace-context/persist";
+import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
 import type { ConfigScope } from "@/lib/workspace/model";
 import { updateNodeConfig } from "@/lib/workspace/update-config";
 import { updateFolderDotenv } from "@/lib/workspace/update-folder-dotenv";
 import {
-  updateFolderEnvColor,
   setFolderEnvironmentColors,
+  updateFolderEnvColor,
 } from "@/lib/workspace/update-folder-env-color";
-import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
-import type { PersistApi } from "@/components/workspace/workspace-context/persist";
 
 export type ConfigSavesApi = {
   saveNodeConfig: (id: string, config: ConfigScope) => void;
@@ -41,7 +41,11 @@ export function createConfigSaves(
     colors: Record<string, string>,
   ) =>
     persistTree(
-      setFolderEnvironmentColors(updateNodeConfig(tree, id, config), id, colors),
+      setFolderEnvironmentColors(
+        updateNodeConfig(tree, id, config),
+        id,
+        colors,
+      ),
       "config",
     );
 

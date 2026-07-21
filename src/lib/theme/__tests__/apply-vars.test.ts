@@ -1,7 +1,6 @@
-import { describe, it, expect } from "vitest";
-
-import { applyThemeVars } from "@/lib/theme/apply-vars";
+import { describe, expect, it } from "vitest";
 import type { ThemeColorOverrides } from "@/lib/settings/settings";
+import { applyThemeVars } from "@/lib/theme/apply-vars";
 
 // Stage 2 - Themes feature. apply-vars.ts is pure-ish: applyThemeVars(el, mode,
 // colors) sets an inline CSS var (e.g. --primary) on el.style for each provided

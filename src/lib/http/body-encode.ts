@@ -21,9 +21,14 @@ function enabledRows(rows: KeyValue[], subst: (input: string) => string) {
     .filter((row) => row.key.trim() !== "");
 }
 
-function encodeForm(rows: KeyValue[], subst: (input: string) => string): string {
+function encodeForm(
+  rows: KeyValue[],
+  subst: (input: string) => string,
+): string {
   const search = new URLSearchParams();
-  enabledRows(rows, subst).forEach(({ key, value }) => search.append(key, value));
+  enabledRows(rows, subst).forEach(({ key, value }) => {
+    search.append(key, value);
+  });
   return search.toString();
 }
 
@@ -44,7 +49,9 @@ function encodeMultipart(
 // a plain object counts: blank, unparseable, arrays and scalars all resolve to
 // undefined so the `variables` key is omitted from the wire (common GraphQL-over-
 // HTTP practice - variables is a map).
-function parseGraphqlVariables(text: string): Record<string, unknown> | undefined {
+function parseGraphqlVariables(
+  text: string,
+): Record<string, unknown> | undefined {
   const trimmed = text.trim();
   if (trimmed === "") {
     return undefined;
@@ -65,7 +72,9 @@ function encodeGraphql(
 ): string {
   const query = subst(slot.query);
   const variables = parseGraphqlVariables(subst(slot.variables));
-  return JSON.stringify(variables === undefined ? { query } : { query, variables });
+  return JSON.stringify(
+    variables === undefined ? { query } : { query, variables },
+  );
 }
 
 // Resolve a request's body + canonical Content-Type from its active type. JSON

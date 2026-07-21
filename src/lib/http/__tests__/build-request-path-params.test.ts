@@ -1,9 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { buildHttpRequest } from "@/lib/http/build-request";
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
-import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { Auth, KeyValue, RequestNode } from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 const request = (
   overrides: Partial<RequestNode> & { id: string },
@@ -78,7 +78,10 @@ describe("buildHttpRequest - path param substitution (AC-006)", () => {
       params: { path: [{ key: "id", value: "{{uid}}" }], query: [] },
     });
 
-    const wire = buildHttpRequest(node, effectiveOf({ variables: { uid: "7" } }));
+    const wire = buildHttpRequest(
+      node,
+      effectiveOf({ variables: { uid: "7" } }),
+    );
 
     expect(wire.url).toBe("https://api.com/users/7");
   });
@@ -105,7 +108,10 @@ describe("buildHttpRequest - path param substitution (AC-006)", () => {
     const node = request({
       id: "r",
       url: "https://api.com/users/:id",
-      params: { path: [{ key: "id", value: "42" }], query: queryParams({ foo: "bar" }) },
+      params: {
+        path: [{ key: "id", value: "42" }],
+        query: queryParams({ foo: "bar" }),
+      },
     });
 
     const wire = buildHttpRequest(node, effectiveOf({}));
@@ -157,7 +163,13 @@ describe("buildHttpRequest - empty path param stays literal (AC-007)", () => {
     const node = request({
       id: "r",
       url: "https://api.com/users/:id/posts/:postId",
-      params: { path: [{ key: "id", value: "42" }, { key: "postId", value: "" }], query: queryParams({ q: "x" }) },
+      params: {
+        path: [
+          { key: "id", value: "42" },
+          { key: "postId", value: "" },
+        ],
+        query: queryParams({ q: "x" }),
+      },
     });
 
     const wire = buildHttpRequest(node, effectiveOf({}));

@@ -1,3 +1,7 @@
+import type { PersistApi } from "@/components/workspace/workspace-context/persist";
+import type { SelectionApi } from "@/components/workspace/workspace-context/selection";
+import type { TabsApi } from "@/components/workspace/workspace-context/tabs";
+import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { MoveTarget } from "@/lib/workspace/move";
@@ -5,20 +9,16 @@ import {
   moveNode as applyMove,
   moveNodes as applyMoveNodes,
 } from "@/lib/workspace/move";
+import { untitledName } from "@/lib/workspace/request-name";
 import {
+  duplicateNode as applyDuplicate,
   collectRequestIds,
   containsId,
-  duplicateNode as applyDuplicate,
   insertNode,
   removeNode,
   renameNode,
 } from "@/lib/workspace/tree-edit";
 import { findNode, locateNode } from "@/lib/workspace/tree-locate";
-import { untitledName } from "@/lib/workspace/request-name";
-import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
-import type { PersistApi } from "@/components/workspace/workspace-context/persist";
-import type { SelectionApi } from "@/components/workspace/workspace-context/selection";
-import type { TabsApi } from "@/components/workspace/workspace-context/tabs";
 
 type CreateRequestNodeOptions = {
   target?: MoveTarget;
@@ -29,7 +29,8 @@ type CreateRequestNodeOptions = {
 export type TreeCrudApi = {
   derivePlacement: (target?: MoveTarget) => MoveTarget;
   createRequestNode: (
-    partial: Pick<RequestNode, "name" | "method" | "url"> & Partial<RequestNode>,
+    partial: Pick<RequestNode, "name" | "method" | "url"> &
+      Partial<RequestNode>,
     options: CreateRequestNodeOptions,
   ) => void;
   newRequest: (target?: MoveTarget) => void;
@@ -104,7 +105,8 @@ export function createTreeCrud(
   // which arrives fully formed). `autoName` keeps the name tracking the URL and
   // focuses the URL input (the new-request flow).
   const createRequestNode = (
-    partial: Pick<RequestNode, "name" | "method" | "url"> & Partial<RequestNode>,
+    partial: Pick<RequestNode, "name" | "method" | "url"> &
+      Partial<RequestNode>,
     options: CreateRequestNodeOptions,
   ) => {
     nodeCounter.current += 1;
@@ -119,7 +121,9 @@ export function createTreeCrud(
     };
     const placement = derivePlacement(options.target);
     if (placement.parentId !== null) {
-      setExpandedFolderIds((current) => new Set(current).add(placement.parentId!));
+      setExpandedFolderIds((current) =>
+        new Set(current).add(placement.parentId!),
+      );
     }
     if (options.autoName) {
       autoNameIds.current.set(id, request.name);
@@ -227,7 +231,9 @@ export function createTreeCrud(
     };
     const placement = derivePlacement(target);
     if (placement.parentId !== null) {
-      setExpandedFolderIds((current) => new Set(current).add(placement.parentId!));
+      setExpandedFolderIds((current) =>
+        new Set(current).add(placement.parentId!),
+      );
     }
     setIsEditorActive(false);
     selectSingle(id);
@@ -320,7 +326,9 @@ export function createTreeCrud(
     }
     nodes
       .flatMap((node) => collectRequestIds(node))
-      .forEach((requestId) => closeRequest(requestId));
+      .forEach((requestId) => {
+        closeRequest(requestId);
+      });
     const next = ids.reduce((acc, id) => removeNode(acc, id), tree);
     persistTree(next, "delete");
   };

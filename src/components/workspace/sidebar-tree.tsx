@@ -1,17 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DndContext,
+  type DragEndEvent,
+  type DragOverEvent,
   DragOverlay,
+  type DragStartEvent,
   PointerSensor,
   pointerWithin,
   useDroppable,
   useSensor,
   useSensors,
-  type DragEndEvent,
-  type DragOverEvent,
-  type DragStartEvent,
 } from "@dnd-kit/core";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -19,29 +18,30 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { useWorkspace } from "@/components/workspace/workspace-context";
-import { TreeRow } from "@/components/workspace/tree-row";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  type DropIndicator,
   TreeDndProvider,
   useTreeDnd,
-  type DropIndicator,
 } from "@/components/workspace/tree-dnd";
 import { TreeNavProvider } from "@/components/workspace/tree-nav";
-import { resolveTreeKey } from "@/lib/workspace/tree-keyboard";
-import { flattenSelectable } from "@/lib/workspace/tree-select";
+import { TreeRow } from "@/components/workspace/tree-row";
+import { useWorkspace } from "@/components/workspace/workspace-context";
 import { useShortcutOverrides } from "@/lib/settings/settings-context";
 import { resolveShortcuts } from "@/lib/shortcuts/resolve";
 import { cn } from "@/lib/utils";
-import {
-  findNode,
-  dropTarget,
-  locateNode,
-  projectDropPosition,
-  parseEmptyZoneId,
-  rawDropTarget,
-  ROOT_ZONE_ID,
-} from "@/lib/workspace/tree-locate";
 import { dragOverlayLabel } from "@/lib/workspace/drag-overlay-label";
+import { resolveTreeKey } from "@/lib/workspace/tree-keyboard";
+import {
+  dropTarget,
+  findNode,
+  locateNode,
+  parseEmptyZoneId,
+  projectDropPosition,
+  ROOT_ZONE_ID,
+  rawDropTarget,
+} from "@/lib/workspace/tree-locate";
+import { flattenSelectable } from "@/lib/workspace/tree-select";
 
 // The drop target filling the empty space under the last row. During a drag it
 // accepts a drop that means "move to the end of the workspace root" - the escape
@@ -65,10 +65,7 @@ function RootDropZone({
       aria-hidden="true"
       data-testid="root-drop-zone"
       onClick={onClear}
-      className={cn(
-        "min-h-40",
-        isDragActive && isOver && "bg-accent/40",
-      )}
+      className={cn("min-h-40", isDragActive && isOver && "bg-accent/40")}
     />
   );
 }

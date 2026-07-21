@@ -1,11 +1,11 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import {
-  createRouter,
   createMemoryHistory,
+  createRouter,
   RouterProvider,
 } from "@tanstack/react-router";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
 
 import { AppProviders } from "@/app/providers";
 import { rootRoute } from "@/routes/__root";
@@ -40,7 +40,9 @@ describe("app routing", () => {
     renderApp("/");
 
     await screen.findByText(/no workspace/i);
-    expect(screen.queryByRole("link", { name: /^home$/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /^home$/i }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -70,7 +72,9 @@ describe("app routing", () => {
       await screen.findByRole("tablist", { name: /settings sections/i }),
     ).toBeInTheDocument();
     // Still the same shell: the workspace path did not change to a settings route.
-    expect(screen.getByRole("region", { name: /console/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: /console/i }),
+    ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/");
 
     await user.keyboard("{Escape}");

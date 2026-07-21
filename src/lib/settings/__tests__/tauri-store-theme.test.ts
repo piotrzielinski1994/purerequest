@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Stage 2 - Themes feature. The Tauri adapter now splits theme.colors into a
 // separate theme.json store (key "colors"), leaving only theme: { mode } in
@@ -52,10 +52,8 @@ vi.mock("@tauri-apps/plugin-store", () => ({
   },
 }));
 
-import {
-  createTauriSettingsStore,
-} from "@/lib/settings/tauri-store";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings/settings";
+import { createTauriSettingsStore } from "@/lib/settings/tauri-store";
 
 const SETTINGS_FILE = "settings.json";
 const THEME_FILE = "theme.json";
@@ -148,7 +146,10 @@ describe("createTauriSettingsStore theme split (load)", () => {
       ...DEFAULT_SETTINGS,
       theme: {
         mode: "dark",
-        colors: { light: { tokens: {}, editor: {} }, dark: { tokens: {}, editor: {} } },
+        colors: {
+          light: { tokens: {}, editor: {} },
+          dark: { tokens: {}, editor: {} },
+        },
       },
     });
     themeStore()!.data.set("colors", seededColors);

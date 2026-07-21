@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_SETTINGS,
@@ -166,7 +166,15 @@ describe("mergeSettings draft tabs", () => {
       name: "untitled",
       method: "GET",
       url: "https://example.test/x",
-      body: { active: "json", types: { json: "", form: [], multipart: [], graphql: { query: "", variables: "" } } },
+      body: {
+        active: "json",
+        types: {
+          json: "",
+          form: [],
+          multipart: [],
+          graphql: { query: "", variables: "" },
+        },
+      },
       params: { path: [], query: [] },
       config: {},
     },
@@ -208,9 +216,9 @@ describe("mergeSettings draft tabs", () => {
   });
 
   it("should yield an empty list if draftTabs is not an array", () => {
-    expect(mergeSettings(DEFAULT_SETTINGS, { draftTabs: "nope" }).draftTabs).toEqual(
-      [],
-    );
+    expect(
+      mergeSettings(DEFAULT_SETTINGS, { draftTabs: "nope" }).draftTabs,
+    ).toEqual([]);
   });
 });
 

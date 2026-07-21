@@ -1,7 +1,9 @@
-import { Linter } from "eslint-linter-browserify";
-import type { EditorView } from "@codemirror/view";
 import type { Diagnostic } from "@codemirror/lint";
+import type { EditorView } from "@codemirror/view";
+import { Linter } from "eslint-linter-browserify";
 import type { ScriptStage } from "@/lib/scripts/model";
+
+type LintMessage = ReturnType<Linter["verify"]>[number];
 
 const linter = new Linter();
 
@@ -44,7 +46,7 @@ export function jsUndefLinter(
       },
       rules: { "no-undef": "error" },
     });
-    return messages.map((message) => {
+    return messages.map((message: LintMessage) => {
       const from = doc.line(message.line).from + (message.column - 1);
       const to =
         message.endLine !== undefined && message.endColumn !== undefined
