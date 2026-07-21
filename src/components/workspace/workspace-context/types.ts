@@ -1,30 +1,32 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
-import type { RequestNode, TreeNode } from "@/lib/workspace/model";
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
-import type { MoveTarget } from "@/lib/workspace/move";
+import type { GroupImperativeHandle } from "react-resizable-panels";
 import type { HttpClient, HttpRequest, ResponseState } from "@/lib/http/model";
 import type { ScriptRunner } from "@/lib/scripts/model";
-import type { WriteResult } from "@/lib/workspace/fs";
+import type { DraftTab, PanelGroupKey } from "@/lib/settings/settings";
 import type { ProcessEnv } from "@/lib/workspace/environment";
+import type { WriteResult } from "@/lib/workspace/fs";
 import type {
   BodyMode,
   ConfigScope,
   HttpMethod,
   HttpVersion,
   KeyValue,
+  RequestNode,
+  TreeNode,
 } from "@/lib/workspace/model";
+import type { MoveTarget } from "@/lib/workspace/move";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import type { RequestPatch } from "@/lib/workspace/update-request";
-import type { GroupImperativeHandle } from "react-resizable-panels";
-import type { DraftTab, PanelGroupKey } from "@/lib/settings/settings";
 
 export type PanelGroupHandle = GroupImperativeHandle;
+
 import type { TokenTarget } from "@/components/workspace/url-token";
-import type { CurlParseResult } from "@/lib/curl/parse-curl";
 import type { BrunoFileMap } from "@/lib/bruno/bruno-to-tree";
 import type { BrunoExportWriter } from "@/lib/bruno/writer";
-import type { PostmanExportWriter } from "@/lib/postman/writer";
-import type { PostmanFileMap } from "@/lib/postman/postman-to-tree";
+import type { CurlParseResult } from "@/lib/curl/parse-curl";
 import type { OpenapiExportWriter } from "@/lib/openapi/writer";
+import type { PostmanFileMap } from "@/lib/postman/postman-to-tree";
+import type { PostmanExportWriter } from "@/lib/postman/writer";
 
 // A promoted-on-save "new request" tab: the pristine request plus where it lands
 // in the tree when saved.

@@ -1,19 +1,19 @@
-import { useState } from "react";
 import { Copy, PencilLine } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { toast } from "sonner";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { useWorkspace } from "@/components/workspace/workspace-context";
+import { Input } from "@/components/ui/input";
 import {
   resolvePathTokenPreview,
   resolveTokenPreview,
   type TokenPreview,
 } from "@/components/workspace/url-token";
+import { useWorkspace } from "@/components/workspace/workspace-context";
+import { cn } from "@/lib/utils";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 // {{var}} or :param - the token grammar shared by the URL bar and config grids.

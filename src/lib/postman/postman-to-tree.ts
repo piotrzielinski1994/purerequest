@@ -1,8 +1,8 @@
-import type { Environment, TreeNode } from "@/lib/workspace/model";
 import {
   parsePostmanCollection,
   parsePostmanEnvironment,
 } from "@/lib/postman/parse-postman";
+import type { Environment, TreeNode } from "@/lib/workspace/model";
 
 // A Postman collection captured as pick-relative path -> file text. The collection
 // itself is one nested-JSON file; sibling `*.postman_environment.json` files fold
@@ -30,7 +30,8 @@ function pickCollection(
     path.endsWith(".postman_collection.json"),
   );
   const fallback = jsonPaths.filter(
-    (path) => !isEnvironmentFile(path) && !path.endsWith(".postman_collection.json"),
+    (path) =>
+      !isEnvironmentFile(path) && !path.endsWith(".postman_collection.json"),
   );
   for (const path of [...named, ...fallback]) {
     const parsed = parsePostmanCollection(files[path], fallbackName);
@@ -60,7 +61,7 @@ export function postmanToTree(
   fallbackName: string,
 ): TreeNode[] {
   const root = pickCollection(files, fallbackName);
-  if (!root || root.kind !== "folder") {
+  if (root?.kind !== "folder") {
     return [];
   }
   const environments = collectEnvironments(files);

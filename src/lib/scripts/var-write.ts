@@ -1,9 +1,9 @@
+import type { TreeNode } from "@/lib/workspace/model";
+import { upsertRow } from "@/lib/workspace/model";
 import type { Scope } from "@/lib/workspace/resolve";
 import { findScopePath } from "@/lib/workspace/resolve";
-import { updateNodeConfig } from "@/lib/workspace/update-config";
 import { findNode } from "@/lib/workspace/tree-locate";
-import { upsertRow } from "@/lib/workspace/model";
-import type { TreeNode } from "@/lib/workspace/model";
+import { updateNodeConfig } from "@/lib/workspace/update-config";
 
 // Where a `purerequest.setVar(name, ...)` write lands: the nearest scope (leaf-first
 // along the resolved folder chain) that already defines `name` in its plain

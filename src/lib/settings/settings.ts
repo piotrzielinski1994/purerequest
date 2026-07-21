@@ -112,7 +112,10 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
 const THEME_MODES: ThemeMode[] = ["light", "dark", "system"];
 
 function emptyThemeColors(): ThemeColors {
-  return { light: { tokens: {}, editor: {} }, dark: { tokens: {}, editor: {} } };
+  return {
+    light: { tokens: {}, editor: {} },
+    dark: { tokens: {}, editor: {} },
+  };
 }
 
 export type SettingsStore = {
@@ -152,10 +155,12 @@ function mergeLayouts(partial: unknown): Settings["layouts"] {
   if (!isRecord(partial)) {
     return DEFAULT_SETTINGS.layouts;
   }
-  return GROUP_KEYS.reduce<Settings["layouts"]>((acc, key) => {
-    const layout = partial[key];
-    return isPanelLayout(layout) ? { ...acc, [key]: layout } : acc;
-  }, {});
+  return Object.fromEntries(
+    GROUP_KEYS.flatMap((key) => {
+      const layout = partial[key];
+      return isPanelLayout(layout) ? [[key, layout] as const] : [];
+    }),
+  ) as Settings["layouts"];
 }
 
 // A single stored hotkey (legacy model) migrates to a one-element list; a list
@@ -179,16 +184,15 @@ function mergeShortcuts(partial: unknown): ShortcutOverrides {
   if (!isRecord(partial)) {
     return {};
   }
-  return Object.entries(partial).reduce<ShortcutOverrides>(
-    (acc, [id, value]) => {
+  return Object.fromEntries(
+    Object.entries(partial).flatMap(([id, value]) => {
       if (!ACTION_IDS.has(id)) {
-        return acc;
+        return [];
       }
       const merged = mergeShortcutValue(value);
-      return merged === null ? acc : { ...acc, [id]: merged };
-    },
-    {},
-  );
+      return merged === null ? [] : [[id, merged] as const];
+    }),
+  ) as ShortcutOverrides;
 }
 
 function mergeOpenRequestIds(value: unknown): string[] {
@@ -272,15 +276,14 @@ function mergeTokenMap<K extends string>(
   if (!isRecord(value)) {
     return {};
   }
-  return Object.entries(value).reduce<Partial<Record<K, string>>>(
-    (acc, [key, val]) => {
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([key, val]) => {
       if (!known.has(key) || typeof val !== "string") {
-        return acc;
+        return [];
       }
-      return { ...acc, [key]: val };
-    },
-    {},
-  );
+      return [[key, val] as const];
+    }),
+  ) as Partial<Record<K, string>>;
 }
 
 function mergeOverrides(value: unknown): ThemeColorOverrides {

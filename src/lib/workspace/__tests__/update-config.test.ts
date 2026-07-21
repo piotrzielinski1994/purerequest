@@ -1,16 +1,15 @@
-import { describe, it, expect } from "vitest";
-
-// Imported even though it does not exist yet: the test must fail on the missing
-// feature (module), not on a typo. Once update-config.ts ships, these assertions
-// pin updateNodeConfig's purity + targeted replacement (AC-016).
-import { updateNodeConfig } from "@/lib/workspace/update-config";
-import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
+import { describe, expect, it } from "vitest";
 import type {
   ConfigScope,
   FolderNode,
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
+import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
+// Imported even though it does not exist yet: the test must fail on the missing
+// feature (module), not on a typo. Once update-config.ts ships, these assertions
+// pin updateNodeConfig's purity + targeted replacement (AC-016).
+import { updateNodeConfig } from "@/lib/workspace/update-config";
 
 const request = (id: string, config: ConfigScope = {}): RequestNode => ({
   kind: "request",
@@ -75,7 +74,9 @@ describe("updateNodeConfig replaces the target node config", () => {
   // AC-016 - behavior: works on a folder node too (one editor handles both).
   it("should replace only the target folder's config if the id matches a folder", () => {
     const tree: TreeNode[] = [
-      folder("f1", [request("c1")], { variables: [{ key: "x", value: "old" }] }),
+      folder("f1", [request("c1")], {
+        variables: [{ key: "x", value: "old" }],
+      }),
       folder("f2", [], { variables: [{ key: "y", value: "keep" }] }),
     ];
     const next: ConfigScope = {
@@ -96,9 +97,13 @@ describe("updateNodeConfig replaces the target node config", () => {
   it("should replace a nested node's config if it is several folders deep", () => {
     const tree: TreeNode[] = [
       folder("root", [
-        folder("mid", [request("deep", { variables: [{ key: "d", value: "old" }] })], {
-          variables: [{ key: "m", value: "1" }],
-        }),
+        folder(
+          "mid",
+          [request("deep", { variables: [{ key: "d", value: "old" }] })],
+          {
+            variables: [{ key: "m", value: "1" }],
+          },
+        ),
       ]),
     ];
     const next: ConfigScope = {

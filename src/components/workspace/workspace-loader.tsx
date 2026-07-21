@@ -1,23 +1,23 @@
 import { useEffect, useState } from "react";
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import type { BrunoCollectionReader } from "@/lib/bruno/reader";
+import type { BrunoExportWriter } from "@/lib/bruno/writer";
+import type { HttpClient } from "@/lib/http/model";
+import type { OpenapiReader } from "@/lib/openapi/reader";
+import type { OpenapiExportWriter } from "@/lib/openapi/writer";
+import type { PostmanCollectionReader } from "@/lib/postman/reader";
+import type { PostmanExportWriter } from "@/lib/postman/writer";
+import type { ScriptRunner } from "@/lib/scripts/model";
 import { useSettings } from "@/lib/settings/settings-context";
 import { deserialize, serialize } from "@/lib/workspace/disk-format";
 import {
   listEnvironmentNames,
-  parseDotenv,
   type ProcessEnv,
+  parseDotenv,
 } from "@/lib/workspace/environment";
-import type { WorkspaceFs } from "@/lib/workspace/fs";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
-import type { BrunoCollectionReader } from "@/lib/bruno/reader";
-import type { PostmanCollectionReader } from "@/lib/postman/reader";
-import type { OpenapiReader } from "@/lib/openapi/reader";
-import type { BrunoExportWriter } from "@/lib/bruno/writer";
-import type { PostmanExportWriter } from "@/lib/postman/writer";
-import type { OpenapiExportWriter } from "@/lib/openapi/writer";
-import type { HttpClient } from "@/lib/http/model";
-import type { ScriptRunner } from "@/lib/scripts/model";
+import type { WorkspaceFs } from "@/lib/workspace/fs";
 import type { TreeNode } from "@/lib/workspace/model";
 
 type LoadState =
@@ -119,7 +119,9 @@ export function WorkspaceLoader({
         status: "loaded",
         tree: parsed.tree,
         consoleLines,
-        workspaceName: readWorkspaceName(read.files["purerequest.workspace.json"]),
+        workspaceName: readWorkspaceName(
+          read.files["purerequest.workspace.json"],
+        ),
         processEnv: parseDotenv(read.files[".env"] ?? ""),
         envText: read.files[".env"] ?? "",
       });

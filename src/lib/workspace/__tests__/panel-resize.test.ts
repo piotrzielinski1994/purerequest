@@ -1,12 +1,11 @@
-import { describe, it, expect, afterEach } from "vitest";
-
+import { afterEach, describe, expect, it } from "vitest";
+import type { PanelLayout } from "@/lib/settings/settings";
 import {
   PANEL_RESIZE_STEP,
+  type PanelResizeTarget,
   resolveFocusedPanel,
   stepLayout,
-  type PanelResizeTarget,
 } from "@/lib/workspace/panel-resize";
-import type { PanelLayout } from "@/lib/settings/settings";
 
 // Build a real [data-panel id="<id>"] node with a focusable child, attached to
 // the document so `resolveFocusedPanel` can walk `closest("[data-panel]")` from

@@ -1,5 +1,5 @@
-import { check as pluginCheck } from "@tauri-apps/plugin-updater";
 import { relaunch as pluginRelaunch } from "@tauri-apps/plugin-process";
+import { check as pluginCheck } from "@tauri-apps/plugin-updater";
 
 export { getAppVersion } from "@/lib/updater/app-version";
 

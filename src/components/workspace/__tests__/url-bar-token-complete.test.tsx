@@ -1,9 +1,8 @@
-import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import { WorkspaceProvider } from "@/components/workspace/workspace-context";
+import { describe, expect, it } from "vitest";
 import { UrlBar } from "@/components/workspace/url-bar";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import type { TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
@@ -14,7 +13,9 @@ const tree: TreeNode[] = [
     name: "Echo",
     config: {
       variables: [{ key: "BASE_URL", value: "https://api" }],
-      environments: [{ name: "prod", variables: [{ key: "ENV_TOKEN", value: "tok" }] }],
+      environments: [
+        { name: "prod", variables: [{ key: "ENV_TOKEN", value: "tok" }] },
+      ],
     },
     children: [
       {

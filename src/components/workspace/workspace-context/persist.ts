@@ -1,7 +1,7 @@
 import { toast } from "sonner";
-import type { TreeNode } from "@/lib/workspace/model";
-import { parseDotenv } from "@/lib/workspace/environment";
 import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
+import { parseDotenv } from "@/lib/workspace/environment";
+import type { TreeNode } from "@/lib/workspace/model";
 
 export type PersistApi = {
   persistTree: (next: TreeNode[], failLabel: string, silent?: boolean) => void;

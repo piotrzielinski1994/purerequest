@@ -1,5 +1,5 @@
-import * as React from "react";
 import { ContextMenu as ContextMenuPrimitive } from "radix-ui";
+import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -70,8 +70,8 @@ function ContextMenuSeparator({
 
 export {
   ContextMenu,
-  ContextMenuTrigger,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuTrigger,
 };

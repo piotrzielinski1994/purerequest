@@ -1,11 +1,10 @@
-import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-
-import { WorkspaceProvider } from "@/components/workspace/workspace-context";
+import { describe, expect, it } from "vitest";
 import {
   ConfigEditorForm,
   RequestSettingsForm,
 } from "@/components/workspace/config-editor";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import type { ConfigScope, RequestNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 

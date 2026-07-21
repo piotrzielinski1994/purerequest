@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { requestSettingsSchema } from "@/lib/config-schema/zod-schemas";
 
@@ -45,7 +45,10 @@ describe("requestSettingsSchema - graphql body (AC-004, TC-009)", () => {
       docWith({ active: "graphql", types: { graphql: { query: "q" } } }),
     );
     const dirty = requestSettingsSchema.safeParse(
-      docWith({ active: "graphql", types: { graphql: { query: "q", bogus: true } } }),
+      docWith({
+        active: "graphql",
+        types: { graphql: { query: "q", bogus: true } },
+      }),
     );
 
     expect(clean.success).toBe(true);

@@ -1,10 +1,9 @@
-import { describe, it, expect } from "vitest";
-
+import { describe, expect, it } from "vitest";
+import type { FileMap } from "@/lib/workspace/disk-format";
 import {
   emptyDirsAfterRemoval,
   planReconcile,
 } from "@/lib/workspace/reconcile";
-import type { FileMap } from "@/lib/workspace/disk-format";
 
 describe("planReconcile write set", () => {
   // behavior - new file lands in write
@@ -102,7 +101,9 @@ describe("planReconcile remove set", () => {
       ".env": "TOKEN=abc123",
       "gone.req.json": '{"name":"Gone"}',
     };
-    const next: FileMap = { "purerequest.workspace.json": '{"schemaVersion":2}' };
+    const next: FileMap = {
+      "purerequest.workspace.json": '{"schemaVersion":2}',
+    };
 
     const result = planReconcile(current, next);
 
@@ -142,7 +143,9 @@ describe("planReconcile remove set", () => {
       "bruno/collections/as24/folder.json": '{"name":"as24","order":0}',
       "bruno/collections/as24/.env": "TOKEN=secret",
     };
-    const next: FileMap = { "purerequest.workspace.json": '{"schemaVersion":3}' };
+    const next: FileMap = {
+      "purerequest.workspace.json": '{"schemaVersion":3}',
+    };
 
     const result = planReconcile(current, next);
 

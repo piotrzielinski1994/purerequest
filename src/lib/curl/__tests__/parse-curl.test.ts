@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { parseCurl } from "@/lib/curl/parse-curl";
 import { authOf } from "@/lib/workspace/model";
@@ -154,9 +154,7 @@ describe("parseCurl - tokenizer / shell quoting (AC-007)", () => {
   it("should fold a '\\''-escaped single quote back into the value", () => {
     const req = expectOk("curl 'https://x.test' -H 'X: it'\\''s'");
 
-    expect(req.headers).toEqual([
-      { key: "X", value: "it's", enabled: true },
-    ]);
+    expect(req.headers).toEqual([{ key: "X", value: "it's", enabled: true }]);
   });
 
   // AC-007 - behavior: a leading '$' (as in a copied '$ curl ...') is tolerated.

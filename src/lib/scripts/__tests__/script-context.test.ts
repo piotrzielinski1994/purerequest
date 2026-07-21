@@ -1,25 +1,25 @@
-import { describe, it, expect } from "vitest";
-
+import { describe, expect, it } from "vitest";
+import type { HttpResponse } from "@/lib/http/model";
 import {
   applyPreToEffective,
   buildScriptApi,
   type ReqDraft,
   type VarWrite,
 } from "@/lib/scripts/script-context";
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
-import type { HttpResponse } from "@/lib/http/model";
 import { authOf } from "@/lib/workspace/model";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 const PROV = { scopeId: "s", scopeName: "Scope" };
 
-function effective(
-  overrides: Partial<EffectiveConfig> = {},
-): EffectiveConfig {
+function effective(overrides: Partial<EffectiveConfig> = {}): EffectiveConfig {
   return {
     variables: {},
     headers: {},
     auth: { value: authOf({ active: "none" }), from: PROV },
-    scripts: { pre: { value: "", from: PROV }, post: { value: "", from: PROV } },
+    scripts: {
+      pre: { value: "", from: PROV },
+      post: { value: "", from: PROV },
+    },
     timeoutMs: { value: 30000, from: PROV },
     ...overrides,
   };

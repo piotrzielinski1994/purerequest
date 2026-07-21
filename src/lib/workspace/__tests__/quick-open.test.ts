@@ -1,17 +1,16 @@
-import { describe, it, expect } from "vitest";
-
-import {
-  buildQuickOpenEntries,
-  filterQuickOpen,
-  type QuickOpenEntry,
-} from "@/lib/workspace/quick-open";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { describe, expect, it } from "vitest";
 import type {
   FolderNode,
   HttpMethod,
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import {
+  buildQuickOpenEntries,
+  filterQuickOpen,
+  type QuickOpenEntry,
+} from "@/lib/workspace/quick-open";
 
 const request = (
   id: string,

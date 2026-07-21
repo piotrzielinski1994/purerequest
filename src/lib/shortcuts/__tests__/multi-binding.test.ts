@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   SHORTCUT_ACTIONS,
   type ShortcutOverrides,
 } from "@/lib/shortcuts/registry";
-import { resolveShortcuts, findConflict } from "@/lib/shortcuts/resolve";
+import { findConflict, resolveShortcuts } from "@/lib/shortcuts/resolve";
 
 const CLOSE_REQUEST = SHORTCUT_ACTIONS.find((a) => a.id === "close-request")!;
 const TOGGLE_CONSOLE = SHORTCUT_ACTIONS.find((a) => a.id === "toggle-console")!;

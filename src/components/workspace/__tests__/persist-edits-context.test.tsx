@@ -1,14 +1,14 @@
-import { useState } from "react";
-import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
+import { describe, expect, it, vi } from "vitest";
 
 import {
-  WorkspaceProvider,
   useWorkspace,
+  WorkspaceProvider,
 } from "@/components/workspace/workspace-context";
+import { deserialize, serialize } from "@/lib/workspace/disk-format";
 import type { TreeNode } from "@/lib/workspace/model";
-import { serialize, deserialize } from "@/lib/workspace/disk-format";
 import { bodyFixtureTree, jsonBodyRequest } from "./fixtures";
 
 // New persist-edits surface on the context; cast through an augmented type so
@@ -259,7 +259,7 @@ describe("WorkspaceProvider saveActiveRequest", () => {
         node.kind === "request" && node.url === "https://edited.test/path",
     );
     expect(saved).toBeDefined();
-    if (!saved || saved.kind !== "request") {
+    if (saved?.kind !== "request") {
       throw new Error("expected the edited request in the round-tripped tree");
     }
     expect(saved.method).toBe("PUT");

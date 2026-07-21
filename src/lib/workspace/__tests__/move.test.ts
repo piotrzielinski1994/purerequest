@@ -1,8 +1,7 @@
-import { describe, it, expect } from "vitest";
-
-import { moveNode } from "@/lib/workspace/move";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { describe, expect, it } from "vitest";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { moveNode } from "@/lib/workspace/move";
 
 const request = (id: string, name = id): RequestNode => ({
   kind: "request",

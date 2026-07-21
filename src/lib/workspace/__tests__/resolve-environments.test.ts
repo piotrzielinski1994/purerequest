@@ -1,8 +1,7 @@
-import { describe, it, expect } from "vitest";
-
-import { resolveConfig } from "@/lib/workspace/resolve";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { describe, expect, it } from "vitest";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { resolveConfig } from "@/lib/workspace/resolve";
 
 const request = (
   id: string,
@@ -157,7 +156,11 @@ describe("resolveConfig environments - no active env", () => {
     const root = folder(
       "root",
       "Root",
-      { environments: [{ name: "prod", variables: [{ key: "baseUrl", value: "x" }] }] },
+      {
+        environments: [
+          { name: "prod", variables: [{ key: "baseUrl", value: "x" }] },
+        ],
+      },
       [req],
     );
 
@@ -176,7 +179,9 @@ describe("resolveConfig environments - precedence", () => {
       "Root",
       {
         variables: [{ key: "host", value: "folder-host" }],
-        environments: [{ name: "local", variables: [{ key: "host", value: "env-host" }] }],
+        environments: [
+          { name: "local", variables: [{ key: "host", value: "env-host" }] },
+        ],
       },
       [req],
     );
@@ -192,7 +197,11 @@ describe("resolveConfig environments - precedence", () => {
     const root = folder(
       "root",
       "Root",
-      { environments: [{ name: "local", variables: [{ key: "host", value: "env-host" }] }] },
+      {
+        environments: [
+          { name: "local", variables: [{ key: "host", value: "env-host" }] },
+        ],
+      },
       [req],
     );
 
@@ -209,7 +218,11 @@ describe("resolveConfig environments - precedence", () => {
     const root = folder(
       "root",
       "Root",
-      { environments: [{ name: "local", variables: [{ key: "host", value: "env-host" }] }] },
+      {
+        environments: [
+          { name: "local", variables: [{ key: "host", value: "env-host" }] },
+        ],
+      },
       [req],
     );
 
@@ -224,13 +237,21 @@ describe("resolveConfig environments - precedence", () => {
     const sub = folder(
       "sub",
       "Sub",
-      { environments: [{ name: "local", variables: [{ key: "host", value: "sub-env" }] }] },
+      {
+        environments: [
+          { name: "local", variables: [{ key: "host", value: "sub-env" }] },
+        ],
+      },
       [req],
     );
     const root = folder(
       "root",
       "Root",
-      { environments: [{ name: "local", variables: [{ key: "host", value: "root-env" }] }] },
+      {
+        environments: [
+          { name: "local", variables: [{ key: "host", value: "root-env" }] },
+        ],
+      },
       [sub],
     );
 
@@ -269,7 +290,11 @@ describe("resolveConfig environments - provenance", () => {
     const root = folder(
       "root",
       "Root",
-      { environments: [{ name: "staging", variables: [{ key: "apiKey", value: "k1" }] }] },
+      {
+        environments: [
+          { name: "staging", variables: [{ key: "apiKey", value: "k1" }] },
+        ],
+      },
       [req],
     );
 
@@ -286,7 +311,9 @@ describe("resolveConfig environments - provenance", () => {
       "Root",
       {
         variables: [{ key: "host", value: "folder-host" }],
-        environments: [{ name: "prod", variables: [{ key: "host", value: "env-host" }] }],
+        environments: [
+          { name: "prod", variables: [{ key: "host", value: "env-host" }] },
+        ],
       },
       [req],
     );

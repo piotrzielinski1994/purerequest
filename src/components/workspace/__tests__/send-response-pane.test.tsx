@@ -1,15 +1,14 @@
-import { describe, it, expect } from "vitest";
-import { render, screen, within, act, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { EditorView } from "@codemirror/view";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
 import { ResponsePane } from "@/components/workspace/response-pane";
-import { fixtureTree } from "./fixtures";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
+import { fixtureTree } from "./fixtures";
 
 // The response body renders in a read-only CodeMirror viewer that tokenizes JSON
 // into many span nodes, so getByText on a contiguous substring won't match.

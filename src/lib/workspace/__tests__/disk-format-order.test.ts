@@ -1,9 +1,8 @@
-import { describe, it, expect } from "vitest";
-
-import { serialize, deserialize } from "@/lib/workspace/disk-format";
+import { describe, expect, it } from "vitest";
 import type { FileMap } from "@/lib/workspace/disk-format";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { deserialize, serialize } from "@/lib/workspace/disk-format";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const request = (name: string): RequestNode => ({
   kind: "request",
@@ -145,7 +144,10 @@ describe("disk-format deserialize order field", () => {
   // AC-011 - behavior: deserialize sorts siblings by order ascending
   it("should sort siblings by ascending order if order fields are present", () => {
     const files: FileMap = {
-      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 2, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({
+        schemaVersion: 2,
+        name: "W",
+      }),
       "a.req.json": JSON.stringify({
         name: "A",
         method: "GET",
@@ -180,7 +182,10 @@ describe("disk-format deserialize order field", () => {
   // AC-011 - behavior: legacy v1 files without order fall back to folders-first-then-name
   it("should fall back to folders-first-then-name if order fields are missing", () => {
     const files: FileMap = {
-      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 1, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({
+        schemaVersion: 1,
+        name: "W",
+      }),
       "zoo/folder.json": JSON.stringify({ name: "Zoo", config: {} }),
       "alpha/folder.json": JSON.stringify({ name: "Alpha", config: {} }),
       "yak.req.json": JSON.stringify({
@@ -208,7 +213,10 @@ describe("disk-format deserialize order field", () => {
   // AC-011 - behavior: ordered nodes sort before order-missing nodes
   it("should place order-missing nodes after ordered ones if order is mixed", () => {
     const files: FileMap = {
-      "purerequest.workspace.json": JSON.stringify({ schemaVersion: 2, name: "W" }),
+      "purerequest.workspace.json": JSON.stringify({
+        schemaVersion: 2,
+        name: "W",
+      }),
       "ordered.req.json": JSON.stringify({
         name: "Ordered",
         method: "GET",

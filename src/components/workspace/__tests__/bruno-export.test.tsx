@@ -1,16 +1,16 @@
-import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import type { BrunoFileMap } from "@/lib/bruno/bruno-to-tree";
+import type { BrunoExportWriter } from "@/lib/bruno/writer";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
-import type { BrunoExportWriter } from "@/lib/bruno/writer";
-import type { BrunoFileMap } from "@/lib/bruno/bruno-to-tree";
 
 function req(id: string, name: string, url: string): RequestNode {
   return {

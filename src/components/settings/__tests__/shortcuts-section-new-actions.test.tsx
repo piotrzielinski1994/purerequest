@@ -1,12 +1,11 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { HotkeysProvider } from "@tanstack/react-hotkeys";
 import { formatForDisplay } from "@tanstack/hotkeys";
-
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { HotkeysProvider } from "@tanstack/react-hotkeys";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { ShortcutsSection } from "@/components/settings/shortcuts-section";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
-import { ShortcutsSection } from "@/components/settings/shortcuts-section";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import {
   SHORTCUT_ACTIONS,
   type ShortcutActionId,

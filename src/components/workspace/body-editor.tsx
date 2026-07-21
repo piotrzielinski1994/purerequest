@@ -1,10 +1,10 @@
-import { useMemo } from "react";
 import { jsonLanguage } from "@codemirror/lang-json";
+import { useMemo } from "react";
 import { CodeEditor } from "@/components/workspace/code-editor";
-import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
+import type { TokenCandidate } from "@/components/workspace/token-complete";
 import { tokenCompletionSource } from "@/components/workspace/token-complete-source";
 import { tokenCompletionConfig } from "@/components/workspace/token-suggestion-style";
-import type { TokenCandidate } from "@/components/workspace/token-complete";
+import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
 
 type BodyEditorProps = {
   value: string;

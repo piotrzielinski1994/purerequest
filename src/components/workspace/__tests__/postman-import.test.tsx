@@ -1,16 +1,16 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, within, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import type { PostmanFileMap } from "@/lib/postman/postman-to-tree";
+import type { PostmanCollectionReader } from "@/lib/postman/reader";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
-import type { PostmanCollectionReader } from "@/lib/postman/reader";
-import type { PostmanFileMap } from "@/lib/postman/postman-to-tree";
 
 type OnTreeChange = (
   tree: TreeNode[],

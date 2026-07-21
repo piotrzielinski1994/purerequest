@@ -1,13 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
-  tokenCandidates,
-  tokenCompletionAt,
   applyTokenCandidate,
   type TokenCandidate,
+  tokenCandidates,
+  tokenCompletionAt,
 } from "@/components/workspace/token-complete";
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import { authOf } from "@/lib/workspace/model";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 const effective: EffectiveConfig = {
   variables: {
@@ -56,8 +56,8 @@ describe("tokenCandidates", () => {
       tokenCandidates(effective, processEnv).map((c) => [c.name, c.kind]),
     );
 
-    expect(byName["BASE_URL"]).toBe("variable");
-    expect(byName["ENV_TOKEN"]).toBe("environment");
+    expect(byName.BASE_URL).toBe("variable");
+    expect(byName.ENV_TOKEN).toBe("environment");
     expect(byName["process.env.HOST"]).toBe("dotenv");
   });
 
@@ -135,8 +135,8 @@ describe("tokenCandidates", () => {
     const bySource = Object.fromEntries(
       tokenCandidates(own, {}, "req-1").map((c) => [c.name, c.source]),
     );
-    expect(bySource["LOCAL_VAR"]).toBe("");
-    expect(bySource["BASE_URL"]).toBe("asd1");
+    expect(bySource.LOCAL_VAR).toBe("");
+    expect(bySource.BASE_URL).toBe("asd1");
   });
 
   // behavior: with no effective config (e.g. a folder pane), only .env keys show.
@@ -179,9 +179,7 @@ describe("tokenCompletionAt", () => {
     const text = "{{process.env.h";
     const result = tokenCompletionAt(text, text.length, all);
 
-    expect(result?.candidates.map((c) => c.name)).toEqual([
-      "process.env.HOST",
-    ]);
+    expect(result?.candidates.map((c) => c.name)).toEqual(["process.env.HOST"]);
   });
 
   // behavior: no open token (plain text) -> no completion.

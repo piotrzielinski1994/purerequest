@@ -1,19 +1,18 @@
-import { describe, it, expect } from "vitest";
-
-import {
-  postmanToTree,
-  type PostmanFileMap,
-} from "@/lib/postman/postman-to-tree";
+import { describe, expect, it } from "vitest";
 import { collectDotenv } from "@/lib/bruno/bruno-to-tree";
+import {
+  type PostmanFileMap,
+  postmanToTree,
+} from "@/lib/postman/postman-to-tree";
 import { parseDotenv } from "@/lib/workspace/environment";
-import { authOf } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { authOf } from "@/lib/workspace/model";
 
 const SCHEMA =
   "https://schema.getpostman.com/json/collection/v2.1.0/collection.json";
 
 function asFolder(node: TreeNode | undefined): FolderNode {
-  if (!node || node.kind !== "folder") {
+  if (node?.kind !== "folder") {
     throw new Error("expected a folder node");
   }
   return node;

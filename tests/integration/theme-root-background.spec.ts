@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
 
 // Regression: the app chrome relies on a themed background LAYER. The panes are
 // transparent down to the app root, and the index.html inline guard paints the

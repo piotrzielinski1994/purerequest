@@ -57,7 +57,9 @@ export const configScopeSchema = z
           })
           .strict(),
       )
-      .describe("Per-environment variable overrides, one entry per environment.")
+      .describe(
+        "Per-environment variable overrides, one entry per environment.",
+      )
       .optional(),
     headers: z
       .array(keyValueSchema)
@@ -94,7 +96,9 @@ export const folderConfigSchema = configScopeSchema.extend({
         })
         .strict(),
     )
-    .describe("Per-environment variable overrides + optional folder border color.")
+    .describe(
+      "Per-environment variable overrides + optional folder border color.",
+    )
     .optional(),
 });
 

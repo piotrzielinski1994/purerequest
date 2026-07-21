@@ -1,8 +1,8 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -130,25 +130,19 @@ describe("Global thin scrollbar CSS (AC-002)", () => {
   // TC-003 - side-effect-contract: the ::-webkit-scrollbar block sizes the bar at 8px.
   it("should define a ::-webkit-scrollbar block with width 8px in index.css", () => {
     expect(css).toMatch(/::-webkit-scrollbar\b/);
-    const block = css
-      .split(/::-webkit-scrollbar\b/)[1]
-      ?.split("}")[0];
+    const block = css.split(/::-webkit-scrollbar\b/)[1]?.split("}")[0];
     expect(block ?? "").toMatch(/width:\s*8px/);
   });
 
   // TC-003 - side-effect-contract: the track is transparent (no painted gutter).
   it("should define a transparent ::-webkit-scrollbar-track in index.css", () => {
-    const block = css
-      .split(/::-webkit-scrollbar-track\b/)[1]
-      ?.split("}")[0];
+    const block = css.split(/::-webkit-scrollbar-track\b/)[1]?.split("}")[0];
     expect(block ?? "").toMatch(/background:\s*transparent/);
   });
 
   // TC-003 - side-effect-contract: the thumb background derives from --foreground.
   it("should define a --foreground-derived ::-webkit-scrollbar-thumb background in index.css", () => {
-    const block = css
-      .split(/::-webkit-scrollbar-thumb\b/)[1]
-      ?.split("}")[0];
+    const block = css.split(/::-webkit-scrollbar-thumb\b/)[1]?.split("}")[0];
     expect(block ?? "").toMatch(/background:[^;]*var\(--foreground\)/);
   });
 

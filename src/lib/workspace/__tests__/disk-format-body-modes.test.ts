@@ -1,7 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { serialize, deserialize } from "@/lib/workspace/disk-format";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { deserialize, serialize } from "@/lib/workspace/disk-format";
 import type {
   BodyMode,
   KeyValue,
@@ -9,6 +8,7 @@ import type {
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const request = (
   overrides: Partial<RequestNode> & { name: string },
@@ -28,7 +28,13 @@ const bodyOf = (
   slots: Partial<RequestBody["types"]> = {},
 ): RequestBody => ({
   active,
-  types: { json: "", form: [], multipart: [], graphql: { query: "", variables: "" }, ...slots },
+  types: {
+    json: "",
+    form: [],
+    multipart: [],
+    graphql: { query: "", variables: "" },
+    ...slots,
+  },
 });
 
 const expectOk = (result: ReturnType<typeof deserialize>) => {

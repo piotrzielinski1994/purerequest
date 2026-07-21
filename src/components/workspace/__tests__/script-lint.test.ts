@@ -1,7 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { javascript } from "@codemirror/lang-javascript";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { javascript } from "@codemirror/lang-javascript";
+import { describe, expect, it } from "vitest";
 
 import { jsSyntaxLinter } from "@/components/workspace/script-lint";
 

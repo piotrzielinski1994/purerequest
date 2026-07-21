@@ -1,14 +1,14 @@
 import {
+  type SelectMode,
+  toggleInSet,
+  type WorkspaceInternals,
+} from "@/components/workspace/workspace-context/types";
+import { ancestorIds, findNode } from "@/lib/workspace/tree-locate";
+import {
   allFolderIds,
   flattenSelectable,
   rangeBetween,
 } from "@/lib/workspace/tree-select";
-import { ancestorIds, findNode } from "@/lib/workspace/tree-locate";
-import {
-  toggleInSet,
-  type SelectMode,
-  type WorkspaceInternals,
-} from "@/components/workspace/workspace-context/types";
 
 export type SelectionApi = {
   selectSingle: (id: string) => void;
@@ -80,7 +80,9 @@ export function createSelection(internals: WorkspaceInternals): SelectionApi {
     const toExpand = ancestorIds(tree, id);
     setExpandedFolderIds((current) => {
       const next = new Set(current);
-      toExpand.forEach((folderId) => next.add(folderId));
+      toExpand.forEach((folderId) => {
+        next.add(folderId);
+      });
       if (node.kind === "folder") {
         next.add(id);
       }

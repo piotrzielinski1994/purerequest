@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { parseConsoleObjectLine } from "@/components/workspace/console-line";
 
@@ -41,7 +41,9 @@ describe("parseConsoleObjectLine", () => {
 
   it("should return null for a workspace line that is not JSON", () => {
     expect(
-      parseConsoleObjectLine('[workspace] Set "workspacePath" in settings.json'),
+      parseConsoleObjectLine(
+        '[workspace] Set "workspacePath" in settings.json',
+      ),
     ).toBeNull();
   });
 

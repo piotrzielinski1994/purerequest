@@ -23,9 +23,7 @@ export function flattenSelectable(
 // clears its expanded set to empty, so this is only needed for expand).
 export function allFolderIds(nodes: TreeNode[]): string[] {
   return nodes.flatMap((node) =>
-    node.kind === "folder"
-      ? [node.id, ...allFolderIds(node.children)]
-      : [],
+    node.kind === "folder" ? [node.id, ...allFolderIds(node.children)] : [],
   );
 }
 

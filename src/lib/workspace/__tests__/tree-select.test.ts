@@ -1,12 +1,11 @@
-import { describe, it, expect } from "vitest";
-
+import { describe, expect, it } from "vitest";
+import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import {
   allFolderIds,
   flattenSelectable,
   rangeBetween,
 } from "@/lib/workspace/tree-select";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
-import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (id: string): RequestNode => ({
   kind: "request",

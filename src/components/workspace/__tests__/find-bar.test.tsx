@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 // Imported before it exists: the suite must fail RED on the missing module, not
 // on a typo. Once find-bar.tsx ships these assertions pin the bar's contract.
@@ -74,7 +74,9 @@ describe("FindBar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Previous match" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Previous match" }),
+    ).toBeDisabled();
     expect(screen.getByRole("button", { name: "Next match" })).toBeDisabled();
   });
 
@@ -95,7 +97,9 @@ describe("FindBar", () => {
     expect(
       screen.getByRole("button", { name: "Previous match" }),
     ).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "Next match" })).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Next match" }),
+    ).not.toBeDisabled();
   });
 
   // TC-003 (AC-003) — side-effect-contract: typing streams through onQueryChange.

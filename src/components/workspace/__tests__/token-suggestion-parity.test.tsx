@@ -1,17 +1,17 @@
-import { describe, it, expect } from "vitest";
-import { render, waitFor } from "@testing-library/react";
-import { EditorView } from "@codemirror/view";
 import { startCompletion } from "@codemirror/autocomplete";
+import { EditorView } from "@codemirror/view";
+import { render, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import { BodyEditor } from "@/components/workspace/body-editor";
-import { TokenSuggestionList } from "@/components/workspace/token-suggestions";
+import { tokenCandidates } from "@/components/workspace/token-complete";
 import {
   TOKEN_KIND_COLOR,
   tokenOptionClass,
 } from "@/components/workspace/token-suggestion-style";
-import { tokenCandidates } from "@/components/workspace/token-complete";
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
+import { TokenSuggestionList } from "@/components/workspace/token-suggestions";
 import { authOf } from "@/lib/workspace/model";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 const effective: EffectiveConfig = {
   variables: {
@@ -147,7 +147,9 @@ describe("token suggestion visual parity", () => {
       />,
     );
     const inputOrder = Array.from(
-      inputRender.container.querySelectorAll('[role="option"] span:first-child'),
+      inputRender.container.querySelectorAll(
+        '[role="option"] span:first-child',
+      ),
     ).map((s) => s.textContent);
 
     const { container } = render(
@@ -189,7 +191,9 @@ describe("token suggestion visual parity", () => {
     });
     startCompletion(view);
     await waitFor(() => {
-      expect(document.querySelector(".cm-tooltip-autocomplete li")).not.toBeNull();
+      expect(
+        document.querySelector(".cm-tooltip-autocomplete li"),
+      ).not.toBeNull();
     });
 
     const li = document.querySelector<HTMLElement>(

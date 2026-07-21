@@ -1,10 +1,4 @@
-export type HttpMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "PATCH"
-  | "DELETE"
-  | "QUERY";
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "QUERY";
 
 // The request's transport-version choice. `auto` negotiates HTTP/1.1 or HTTP/2 over
 // TCP (today's behaviour); `h3` forces HTTP/3 over QUIC. Absent on a node means `auto`.

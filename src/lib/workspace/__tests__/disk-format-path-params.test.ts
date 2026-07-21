@@ -1,9 +1,8 @@
-import { describe, it, expect } from "vitest";
-
-import { serialize, deserialize } from "@/lib/workspace/disk-format";
+import { describe, expect, it } from "vitest";
 import type { FileMap } from "@/lib/workspace/disk-format";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { deserialize, serialize } from "@/lib/workspace/disk-format";
 import type { KeyValue, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const request = (
   name: string,
@@ -150,7 +149,10 @@ describe("disk-format path params sanitize (AC-008, E-7)", () => {
   // (which would make a bare "garbage -> undefined" assertion tautological). These
   // feed a legacy v3 doc (top-level pathParams) to prove the tolerant legacy read.
   const reqJsonWith = (pathParams: unknown): FileMap => ({
-    "purerequest.workspace.json": JSON.stringify({ schemaVersion: 3, name: "W" }),
+    "purerequest.workspace.json": JSON.stringify({
+      schemaVersion: 3,
+      name: "W",
+    }),
     "get.req.json": JSON.stringify({
       name: "Get",
       method: "GET",
@@ -179,9 +181,7 @@ describe("disk-format path params sanitize (AC-008, E-7)", () => {
   // AC-008, E-7 - behavior: a non-string value entry is dropped while a valid
   // sibling entry in the SAME map survives.
   it("should drop a non-string path param entry but keep a valid sibling entry", () => {
-    const result = expectOk(
-      deserialize(reqJsonWith({ bad: 123, id: "42" })),
-    );
+    const result = expectOk(deserialize(reqJsonWith({ bad: 123, id: "42" })));
 
     expect(loadedRequest(result, "Get").params.path).toEqual([
       { key: "id", value: "42" },

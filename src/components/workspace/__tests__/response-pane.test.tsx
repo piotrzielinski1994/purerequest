@@ -1,9 +1,8 @@
-import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import { WorkspaceProvider } from "@/components/workspace/workspace-context";
+import { describe, expect, it } from "vitest";
 import { ResponsePane } from "@/components/workspace/response-pane";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { formatDuration } from "@/lib/http/format";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 import { fixtureTree, tokenRequest } from "./fixtures";
@@ -109,9 +108,9 @@ function barWidthPercent(panel: HTMLElement, label: string): number {
   const labelEl = within(panel).getByText(label);
   let node: HTMLElement | null = labelEl.parentElement;
   while (node) {
-    const fill = Array.from(
-      node.querySelectorAll<HTMLElement>("*"),
-    ).find((element) => /%$/.test(element.style.width.trim()));
+    const fill = Array.from(node.querySelectorAll<HTMLElement>("*")).find(
+      (element) => /%$/.test(element.style.width.trim()),
+    );
     if (fill) {
       return Number.parseFloat(fill.style.width);
     }

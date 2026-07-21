@@ -1,12 +1,12 @@
-import { describe, it, expect } from "vitest";
-import { render, screen, within, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import { fixtureTree } from "./fixtures";
 
 function renderShell(
@@ -141,9 +141,10 @@ describe("quick-open selecting a request (Mod+P)", () => {
       within(treeRegion).getByRole("treeitem", { name: /oauth/i }),
     ).toBeInTheDocument();
     const tablist = screen.getByRole("tablist", { name: /open requests/i });
-    expect(
-      within(tablist).getByRole("tab", { name: "token" }),
-    ).toHaveAttribute("aria-selected", "true");
+    expect(within(tablist).getByRole("tab", { name: "token" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
   });
 });
 

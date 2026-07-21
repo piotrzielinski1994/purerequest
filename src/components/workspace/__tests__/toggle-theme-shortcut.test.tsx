@@ -1,14 +1,13 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
-
-import { WorkspaceProvider } from "@/components/workspace/workspace-context";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Main } from "@/components/workspace/main";
-import { SettingsProvider } from "@/lib/settings/settings-context";
-import { ThemeProvider } from "@/lib/theme/theme-context";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS, type ThemeMode } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
+import { ThemeProvider } from "@/lib/theme/theme-context";
 import { createFakeHttpClient } from "./fake-http-client";
 import { fixtureTree } from "./fixtures";
 

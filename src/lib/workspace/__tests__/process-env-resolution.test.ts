@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
-
+import { describe, expect, it } from "vitest";
+import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 // Imported even though they do not exist yet: the test must fail on the missing
 // feature (the two new pure fns), not on a typo. resolveProcessEnv folds a
 // request's folder chain over a root base (nearest folder wins); the provenance
@@ -8,8 +9,6 @@ import {
   resolveProcessEnv,
   resolveProcessEnvProvenance,
 } from "@/lib/workspace/resolve";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
-import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (id: string, name = id): RequestNode => ({
   kind: "request",
@@ -38,9 +37,7 @@ const folder = (
 describe("resolveProcessEnv - folder chain folding (AC-003)", () => {
   // AC-003, TC-001 - behavior: a folder .env KEY overrides the same KEY in root.
   it("should let a folder .env value win over root if both define the key", () => {
-    const tree: TreeNode[] = [
-      folder("api", [request("api/get")], "TOKEN=api"),
-    ];
+    const tree: TreeNode[] = [folder("api", [request("api/get")], "TOKEN=api")];
 
     const env = resolveProcessEnv(tree, "api/get", { TOKEN: "root" });
 
@@ -119,11 +116,11 @@ describe("resolveProcessEnv - folder chain folding (AC-003)", () => {
 describe("resolveProcessEnvProvenance - which scope supplied each key (AC-010)", () => {
   // AC-010, TC-007 - behavior: a key supplied by a folder reports that folder's id.
   it("should report the folder id as the owner if a folder .env supplies the key", () => {
-    const tree: TreeNode[] = [
-      folder("api", [request("api/get")], "TOKEN=api"),
-    ];
+    const tree: TreeNode[] = [folder("api", [request("api/get")], "TOKEN=api")];
 
-    const prov = resolveProcessEnvProvenance(tree, "api/get", { TOKEN: "root" });
+    const prov = resolveProcessEnvProvenance(tree, "api/get", {
+      TOKEN: "root",
+    });
 
     expect(prov.TOKEN).toEqual({ value: "api", scopeId: "api" });
   });
@@ -133,7 +130,9 @@ describe("resolveProcessEnvProvenance - which scope supplied each key (AC-010)",
   it("should report null as the owner if only the root env supplies the key", () => {
     const tree: TreeNode[] = [folder("api", [request("api/get")])];
 
-    const prov = resolveProcessEnvProvenance(tree, "api/get", { TOKEN: "root" });
+    const prov = resolveProcessEnvProvenance(tree, "api/get", {
+      TOKEN: "root",
+    });
 
     expect(prov.TOKEN).toEqual({ value: "root", scopeId: null });
   });

@@ -1,11 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { cn } from "@/lib/utils";
-import { METHOD_COLOR } from "@/components/workspace/method-color";
-import { useWorkspace } from "@/components/workspace/workspace-context";
-import { useTreeDnd } from "@/components/workspace/tree-dnd";
-import { useTreeNav, openContextMenuOnKey } from "@/components/workspace/tree-nav";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -13,12 +8,16 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { METHOD_COLOR } from "@/components/workspace/method-color";
+import { useTreeDnd } from "@/components/workspace/tree-dnd";
+import {
+  openContextMenuOnKey,
+  useTreeNav,
+} from "@/components/workspace/tree-nav";
+import { useWorkspace } from "@/components/workspace/workspace-context";
+import { cn } from "@/lib/utils";
+import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 import { emptyZoneId, findNode } from "@/lib/workspace/tree-locate";
-import type {
-  FolderNode,
-  RequestNode,
-  TreeNode,
-} from "@/lib/workspace/model";
 
 function useRowDnd(id: string) {
   const {
@@ -171,9 +170,7 @@ function RowContextMenu({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-      <ContextMenuContent
-        onCloseAutoFocus={(event) => event.preventDefault()}
-      >
+      <ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
         {insideTarget && (
           <>
             <ContextMenuItem onSelect={() => newRequest(insideTarget)}>

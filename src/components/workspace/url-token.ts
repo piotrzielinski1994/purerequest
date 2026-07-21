@@ -1,5 +1,5 @@
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import { interpolate } from "@/lib/http/interpolate";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 export type TokenKind = "variable" | "environment" | "dotenv" | "path";
 

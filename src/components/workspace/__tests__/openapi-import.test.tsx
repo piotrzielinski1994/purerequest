@@ -1,16 +1,16 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, within, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
+import { describe, expect, it, vi } from "vitest";
 
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import type { OpenapiReader } from "@/lib/openapi/reader";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
-import type { OpenapiReader } from "@/lib/openapi/reader";
 
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), {
@@ -69,10 +69,7 @@ function fakeReader(
 }
 
 function renderShell(
-  opts: {
-    onTreeChange?: OnTreeChange;
-    openapiReader?: OpenapiReader;
-  } = {},
+  opts: { onTreeChange?: OnTreeChange; openapiReader?: OpenapiReader } = {},
 ) {
   const store = createInMemorySettingsStore({
     ...DEFAULT_SETTINGS,

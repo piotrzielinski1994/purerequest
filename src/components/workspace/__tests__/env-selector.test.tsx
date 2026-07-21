@@ -1,12 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { describe, expect, it, vi } from "vitest";
 import { EnvSelector } from "@/components/workspace/env-selector";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import type { TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
@@ -36,7 +35,10 @@ const envTree: TreeNode[] = [
         name: "Sub",
         config: {
           environments: [
-            { name: "staging", variables: [{ key: "baseUrl", value: "https://stg" }] },
+            {
+              name: "staging",
+              variables: [{ key: "baseUrl", value: "https://stg" }],
+            },
           ],
         },
         children: [

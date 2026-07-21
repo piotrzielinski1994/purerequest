@@ -1,12 +1,7 @@
-import { describe, it, expect } from "vitest";
-
-import { resolveConfig } from "@/lib/workspace/resolve";
+import { describe, expect, it } from "vitest";
+import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 import { authOf } from "@/lib/workspace/model";
-import type {
-  FolderNode,
-  RequestNode,
-  TreeNode,
-} from "@/lib/workspace/model";
+import { resolveConfig } from "@/lib/workspace/resolve";
 
 const request = (
   id: string,
@@ -18,7 +13,15 @@ const request = (
   name,
   method: "GET",
   url: "",
-  body: { active: "json", types: { json: "", form: [], multipart: [], graphql: { query: "", variables: "" } } },
+  body: {
+    active: "json",
+    types: {
+      json: "",
+      form: [],
+      multipart: [],
+      graphql: { query: "", variables: "" },
+    },
+  },
   params: { path: [], query: [] },
   config,
 });

@@ -1,19 +1,19 @@
 import {
   createContext,
+  type ReactNode,
   useContext,
   useLayoutEffect,
   useMemo,
   useState,
-  type ReactNode,
 } from "react";
-import { useSettings } from "@/lib/settings/settings-context";
 import type { ThemeColors, ThemeMode } from "@/lib/settings/settings";
+import { useSettings } from "@/lib/settings/settings-context";
+import { applyThemeVars } from "@/lib/theme/apply-vars";
 import {
-  resolveEffectiveMode,
   type EffectiveMode,
+  resolveEffectiveMode,
 } from "@/lib/theme/effective-mode";
 import { applyDefaults } from "@/lib/theme/overrides";
-import { applyThemeVars } from "@/lib/theme/apply-vars";
 import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
 
 type ThemeContextValue = {

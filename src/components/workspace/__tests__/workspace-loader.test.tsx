@@ -1,16 +1,16 @@
-import { describe, it, expect } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
 
 import { WorkspaceLoader } from "@/components/workspace/workspace-loader";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import type { OpenapiReader } from "@/lib/openapi/reader";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
+import { type FileMap, serialize } from "@/lib/workspace/disk-format";
 import { createInMemoryWorkspaceFs } from "@/lib/workspace/in-memory-fs";
-import { serialize, type FileMap } from "@/lib/workspace/disk-format";
 import type { TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
-import type { OpenapiReader } from "@/lib/openapi/reader";
 
 const sampleTree: TreeNode[] = [
   {
@@ -58,7 +58,10 @@ const envTree: TreeNode[] = [
     name: "API",
     config: {
       environments: [
-        { name: "prod", variables: [{ key: "baseUrl", value: "https://api.example.com" }] },
+        {
+          name: "prod",
+          variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+        },
       ],
     },
     children: [
@@ -155,7 +158,9 @@ describe("WorkspaceLoader", () => {
     );
 
     await waitFor(() =>
-      expect(workspaces["/ws/fresh"]?.["purerequest.workspace.json"]).toBeDefined(),
+      expect(
+        workspaces["/ws/fresh"]?.["purerequest.workspace.json"],
+      ).toBeDefined(),
     );
     const written = Object.keys(workspaces["/ws/fresh"] ?? {});
     expect(written.some((path) => path.endsWith("folder.json"))).toBe(true);

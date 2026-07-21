@@ -1,12 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
-
+import { describe, expect, it, vi } from "vitest";
+import type { ScriptApi } from "@/lib/scripts/model";
 // REAL adapter under test - imports quickjs-emscripten (embedded async WASM).
 // Imported before the module exists so RED is honest. If the WASM module
 // genuinely cannot initialize under vitest/jsdom these tests will error on
 // run rather than hang; that is an acceptable RED signal (see plan Risks). We
 // do NOT skip them preemptively.
 import { createQuickJsScriptRunner } from "@/lib/scripts/quickjs-runner";
-import type { ScriptApi } from "@/lib/scripts/model";
 
 function makeApi(overrides: Partial<ScriptApi> = {}): ScriptApi {
   return {
@@ -153,7 +152,12 @@ describe("createQuickJsScriptRunner", () => {
     );
     const setVar = vi.fn<NonNullable<ScriptApi["purerequest"]>["setVar"]>();
     const api = makeApi({
-      purerequest: { getVar, setVar, getProcessEnv: () => undefined, getEnvName: () => null },
+      purerequest: {
+        getVar,
+        setVar,
+        getProcessEnv: () => undefined,
+        getEnvName: () => null,
+      },
     });
     const runner = createQuickJsScriptRunner();
 

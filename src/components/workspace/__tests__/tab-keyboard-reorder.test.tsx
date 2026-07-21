@@ -1,12 +1,11 @@
-import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import { WorkspaceProvider } from "@/components/workspace/workspace-context";
+import { describe, expect, it } from "vitest";
 import { ContentHeader } from "@/components/workspace/content-header";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import { fixtureTree } from "./fixtures";
 
 async function renderHeader(openIds: string[], activeId = openIds[0]) {
@@ -53,9 +52,9 @@ describe("tab keyboard reorder (AC-009)", () => {
       .map((tab) => tab.closest("[aria-roledescription]"));
 
     expect(handles.every((h) => h !== null)).toBe(true);
-    handles.forEach((h) =>
-      expect(h).toHaveAttribute("tabindex", expect.stringMatching(/^-?\d+$/)),
-    );
+    handles.forEach((h) => {
+      expect(h).toHaveAttribute("tabindex", expect.stringMatching(/^-?\d+$/));
+    });
   });
 
   it("should pick up a tab if Space is pressed on a focused tab (KeyboardSensor wired)", async () => {

@@ -1,8 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { serialize, deserialize } from "@/lib/workspace/disk-format";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { deserialize, serialize } from "@/lib/workspace/disk-format";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const request = (
   name: string,
@@ -41,7 +41,10 @@ describe("disk-format environments round-trip", () => {
   // AC-001 - behavior: a folder config's environments array survives serialize/deserialize
   it("should round-trip a folder config environments array intact", () => {
     const environments = [
-      { name: "local", variables: [{ key: "baseUrl", value: "http://localhost:3000" }] },
+      {
+        name: "local",
+        variables: [{ key: "baseUrl", value: "http://localhost:3000" }],
+      },
       {
         name: "prod",
         variables: [
@@ -53,7 +56,10 @@ describe("disk-format environments round-trip", () => {
     const tree: TreeNode[] = [
       folder(
         "Api",
-        { variables: [{ key: "baseUrl", value: "https://default" }], environments },
+        {
+          variables: [{ key: "baseUrl", value: "https://default" }],
+          environments,
+        },
         [request("Get")],
       ),
     ];
@@ -109,7 +115,10 @@ describe("disk-format environments round-trip", () => {
   // (as an entry with empty variables) and reloads its color.
   it("should persist a colored-but-undeclared env as an empty entry and restore its color", () => {
     const tree: TreeNode[] = [
-      { ...folder("Api", {}, [request("Get")]), environmentColors: { prod: "#16a34a80" } },
+      {
+        ...folder("Api", {}, [request("Get")]),
+        environmentColors: { prod: "#16a34a80" },
+      },
     ];
 
     const loaded = expectOk(deserialize(serialize(tree))).tree.find(
@@ -123,7 +132,10 @@ describe("disk-format environments round-trip", () => {
   // AC-001 - behavior: a request-level environments array also round-trips
   it("should round-trip a request config environments array intact", () => {
     const environments = [
-      { name: "prod", variables: [{ key: "token", value: "{{process.env.JWT}}" }] },
+      {
+        name: "prod",
+        variables: [{ key: "token", value: "{{process.env.JWT}}" }],
+      },
     ];
     const tree: TreeNode[] = [request("Token", { environments })];
 
@@ -143,8 +155,14 @@ describe("disk-format environments round-trip", () => {
     files["api/folder.json"] = JSON.stringify({
       name: "Api",
       environments: [
-        { name: "local", variables: [{ key: "baseUrl", value: "http://localhost:3000" }] },
-        { name: "prod", variables: [{ key: "baseUrl", value: "https://api.example.com" }] },
+        {
+          name: "local",
+          variables: [{ key: "baseUrl", value: "http://localhost:3000" }],
+        },
+        {
+          name: "prod",
+          variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+        },
       ],
     });
     files["api/get.req.json"] = JSON.stringify({
@@ -162,8 +180,14 @@ describe("disk-format environments round-trip", () => {
     );
 
     expect(api?.config.environments).toEqual([
-      { name: "local", variables: [{ key: "baseUrl", value: "http://localhost:3000" }] },
-      { name: "prod", variables: [{ key: "baseUrl", value: "https://api.example.com" }] },
+      {
+        name: "local",
+        variables: [{ key: "baseUrl", value: "http://localhost:3000" }],
+      },
+      {
+        name: "prod",
+        variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+      },
     ]);
   });
 
@@ -189,8 +213,14 @@ describe("disk-format environments round-trip", () => {
     );
 
     expect(api?.config.environments).toEqual([
-      { name: "local", variables: [{ key: "baseUrl", value: "http://localhost:3000" }] },
-      { name: "prod", variables: [{ key: "baseUrl", value: "https://api.example.com" }] },
+      {
+        name: "local",
+        variables: [{ key: "baseUrl", value: "http://localhost:3000" }],
+      },
+      {
+        name: "prod",
+        variables: [{ key: "baseUrl", value: "https://api.example.com" }],
+      },
     ]);
     expect(api?.environmentColors).toEqual({ prod: "#dc262680" });
   });

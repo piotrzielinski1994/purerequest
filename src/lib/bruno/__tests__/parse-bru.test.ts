@@ -1,18 +1,13 @@
-import { authOf } from "@/lib/workspace/model";
-import { describe, it, expect } from "vitest";
-
+import { describe, expect, it } from "vitest";
 import { parseBru } from "@/lib/bruno/parse-bru";
+import { authOf } from "@/lib/workspace/model";
 
 describe("parseBru - method / url / headers (AC-001, AC-002)", () => {
   // AC-001, TC-001 - behavior: the method block name -> upper-cased method, its
   // `url` field -> url.
   it("should extract the upper-cased method and url from the method block", () => {
     const parsed = parseBru(
-      [
-        "post {",
-        "  url: https://api.example.com/users",
-        "}",
-      ].join("\n"),
+      ["post {", "  url: https://api.example.com/users", "}"].join("\n"),
     );
 
     expect(parsed.method).toBe("POST");
@@ -102,7 +97,9 @@ describe("parseBru - method / url / headers (AC-001, AC-002)", () => {
       { key: "Accept", value: "application/json", enabled: true },
       { key: "X-Debug", value: "1", enabled: false },
     ]);
-    expect(parsed.auth).toEqual(authOf({ active: "bearer", token: "{{token}}" }));
+    expect(parsed.auth).toEqual(
+      authOf({ active: "bearer", token: "{{token}}" }),
+    );
   });
 });
 
@@ -117,9 +114,9 @@ describe("parseBru - body (AC-003)", () => {
         "  body: json",
         "}",
         "body:json {",
-        '  {',
+        "  {",
         '    "name": "John"',
-        '  }',
+        "  }",
         "}",
       ].join("\n"),
     );
@@ -154,14 +151,9 @@ describe("parseBru - body (AC-003)", () => {
   // AC-003 - behavior: a bare `body` block (no subtype) defaults to json/verbatim.
   it("should treat a bare body block as the verbatim body", () => {
     const parsed = parseBru(
-      [
-        "post {",
-        "  url: https://x.test",
-        "}",
-        "body {",
-        "  hello",
-        "}",
-      ].join("\n"),
+      ["post {", "  url: https://x.test", "}", "body {", "  hello", "}"].join(
+        "\n",
+      ),
     );
 
     expect(parsed.body).toContain("hello");
@@ -342,12 +334,7 @@ describe("parseBru - auth (AC-004)", () => {
   // -> { type: "none" }.
   it("should map a method block auth: none with no creds block to type none", () => {
     const parsed = parseBru(
-      [
-        "get {",
-        "  url: https://x.test",
-        "  auth: none",
-        "}",
-      ].join("\n"),
+      ["get {", "  url: https://x.test", "  auth: none", "}"].join("\n"),
     );
 
     expect(parsed.auth).toEqual(authOf({ active: "none" }));
@@ -357,12 +344,7 @@ describe("parseBru - auth (AC-004)", () => {
   // -> { type: "inherit" }.
   it("should map a method block auth: inherit with no creds block to type inherit", () => {
     const parsed = parseBru(
-      [
-        "get {",
-        "  url: https://x.test",
-        "  auth: inherit",
-        "}",
-      ].join("\n"),
+      ["get {", "  url: https://x.test", "  auth: inherit", "}"].join("\n"),
     );
 
     expect(parsed.auth).toEqual(authOf({ active: "inherit" }));
@@ -405,14 +387,9 @@ describe("parseBru - params / vars / scripts (AC-005)", () => {
   // AC-005 - behavior: a bare `vars` block is the same as vars:pre-request.
   it("should map a bare vars block to the variables record", () => {
     const parsed = parseBru(
-      [
-        "get {",
-        "  url: https://x.test",
-        "}",
-        "vars {",
-        "  token: t",
-        "}",
-      ].join("\n"),
+      ["get {", "  url: https://x.test", "}", "vars {", "  token: t", "}"].join(
+        "\n",
+      ),
     );
 
     expect(parsed.variables).toEqual({ token: "t" });
@@ -456,7 +433,7 @@ describe("parseBru - lenient parsing (AC-006)", () => {
         "  url: https://x.test",
         "}",
         "tests {",
-        '  expect(res.status).to.equal(200);',
+        "  expect(res.status).to.equal(200);",
         "}",
         "assert {",
         "  res.status: eq 200",

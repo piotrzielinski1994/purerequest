@@ -1,9 +1,5 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  PANE_TABS_LIST,
-  PANE_TABS_TRIGGER,
-} from "@/components/workspace/pane-tabs";
 import { BodyPanel } from "@/components/workspace/body-panel";
 import { RequestSettingsForm } from "@/components/workspace/config-editor";
 import {
@@ -14,12 +10,16 @@ import {
   ScriptPanel,
   VarsPanel,
 } from "@/components/workspace/config-panels";
-import { PathParamsPanel } from "@/components/workspace/path-params-panel";
 import type { TokenHighlightContext } from "@/components/workspace/editable-key-value-table";
+import {
+  PANE_TABS_LIST,
+  PANE_TABS_TRIGGER,
+} from "@/components/workspace/pane-tabs";
+import { PathParamsPanel } from "@/components/workspace/path-params-panel";
 import { useWorkspace } from "@/components/workspace/workspace-context";
-import { DEFAULT_TIMEOUT_MS } from "@/lib/workspace/resolve";
-import { requestHttpVersion } from "@/lib/workspace/model";
 import type { RequestNode } from "@/lib/workspace/model";
+import { requestHttpVersion } from "@/lib/workspace/model";
+import { DEFAULT_TIMEOUT_MS } from "@/lib/workspace/resolve";
 
 const DEFAULT_TIMEOUT_RESOLVED = {
   value: DEFAULT_TIMEOUT_MS,

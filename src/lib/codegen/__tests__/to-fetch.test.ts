@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 // Imported before the module exists so RED fails on the missing feature, not a
 // typo. Once src/lib/codegen/to-fetch.ts ships these assertions pin its output.
@@ -30,7 +30,7 @@ const wire = (
 
 // A JS/JSON double-quoted string literal (handles backslash escapes), used to
 // pull an emitted literal back out of the code so JSON.parse can round-trip it.
-const STRING_LITERAL = "(\"(?:[^\"\\\\]|\\\\.)*\")";
+const STRING_LITERAL = '("(?:[^"\\\\]|\\\\.)*")';
 
 describe("toFetch - shape (AC-009)", () => {
   // AC-009, TC-001 - behavior: POST + JSON body + 2 headers emits a fetch call

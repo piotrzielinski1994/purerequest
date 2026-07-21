@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { tokenizeConsoleLine } from "@/components/workspace/console-line";
 
@@ -20,7 +20,7 @@ describe("tokenizeConsoleLine", () => {
   });
 
   it("should color a number value", () => {
-    expect(kinds('{"asd":2}')).toContain("key:\"asd\"");
+    expect(kinds('{"asd":2}')).toContain('key:"asd"');
     expect(kinds('{"asd":2}')).toContain("number:2");
   });
 
@@ -32,7 +32,10 @@ describe("tokenizeConsoleLine", () => {
 
   it("should keep the [pre] prefix and punctuation as plain", () => {
     const segs = tokenizeConsoleLine('[pre] {"a":1}');
-    const plain = segs.filter((s) => s.kind === "plain").map((s) => s.text).join("");
+    const plain = segs
+      .filter((s) => s.kind === "plain")
+      .map((s) => s.text)
+      .join("");
 
     expect(plain).toContain("[pre] ");
     expect(plain).toContain("{");
@@ -49,7 +52,11 @@ describe("tokenizeConsoleLine", () => {
   it("should reassemble to the original line", () => {
     const line = '[post] {"id":7,"ok":true,"name":"x"}';
 
-    expect(tokenizeConsoleLine(line).map((s) => s.text).join("")).toBe(line);
+    expect(
+      tokenizeConsoleLine(line)
+        .map((s) => s.text)
+        .join(""),
+    ).toBe(line);
   });
 
   it("should handle an escaped quote inside a string", () => {

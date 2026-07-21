@@ -1,8 +1,7 @@
-import { describe, it, expect } from "vitest";
-
-import { moveNodes } from "@/lib/workspace/move";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { describe, expect, it } from "vitest";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { moveNodes } from "@/lib/workspace/move";
 
 const request = (id: string): RequestNode => ({
   kind: "request",
@@ -38,11 +37,7 @@ const findFolder = (nodes: TreeNode[], id: string): FolderNode => {
 describe("moveNodes reparenting a set", () => {
   // AC-005 - behavior: two root nodes both reparent into a folder.
   it("should move every dragged node into the target folder", () => {
-    const tree: TreeNode[] = [
-      request("r1"),
-      request("r2"),
-      folder("dst", []),
-    ];
+    const tree: TreeNode[] = [request("r1"), request("r2"), folder("dst", [])];
 
     const result = moveNodes(tree, ["r1", "r2"], { parentId: "dst", index: 0 });
 
@@ -106,10 +101,7 @@ describe("moveNodes guards", () => {
 
   // AC-007 - behavior: dropping the selection into one of its own dragged folders is a cycle.
   it("should return the original tree unchanged if dropped into a dragged folder", () => {
-    const tree: TreeNode[] = [
-      request("r1"),
-      folder("f1", [request("c1")]),
-    ];
+    const tree: TreeNode[] = [request("r1"), folder("f1", [request("c1")])];
 
     const result = moveNodes(tree, ["r1", "f1"], { parentId: "f1", index: 0 });
 
@@ -138,11 +130,7 @@ describe("moveNodes guards", () => {
 describe("moveNodes purity", () => {
   // side-effect-contract - input is not mutated.
   it("should not mutate the input tree", () => {
-    const tree: TreeNode[] = [
-      request("r1"),
-      request("r2"),
-      folder("dst", []),
-    ];
+    const tree: TreeNode[] = [request("r1"), request("r2"), folder("dst", [])];
     const snapshot = structuredClone(tree);
 
     moveNodes(tree, ["r1", "r2"], { parentId: "dst", index: 0 });

@@ -11,9 +11,9 @@ function shellQuote(value: string): string {
 // already an Authorization header on the wire request, so it is not re-emitted.
 export function toCurl(req: HttpRequest): string {
   const parts = [`curl -X ${req.method} ${shellQuote(req.url)}`];
-  req.headers.forEach((header) =>
-    parts.push(`-H ${shellQuote(`${header.key}: ${header.value}`)}`),
-  );
+  req.headers.forEach((header) => {
+    parts.push(`-H ${shellQuote(`${header.key}: ${header.value}`)}`);
+  });
   if (req.body !== null && req.body !== "") {
     parts.push(`--data-raw ${shellQuote(req.body)}`);
   }

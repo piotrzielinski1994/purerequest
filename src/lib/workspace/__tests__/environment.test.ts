@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   listEnvironmentNames,
@@ -6,8 +6,8 @@ import {
   parseDotenv,
   setDotenvValue,
 } from "@/lib/workspace/environment";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const request = (
   id: string,
@@ -92,15 +92,25 @@ describe("listEnvironmentNames", () => {
       folder(
         "root",
         "Root",
-        { environments: [{ name: "prod", variables: [{ key: "a", value: "1" }] }] },
+        {
+          environments: [
+            { name: "prod", variables: [{ key: "a", value: "1" }] },
+          ],
+        },
         [
           folder(
             "sub",
             "Sub",
-            { environments: [{ name: "prod", variables: [{ key: "a", value: "2" }] }] },
+            {
+              environments: [
+                { name: "prod", variables: [{ key: "a", value: "2" }] },
+              ],
+            },
             [
               request("req", "Req", {
-                environments: [{ name: "prod", variables: [{ key: "a", value: "3" }] }],
+                environments: [
+                  { name: "prod", variables: [{ key: "a", value: "3" }] },
+                ],
               }),
             ],
           ),
@@ -134,7 +144,9 @@ describe("listEnvironmentNames", () => {
   it("should include names defined on a request-level environments block", () => {
     const tree: TreeNode[] = [
       request("req", "Req", {
-        environments: [{ name: "onlyHere", variables: [{ key: "a", value: "1" }] }],
+        environments: [
+          { name: "onlyHere", variables: [{ key: "a", value: "1" }] },
+        ],
       }),
     ];
 

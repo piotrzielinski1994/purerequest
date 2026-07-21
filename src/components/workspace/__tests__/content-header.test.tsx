@@ -1,13 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, within, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
-import { SidebarTree } from "@/components/workspace/sidebar-tree";
+import { describe, expect, it, vi } from "vitest";
 import { ContentHeader } from "@/components/workspace/content-header";
+import { SidebarTree } from "@/components/workspace/sidebar-tree";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import { fixtureTree } from "./fixtures";
 
 function EditUrlButton({ id }: { id: string }) {

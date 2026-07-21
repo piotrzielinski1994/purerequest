@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 // Imported before it exists: the suite must fail RED on the missing module, not
 // on a typo. Once to-codemirror-key.ts ships these assertions pin the bridge.

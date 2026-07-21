@@ -1,12 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { describe, expect, it, vi } from "vitest";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import type { TreeNode } from "@/lib/workspace/model";
 import { bodyFixtureTree } from "./fixtures";
 

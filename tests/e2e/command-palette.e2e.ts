@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test.describe("command palette", () => {
   test.beforeEach(async ({ page }) => {
@@ -18,7 +18,10 @@ test.describe("command palette", () => {
     await expect(palette).toBeVisible();
 
     await palette.fill("New request");
-    await page.getByRole("option", { name: /New request/ }).first().click();
+    await page
+      .getByRole("option", { name: /New request/ })
+      .first()
+      .click();
 
     // A new untitled request tab opens (the new node focuses its URL input).
     await expect(page.getByRole("textbox", { name: "URL" })).toBeFocused();

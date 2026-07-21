@@ -1,12 +1,11 @@
-import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import { WorkspaceProvider } from "@/components/workspace/workspace-context";
+import { afterEach, describe, expect, it } from "vitest";
 import { Console } from "@/components/workspace/console";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import { ThemeProvider } from "@/lib/theme/theme-context";
 import { fixtureTree } from "./fixtures";
 
@@ -114,7 +113,9 @@ describe("Console", () => {
     const region = screen.getByRole("region", { name: /console/i });
     expect(within(region).getAllByRole("listitem")).toHaveLength(2);
 
-    const clear = within(region).getByRole("button", { name: /clear console/i });
+    const clear = within(region).getByRole("button", {
+      name: /clear console/i,
+    });
     expect(clear.querySelector("svg")).not.toBeNull();
     await user.click(clear);
 

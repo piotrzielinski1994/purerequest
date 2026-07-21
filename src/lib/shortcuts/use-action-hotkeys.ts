@@ -1,8 +1,8 @@
-import { useHotkeys, type UseHotkeyDefinition } from "@tanstack/react-hotkeys";
 import type { Hotkey } from "@tanstack/hotkeys";
+import { type UseHotkeyDefinition, useHotkeys } from "@tanstack/react-hotkeys";
 import { useSettings } from "@/lib/settings/settings-context";
-import { resolveShortcuts } from "@/lib/shortcuts/resolve";
 import type { ShortcutActionId } from "@/lib/shortcuts/registry";
+import { resolveShortcuts } from "@/lib/shortcuts/resolve";
 
 export function useActionHotkeys(
   handlers: Partial<Record<ShortcutActionId, () => void>>,

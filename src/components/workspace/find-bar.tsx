@@ -1,5 +1,5 @@
-import { useEffect, useRef, type KeyboardEvent } from "react";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { type KeyboardEvent, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 // Shared presentational find bar - reused (styled) by the CodeMirror search panel.

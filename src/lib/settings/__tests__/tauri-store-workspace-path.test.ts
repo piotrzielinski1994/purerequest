@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // The Tauri settings store defaults `workspacePath` to a collection dir under the
 // app data dir (appDataDir/collection) when nothing is persisted yet, so a fresh

@@ -1,8 +1,6 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import {
   DEFAULT_SETTINGS,
@@ -11,6 +9,7 @@ import {
   type ThemeColors,
   type ThemeMode,
 } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import { ThemeProvider, useTheme } from "@/lib/theme/theme-context";
 import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
 

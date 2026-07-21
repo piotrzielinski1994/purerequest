@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { toCurl } from "@/lib/curl/to-curl";
 import type { HttpRequest } from "@/lib/http/model";
@@ -48,7 +48,7 @@ describe("toCurl - shape (AC-001)", () => {
       "curl -X POST 'https://api.example.com/widgets?page=2' \\\n" +
         "  -H 'Authorization: Bearer abc123' \\\n" +
         "  -H 'Content-Type: application/json' \\\n" +
-        "  --data-raw '{\"name\":\"foo\"}'",
+        '  --data-raw \'{"name":"foo"}\'',
     );
   });
 

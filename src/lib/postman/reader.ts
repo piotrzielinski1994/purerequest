@@ -9,7 +9,12 @@ export type PostmanCollectionReader = {
 };
 
 function baseName(path: string): string {
-  return path.replace(/[/\\]+$/, "").split(/[/\\]/).pop() ?? path;
+  return (
+    path
+      .replace(/[/\\]+$/, "")
+      .split(/[/\\]/)
+      .pop() ?? path
+  );
 }
 
 function dirName(path: string): string {

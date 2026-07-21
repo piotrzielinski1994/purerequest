@@ -1,14 +1,13 @@
-import { describe, it, expect } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import { WorkspaceProvider } from "@/components/workspace/workspace-context";
+import { describe, expect, it } from "vitest";
 import { Main } from "@/components/workspace/main";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
-import { fixtureTree } from "./fixtures";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
+import { fixtureTree } from "./fixtures";
 
 function renderMain(client: FakeHttpClient, initialActiveRequestId?: string) {
   const store = createInMemorySettingsStore({

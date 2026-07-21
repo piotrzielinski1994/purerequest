@@ -1,12 +1,12 @@
-import {
-  newQuickJSAsyncWASMModuleFromVariant,
-  type QuickJSAsyncWASMModule,
-} from "quickjs-emscripten-core";
 // Single-file BROWSER variant: the WASM is embedded (base64) in the JS module,
 // so nothing is fetched at runtime. The default `wasmfile` variant ships a
 // separate .wasm asset the Tauri webview fails to load (CompileError: module
 // doesn't start with '\0asm'), so this variant is mandatory for the webview.
 import releaseVariant from "@jitl/quickjs-singlefile-browser-release-asyncify";
+import {
+  newQuickJSAsyncWASMModuleFromVariant,
+  type QuickJSAsyncWASMModule,
+} from "quickjs-emscripten-core";
 import {
   SCRIPT_TIMEOUT_MS,
   type ScriptApi,
@@ -118,8 +118,10 @@ type Dispatch = (path: string, args: unknown[]) => unknown;
 function buildDispatch(api: ScriptApi): Dispatch {
   const table: Record<string, (args: unknown[]) => unknown> = {
     "purerequest.getVar": (a) => api.purerequest.getVar(String(a[0])),
-    "purerequest.setVar": (a) => api.purerequest.setVar(String(a[0]), String(a[1])),
-    "purerequest.getProcessEnv": (a) => api.purerequest.getProcessEnv(String(a[0])),
+    "purerequest.setVar": (a) =>
+      api.purerequest.setVar(String(a[0]), String(a[1])),
+    "purerequest.getProcessEnv": (a) =>
+      api.purerequest.getProcessEnv(String(a[0])),
     "purerequest.getEnvName": () => api.purerequest.getEnvName(),
     "console.log": (a) => api.console.log(...a),
     "console.info": (a) => api.console.info(...a),
@@ -178,7 +180,9 @@ export function createQuickJsScriptRunner(): ScriptRunner {
           } catch {
             result = undefined;
           }
-          return context.newString(result === undefined ? "null" : JSON.stringify(result));
+          return context.newString(
+            result === undefined ? "null" : JSON.stringify(result),
+          );
         });
         context.setProp(context.global, "__bridge", bridge);
         bridge.dispose();

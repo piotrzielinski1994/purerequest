@@ -1,15 +1,18 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { brunoToTree } from "@/lib/bruno/bruno-to-tree";
 import { parseBru } from "@/lib/bruno/parse-bru";
-import { treeToBrunoFiles, type BrunoExportRoot } from "@/lib/bruno/tree-to-bruno";
+import {
+  type BrunoExportRoot,
+  treeToBrunoFiles,
+} from "@/lib/bruno/tree-to-bruno";
+import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 import {
   authOf,
   emptyAuth,
   emptyBody,
   emptyParams,
 } from "@/lib/workspace/model";
-import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 // ---- fixture builders (realistic nodes via model helpers + overrides) --------
 
@@ -39,7 +42,7 @@ function folder(overrides: Partial<FolderNode>): FolderNode {
 }
 
 function asFolder(node: TreeNode | undefined): FolderNode {
-  if (!node || node.kind !== "folder") {
+  if (node?.kind !== "folder") {
     throw new Error("expected a folder node");
   }
   return node;
@@ -70,7 +73,9 @@ describe("treeToBrunoFiles - bruno.json + a single request (AC-001, AC-002)", ()
           method: "GET",
           url: "https://api.example.com/users",
           config: {
-            headers: [{ key: "Accept", value: "application/json", enabled: true }],
+            headers: [
+              { key: "Accept", value: "application/json", enabled: true },
+            ],
           },
         }),
       ],
@@ -160,7 +165,11 @@ describe("treeToBrunoFiles - body types + selectors (AC-004)", () => {
         req({
           name: "Json Req",
           method: "POST",
-          body: { ...emptyBody(), active: "json", types: { ...emptyBody().types, json: '{"id":1}' } },
+          body: {
+            ...emptyBody(),
+            active: "json",
+            types: { ...emptyBody().types, json: '{"id":1}' },
+          },
         }),
         req({
           name: "Form Req",
@@ -194,7 +203,10 @@ describe("treeToBrunoFiles - body types + selectors (AC-004)", () => {
             active: "graphql",
             types: {
               ...emptyBody().types,
-              graphql: { query: "query { me { id } }", variables: '{ "x": 1 }' },
+              graphql: {
+                query: "query { me { id } }",
+                variables: '{ "x": 1 }',
+              },
             },
           },
         }),
@@ -335,7 +347,9 @@ describe("treeToBrunoFiles - environments + dotenv (AC-007)", () => {
     expect(files["environments/dev.bru"]).toBeDefined();
     expect(files["environments/dev.bru"]).toContain("vars {");
     expect(files["environments/dev.bru"]).toContain("K: 1");
-    expect(parseBru(files["environments/dev.bru"]).variables).toEqual({ K: "1" });
+    expect(parseBru(files["environments/dev.bru"]).variables).toEqual({
+      K: "1",
+    });
 
     expect(files[".env"]).toBe("K=V");
   });

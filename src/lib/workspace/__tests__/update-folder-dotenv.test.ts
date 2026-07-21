@@ -1,12 +1,11 @@
-import { describe, it, expect } from "vitest";
-
+import { describe, expect, it } from "vitest";
+import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 // Imported even though it does not exist yet: the test must fail on the missing
 // feature (the pure helper), not a typo. updateFolderDotenv mirrors
 // updateNodeConfig - it replaces a single folder's dotenv and leaves the rest
 // of the tree value-equal and structurally intact.
 import { updateFolderDotenv } from "@/lib/workspace/update-folder-dotenv";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
-import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (id: string): RequestNode => ({
   kind: "request",

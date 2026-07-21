@@ -1,14 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 // Imported before the module exists so RED fails on the missing feature.
 import {
   CODE_TARGETS,
-  codeTargetById,
-  type CodeTargetId,
   type CodeTarget,
+  type CodeTargetId,
+  codeTargetById,
 } from "@/lib/codegen/targets";
-import { toCurl } from "@/lib/curl/to-curl";
 import { toFetch } from "@/lib/codegen/to-fetch";
+import { toCurl } from "@/lib/curl/to-curl";
 import type { HttpRequest } from "@/lib/http/model";
 import type { Auth, HttpMethod, KeyValue } from "@/lib/workspace/model";
 import { authOf } from "@/lib/workspace/model";
@@ -92,7 +92,7 @@ describe("CODE_TARGETS - generate strategies (AC-008)", () => {
 
 describe("codeTargetById - lookup helper", () => {
   // behavior: resolves a known id to its target.
-  it("should return the curl target for the id \"curl\"", () => {
+  it('should return the curl target for the id "curl"', () => {
     const target = codeTargetById("curl");
 
     expect(target.id).toBe("curl");
@@ -100,7 +100,7 @@ describe("codeTargetById - lookup helper", () => {
   });
 
   // behavior: resolves the fetch id to the fetch target.
-  it("should return the fetch target for the id \"fetch\"", () => {
+  it('should return the fetch target for the id "fetch"', () => {
     const target = codeTargetById("fetch");
 
     expect(target.id).toBe("fetch");

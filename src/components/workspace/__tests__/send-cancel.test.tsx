@@ -1,13 +1,12 @@
-import { describe, it, expect } from "vitest";
-import { render, screen, within, act, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
-import { UrlBar } from "@/components/workspace/url-bar";
+import { describe, expect, it } from "vitest";
 import { ResponsePane } from "@/components/workspace/response-pane";
+import { UrlBar } from "@/components/workspace/url-bar";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import type {
   HttpClient,
   HttpRequest,
@@ -146,9 +145,7 @@ describe("UrlBar Stop control", () => {
       expect(screen.getByTestId("active-state")).toHaveTextContent("idle"),
     );
     expect(screen.queryByText(/__cancelled__/)).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(/error|failed/i),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/error|failed/i)).not.toBeInTheDocument();
   });
 });
 

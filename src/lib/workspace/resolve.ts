@@ -1,10 +1,10 @@
-import type { Auth, ScriptConfig, TreeNode } from "@/lib/workspace/model";
-import { emptyAuth } from "@/lib/workspace/model";
 import {
   listEnvironmentNames,
-  parseDotenv,
   type ProcessEnv,
+  parseDotenv,
 } from "@/lib/workspace/environment";
+import type { Auth, ScriptConfig, TreeNode } from "@/lib/workspace/model";
+import { emptyAuth } from "@/lib/workspace/model";
 
 export type Provenance = { scopeId: string; scopeName: string };
 
@@ -107,12 +107,14 @@ export function environmentNamesForScope(
   }
   const path = findScopePath(tree, id, []) ?? [];
   const names = path.reduce<Set<string>>((acc, scope) => {
-    (scope.config.environments ?? []).forEach((env) => acc.add(env.name));
+    (scope.config.environments ?? []).forEach((env) => {
+      acc.add(env.name);
+    });
     // An env a folder has COLORED but not declared in config.environments is still
     // in scope - coloring it is a per-folder signal the folder cares about it.
-    Object.keys(scope.environmentColors ?? {}).forEach((name) =>
-      acc.add(name),
-    );
+    Object.keys(scope.environmentColors ?? {}).forEach((name) => {
+      acc.add(name);
+    });
     return acc;
   }, new Set());
   return [...names].sort();
@@ -127,12 +129,13 @@ export function environmentOrigins(
   id: string,
 ): Record<string, string> {
   const path = findScopePath(tree, id, []) ?? [];
-  return path.reduce<Record<string, string>>((acc, scope) => {
-    return (scope.config.environments ?? []).reduce(
-      (inner, env) => ({ ...inner, [env.name]: scope.name }),
-      acc,
-    );
-  }, {});
+  return Object.fromEntries(
+    path.flatMap((scope) =>
+      (scope.config.environments ?? []).map(
+        (env) => [env.name, scope.name] as const,
+      ),
+    ),
+  );
 }
 
 function provenanceOf(scope: Scope): Provenance {
@@ -143,62 +146,61 @@ function resolveVariables(
   path: Scope[],
   environment: string | undefined,
 ): Record<string, ResolvedValue<string>> {
-  return path.reduce<Record<string, ResolvedValue<string>>>((acc, scope) => {
-    const envRows =
-      environment !== undefined
-        ? scope.config.environments?.find((e) => e.name === environment)
-            ?.variables
-        : undefined;
-    const envFrom: Provenance = {
-      scopeId: `${scope.id}:${environment}`,
-      scopeName: `${scope.name} (${environment})`,
-    };
-    // Env block first, plain vars second (folded onto withEnv), so a scope's plain
-    // variable WINS over that same scope's active-environment value for the same key.
-    const withEnv = (envRows ?? [])
-      .filter((row) => row.enabled !== false)
-      .reduce(
-        (inner, { key, value }) => ({
-          ...inner,
-          [key]: { value, from: envFrom, origin: "environment" as const },
-        }),
-        acc,
-      );
-    const from = provenanceOf(scope);
-    return (scope.config.variables ?? [])
-      .filter((row) => row.enabled !== false)
-      .reduce(
-        (inner, { key, value }) => ({
-          ...inner,
-          [key]: { value, from, origin: "variable" as const },
-        }),
-        withEnv,
-      );
-  }, {});
+  return Object.fromEntries(
+    path.flatMap((scope) => {
+      const envRows =
+        environment !== undefined
+          ? scope.config.environments?.find((e) => e.name === environment)
+              ?.variables
+          : undefined;
+      const envFrom: Provenance = {
+        scopeId: `${scope.id}:${environment}`,
+        scopeName: `${scope.name} (${environment})`,
+      };
+      // Env block first, plain vars second, so a scope's plain variable WINS over
+      // that same scope's active-environment value for the same key.
+      const envEntries = (envRows ?? [])
+        .filter((row) => row.enabled !== false)
+        .map(
+          ({ key, value }) =>
+            [
+              key,
+              { value, from: envFrom, origin: "environment" as const },
+            ] as const,
+        );
+      const from = provenanceOf(scope);
+      const varEntries = (scope.config.variables ?? [])
+        .filter((row) => row.enabled !== false)
+        .map(
+          ({ key, value }) =>
+            [key, { value, from, origin: "variable" as const }] as const,
+        );
+      return [...envEntries, ...varEntries];
+    }),
+  );
 }
 
 function resolveHeaders(path: Scope[]): Record<string, ResolvedValue<string>> {
-  const byLowerName = path.reduce<
-    Record<string, { name: string; value: ResolvedValue<string> }>
-  >((acc, scope) => {
-    const headers = scope.config.headers;
-    if (!headers) {
-      return acc;
-    }
-    const from = provenanceOf(scope);
-    return headers
-      .filter((header) => header.enabled !== false)
-      .reduce(
-        (inner, { key, value }) => ({
-          ...inner,
-          [key.toLowerCase()]: { name: key, value: { value, from } },
-        }),
-        acc,
-      );
-  }, {});
-  return Object.values(byLowerName).reduce(
-    (acc, { name, value }) => ({ ...acc, [name]: value }),
-    {},
+  const byLowerName: Record<
+    string,
+    { name: string; value: ResolvedValue<string> }
+  > = Object.fromEntries(
+    path.flatMap((scope) => {
+      const headers = scope.config.headers;
+      if (!headers) {
+        return [];
+      }
+      const from = provenanceOf(scope);
+      return headers
+        .filter((header) => header.enabled !== false)
+        .map(
+          ({ key, value }) =>
+            [key.toLowerCase(), { name: key, value: { value, from } }] as const,
+        );
+    }),
+  );
+  return Object.fromEntries(
+    Object.values(byLowerName).map(({ name, value }) => [name, value] as const),
   );
 }
 
@@ -211,7 +213,10 @@ function resolveAuth(path: Scope[]): ResolvedValue<Auth> {
         scope.config.auth.active !== "inherit",
     );
   if (!nearest || nearest.config.auth === undefined) {
-    return { value: { ...emptyAuth(), active: "none" }, from: DEFAULT_PROVENANCE };
+    return {
+      value: { ...emptyAuth(), active: "none" },
+      from: DEFAULT_PROVENANCE,
+    };
   }
   return { value: nearest.config.auth, from: provenanceOf(nearest) };
 }
@@ -260,19 +265,18 @@ function foldProcessEnv(
   rootEnv: ProcessEnv,
 ): ProcessEnvProvenance {
   const path = findScopePath(tree, requestId, []) ?? [];
-  const seeded = Object.entries(rootEnv).reduce<ProcessEnvProvenance>(
-    (acc, [key, value]) => ({ ...acc, [key]: { value, scopeId: null } }),
-    {},
+  const seeded = Object.entries(rootEnv).map(
+    ([key, value]) => [key, { value, scopeId: null }] as const,
   );
-  return path.reduce<ProcessEnvProvenance>((acc, scope) => {
+  const scoped = path.flatMap((scope) => {
     if (scope.dotenv === undefined) {
-      return acc;
+      return [];
     }
-    return Object.entries(parseDotenv(scope.dotenv)).reduce(
-      (inner, [key, value]) => ({ ...inner, [key]: { value, scopeId: scope.id } }),
-      acc,
+    return Object.entries(parseDotenv(scope.dotenv)).map(
+      ([key, value]) => [key, { value, scopeId: scope.id }] as const,
     );
-  }, seeded);
+  });
+  return Object.fromEntries([...seeded, ...scoped]);
 }
 
 export function resolveProcessEnv(

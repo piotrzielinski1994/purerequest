@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 // Drives the `npm run dev` browser build (isDevBrowser: in-memory fs + fake
 // HTTP), which seeds the demo workspace. These specs cover the keyboard paths

@@ -1,18 +1,17 @@
-import { describe, it, expect } from "vitest";
-
+import { describe, expect, it } from "vitest";
+import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import {
-  locateNode,
-  findNode,
   ancestorIds,
   dropTarget,
-  rawDropTarget,
-  projectDropPosition,
   emptyZoneId,
+  findNode,
+  locateNode,
   parseEmptyZoneId,
+  projectDropPosition,
   ROOT_ZONE_ID,
+  rawDropTarget,
 } from "@/lib/workspace/tree-locate";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
-import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
 
 const request = (id: string): RequestNode => ({
   kind: "request",

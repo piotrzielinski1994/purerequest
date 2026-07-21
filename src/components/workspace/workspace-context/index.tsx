@@ -1,51 +1,34 @@
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
-import type { RequestNode, TreeNode } from "@/lib/workspace/model";
-import {
-  accentColorFor,
-  environmentNamesForScope,
-  resolveConfig,
-  resolveProcessEnv,
-} from "@/lib/workspace/resolve";
-import type { MoveTarget } from "@/lib/workspace/move";
-import type { DraftTab, PanelGroupKey } from "@/lib/settings/settings";
 import { SETTINGS_TAB_ID } from "@/components/workspace/pane-tabs";
-import type { WriteResult } from "@/lib/workspace/fs";
-import { createFakeHttpClient } from "@/lib/http/fake-client";
-import type { HttpClient, ResponseState } from "@/lib/http/model";
-import type { ScriptRunner } from "@/lib/scripts/model";
-import { createFakeScriptRunner } from "@/lib/scripts/fake-runner";
+import { createConfigSaves } from "@/components/workspace/workspace-context/config-saves";
+import { createEditors } from "@/components/workspace/workspace-context/editors";
+import { createExports } from "@/components/workspace/workspace-context/exports";
+import { createImports } from "@/components/workspace/workspace-context/imports";
+import { createPersist } from "@/components/workspace/workspace-context/persist";
+import { createRequestEdits } from "@/components/workspace/workspace-context/request-edits";
+import { createSelection } from "@/components/workspace/workspace-context/selection";
+import { createSend } from "@/components/workspace/workspace-context/send";
+import { createTabs } from "@/components/workspace/workspace-context/tabs";
+import { createTokens } from "@/components/workspace/workspace-context/tokens";
+import { createTreeCrud } from "@/components/workspace/workspace-context/tree-crud";
 import {
-  createNoopBrunoWriter,
-  type BrunoExportWriter,
-} from "@/lib/bruno/writer";
-import {
-  createNoopPostmanWriter,
-  type PostmanExportWriter,
-} from "@/lib/postman/writer";
-import {
-  createNoopOpenapiWriter,
-  type OpenapiExportWriter,
-} from "@/lib/openapi/writer";
-import { parseDotenv } from "@/lib/workspace/environment";
-import { findNode } from "@/lib/workspace/tree-locate";
-import {
-  indexRequests,
-  isOverrideFieldDirty,
   type ActiveEditor,
   type EditTarget,
+  indexRequests,
+  isOverrideFieldDirty,
   type PanelFocusTarget,
+  type PanelGroupHandle,
   type ParamsReveal,
   type PendingClose,
-  type PanelGroupHandle,
   type PendingDelete,
   type RequestOverride,
   type RequestTab,
@@ -54,22 +37,39 @@ import {
   type WorkspaceContextValue,
   type WorkspaceInternals,
 } from "@/components/workspace/workspace-context/types";
-import { createPersist } from "@/components/workspace/workspace-context/persist";
-import { createSelection } from "@/components/workspace/workspace-context/selection";
-import { createConfigSaves } from "@/components/workspace/workspace-context/config-saves";
-import { createTabs } from "@/components/workspace/workspace-context/tabs";
-import { createRequestEdits } from "@/components/workspace/workspace-context/request-edits";
-import { createTreeCrud } from "@/components/workspace/workspace-context/tree-crud";
-import { createSend } from "@/components/workspace/workspace-context/send";
-import { createImports } from "@/components/workspace/workspace-context/imports";
-import { createExports } from "@/components/workspace/workspace-context/exports";
-import { createEditors } from "@/components/workspace/workspace-context/editors";
-import { createTokens } from "@/components/workspace/workspace-context/tokens";
+import {
+  type BrunoExportWriter,
+  createNoopBrunoWriter,
+} from "@/lib/bruno/writer";
+import { createFakeHttpClient } from "@/lib/http/fake-client";
+import type { HttpClient, ResponseState } from "@/lib/http/model";
+import {
+  createNoopOpenapiWriter,
+  type OpenapiExportWriter,
+} from "@/lib/openapi/writer";
+import {
+  createNoopPostmanWriter,
+  type PostmanExportWriter,
+} from "@/lib/postman/writer";
+import { createFakeScriptRunner } from "@/lib/scripts/fake-runner";
+import type { ScriptRunner } from "@/lib/scripts/model";
+import type { DraftTab, PanelGroupKey } from "@/lib/settings/settings";
+import { parseDotenv } from "@/lib/workspace/environment";
+import type { WriteResult } from "@/lib/workspace/fs";
+import type { RequestNode, TreeNode } from "@/lib/workspace/model";
+import type { MoveTarget } from "@/lib/workspace/move";
+import {
+  accentColorFor,
+  environmentNamesForScope,
+  resolveConfig,
+  resolveProcessEnv,
+} from "@/lib/workspace/resolve";
+import { findNode } from "@/lib/workspace/tree-locate";
 
 export type {
   ActiveEditor,
-  EditTarget,
   EditorScope,
+  EditTarget,
   ParamsReveal,
   PendingClose,
   PendingDelete,
@@ -274,7 +274,9 @@ export function WorkspaceProvider({
   const requestsById = useMemo(() => {
     const byId = indexRequests(tree);
     // Session drafts resolve like on-disk requests for the open tab / panes.
-    draftRequests.forEach(({ request }, id) => byId.set(id, request));
+    draftRequests.forEach(({ request }, id) => {
+      byId.set(id, request);
+    });
     requestOverrides.forEach((override, id) => {
       const base = byId.get(id);
       if (base) {

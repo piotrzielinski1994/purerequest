@@ -38,7 +38,12 @@ async function collect(
 }
 
 function baseName(path: string): string {
-  return path.replace(/[/\\]+$/, "").split(/[/\\]/).pop() ?? path;
+  return (
+    path
+      .replace(/[/\\]+$/, "")
+      .split(/[/\\]/)
+      .pop() ?? path
+  );
 }
 
 export function createTauriBrunoReader(): BrunoCollectionReader {

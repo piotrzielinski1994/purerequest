@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 // Imported before the module exists so RED is honest (module-not-found, not a
 // typo). The fake runner is the seam the send-loop tests drive: it runs an

@@ -1,8 +1,8 @@
 import {
+  type CollectionWriter,
   createCollectionWriter,
   createNoopCollectionWriter,
   createTauriCollectionWriter,
-  type CollectionWriter,
 } from "@/lib/export/collection-writer";
 
 export type BrunoExportWriter = CollectionWriter;

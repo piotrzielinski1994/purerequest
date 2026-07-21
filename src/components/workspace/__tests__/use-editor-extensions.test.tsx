@@ -1,26 +1,24 @@
-import { describe, it, expect, afterEach } from "vitest";
-import type { ReactElement } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
-import { EditorView } from "@codemirror/view";
-import { EditorState, type Extension } from "@codemirror/state";
 import { openSearchPanel } from "@codemirror/search";
-
-import { SettingsProvider } from "@/lib/settings/settings-context";
-import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
-import {
-  DEFAULT_SETTINGS,
-  type ThemeColors,
-  type ThemeMode,
-} from "@/lib/settings/settings";
-import { ThemeProvider } from "@/lib/theme/theme-context";
-import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
-
+import { EditorState, type Extension } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { render, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { afterEach, describe, expect, it } from "vitest";
 // Stage 3 (Themes): a useEditorExtensions() hook reads useTheme()
 // (effectiveColors + effectiveMode) and returns MEMOIZED extension sets for the
 // 6 CodeMirror consumers, keyed on the effective editor colors + isDark so CM
 // reconfigures on a theme change. The hook module doesn't exist yet -> RED on
 // the missing export.
 import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
+import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
+import {
+  DEFAULT_SETTINGS,
+  type ThemeColors,
+  type ThemeMode,
+} from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
+import { ThemeProvider } from "@/lib/theme/theme-context";
+import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
 
 // jsdom has no matchMedia; ThemeProvider's layout effect subscribes to it. Stub
 // it (copied from the Stage 1 theme-context test) so the provider mounts cleanly.
@@ -71,7 +69,10 @@ function renderHook(opts: {
     ...DEFAULT_SETTINGS,
     theme: {
       mode: opts.mode,
-      colors: opts.colors ?? { light: { tokens: {}, editor: {} }, dark: { tokens: {}, editor: {} } },
+      colors: opts.colors ?? {
+        light: { tokens: {}, editor: {} },
+        dark: { tokens: {}, editor: {} },
+      },
     },
   });
 
@@ -121,7 +122,13 @@ describe("useEditorExtensions", () => {
       <SettingsProvider
         store={createInMemorySettingsStore({
           ...DEFAULT_SETTINGS,
-          theme: { mode: "dark", colors: { light: { tokens: {}, editor: {} }, dark: { tokens: {}, editor: {} } } },
+          theme: {
+            mode: "dark",
+            colors: {
+              light: { tokens: {}, editor: {} },
+              dark: { tokens: {}, editor: {} },
+            },
+          },
         })}
       >
         <ThemeProvider>

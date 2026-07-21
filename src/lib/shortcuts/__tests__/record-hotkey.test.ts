@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
+import { type Hotkey, matchesKeyboardEvent } from "@tanstack/hotkeys";
 import { act, renderHook } from "@testing-library/react";
-import { matchesKeyboardEvent, type Hotkey } from "@tanstack/hotkeys";
+import { describe, expect, it, vi } from "vitest";
 
 import { eventToHotkey, useRecordHotkey } from "@/lib/shortcuts/record-hotkey";
 

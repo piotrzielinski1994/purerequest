@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 const MAX_SCROLL_SPEED_PX_PER_S = 90;
 

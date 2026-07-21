@@ -1,12 +1,11 @@
-import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { describe, expect, it } from "vitest";
 import { FolderPane } from "@/components/workspace/folder-pane";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import type { TreeNode } from "@/lib/workspace/model";
 
 const tree: TreeNode[] = [

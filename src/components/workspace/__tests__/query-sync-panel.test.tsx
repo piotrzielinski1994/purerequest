@@ -1,13 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { describe, expect, it, vi } from "vitest";
 import { RequestPane } from "@/components/workspace/request-pane";
 import { UrlBar } from "@/components/workspace/url-bar";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import type { KeyValue, RequestNode, TreeNode } from "@/lib/workspace/model";
 import { emptyBody } from "@/lib/workspace/model";
 
@@ -75,7 +74,7 @@ const savedRequest = (onTreeChange: ReturnType<typeof vi.fn>): RequestNode => {
   const calls = onTreeChange.mock.calls;
   const tree = calls[calls.length - 1][0] as TreeNode[];
   const node = tree.find((n) => n.id === "req-1");
-  if (!node || node.kind !== "request") {
+  if (node?.kind !== "request") {
     throw new Error("req-1 not found in persisted tree");
   }
   return node;

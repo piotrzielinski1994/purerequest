@@ -1,10 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 import {
-  WorkspaceProvider,
   useWorkspace,
+  WorkspaceProvider,
 } from "@/components/workspace/workspace-context";
 import type { KeyValue, TreeNode } from "@/lib/workspace/model";
 import { bodyFixtureTree, JSON_BODY } from "./fixtures";
@@ -261,7 +261,9 @@ describe("WorkspaceProvider graphql body setters", () => {
     expect(screen.getByTestId("active-gql-query")).toHaveTextContent(
       "query { me { id } }",
     );
-    expect(screen.getByTestId("active-gql-vars")).toHaveTextContent('{"id":"1"}');
+    expect(screen.getByTestId("active-gql-vars")).toHaveTextContent(
+      '{"id":"1"}',
+    );
 
     // switch to json and back: the graphql slot and the JSON text both survive.
     await user.click(screen.getByRole("button", { name: /set json/i }));
@@ -273,7 +275,9 @@ describe("WorkspaceProvider graphql body setters", () => {
     expect(screen.getByTestId("active-gql-query")).toHaveTextContent(
       "query { me { id } }",
     );
-    expect(screen.getByTestId("active-gql-vars")).toHaveTextContent('{"id":"1"}');
+    expect(screen.getByTestId("active-gql-vars")).toHaveTextContent(
+      '{"id":"1"}',
+    );
   });
 
   // AC-004 - side-effect-contract: Mod+S folds the graphql slot into the tree

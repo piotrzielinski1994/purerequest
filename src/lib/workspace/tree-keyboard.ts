@@ -1,7 +1,7 @@
-import { matchesKeyboardEvent, type Hotkey } from "@tanstack/hotkeys";
+import { type Hotkey, matchesKeyboardEvent } from "@tanstack/hotkeys";
+import type { ShortcutActionId } from "@/lib/shortcuts/registry";
 import type { TreeNode } from "@/lib/workspace/model";
 import type { MoveTarget } from "@/lib/workspace/move";
-import type { ShortcutActionId } from "@/lib/shortcuts/registry";
 import { findNode, locateNode } from "@/lib/workspace/tree-locate";
 import { flattenSelectable } from "@/lib/workspace/tree-select";
 
@@ -76,7 +76,7 @@ export function treeMoveTarget(
 
   // nest: append into the immediately-preceding sibling, which must be a folder.
   const preceding = siblings[location.index - 1];
-  if (!preceding || preceding.kind !== "folder") {
+  if (preceding?.kind !== "folder") {
     return null;
   }
   return { parentId: preceding.id, index: preceding.children.length };

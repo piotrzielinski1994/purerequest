@@ -1,13 +1,12 @@
-import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import { WorkspaceProvider } from "@/components/workspace/workspace-context";
+import { describe, expect, it } from "vitest";
 import { SettingsView } from "@/components/workspace/settings-view";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
-import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import type { SettingsSection } from "@/lib/settings/settings";
+import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import { fixtureTree } from "./fixtures";
 
 async function renderSettings(section?: SettingsSection) {

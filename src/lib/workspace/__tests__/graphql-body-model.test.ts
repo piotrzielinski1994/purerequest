@@ -1,7 +1,6 @@
-import { describe, it, expect } from "vitest";
-
-import { emptyBody } from "@/lib/workspace/model";
+import { describe, expect, it } from "vitest";
 import type { BodyMode, RequestBody } from "@/lib/workspace/model";
+import { emptyBody } from "@/lib/workspace/model";
 
 // The graphql slot the model gains: emptyBody() seeds it blank, and it survives
 // mode switches side-by-side with the other slots.

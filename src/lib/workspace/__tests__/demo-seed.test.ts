@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-
+import type { HttpResponse } from "@/lib/http/model";
 import {
   DEMO_RESPONSE,
   DEMO_WORKSPACE_PATH,
@@ -8,7 +8,6 @@ import {
   demoTree,
 } from "@/lib/workspace/demo-seed";
 import { deserialize } from "@/lib/workspace/disk-format";
-import type { HttpResponse } from "@/lib/http/model";
 import type { TreeNode } from "@/lib/workspace/model";
 
 describe("demo seed", () => {

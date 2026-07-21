@@ -1,7 +1,7 @@
 import { ShortcutRow } from "@/components/settings/shortcut-row";
 import { useSettings } from "@/lib/settings/settings-context";
-import { resolveShortcuts } from "@/lib/shortcuts/resolve";
 import { SHORTCUT_ACTIONS } from "@/lib/shortcuts/registry";
+import { resolveShortcuts } from "@/lib/shortcuts/resolve";
 
 export function ShortcutsSection() {
   const { settings } = useSettings();

@@ -1,23 +1,22 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { diagnosticCount, forceLinting } from "@codemirror/lint";
+import { EditorView } from "@codemirror/view";
 import {
+  act,
+  fireEvent,
   render,
   screen,
-  within,
   waitFor,
-  fireEvent,
-  act,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { EditorView } from "@codemirror/view";
-import { forceLinting, diagnosticCount } from "@codemirror/lint";
 import { toast } from "sonner";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RequestPane } from "@/components/workspace/request-pane";
 import { SidebarTree } from "@/components/workspace/sidebar-tree";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient } from "./fake-http-client";

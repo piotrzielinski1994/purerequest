@@ -1,20 +1,19 @@
-import { describe, it, expect, vi } from "vitest";
+import { EditorView } from "@codemirror/view";
 import {
+  act,
+  fireEvent,
   render,
   screen,
-  within,
   waitFor,
-  fireEvent,
-  act,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { EditorView } from "@codemirror/view";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { describe, expect, it, vi } from "vitest";
 import { RequestPane } from "@/components/workspace/request-pane";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import type { ConfigScope, RequestNode, TreeNode } from "@/lib/workspace/model";
 import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
 
@@ -90,7 +89,7 @@ const savedRequest = (onTreeChange: ReturnType<typeof vi.fn>): RequestNode => {
   const calls = onTreeChange.mock.calls;
   const tree = calls[calls.length - 1][0] as TreeNode[];
   const node = tree.find((n) => n.id === "req-1");
-  if (!node || node.kind !== "request") {
+  if (node?.kind !== "request") {
     throw new Error("req-1 not found");
   }
   return node;

@@ -1,4 +1,5 @@
 import { parse as parseYaml } from "yaml";
+import type { ParsedBru } from "@/lib/bruno/parse-bru";
 import type {
   Auth,
   BodyMode,
@@ -7,7 +8,6 @@ import type {
   ScriptConfig,
 } from "@/lib/workspace/model";
 import { authOf } from "@/lib/workspace/model";
-import type { ParsedBru } from "@/lib/bruno/parse-bru";
 
 // OpenCollection YAML rows: headers/params/body-data/variables are all
 // `{ name, value, disabled?, type? }` lists.
@@ -64,7 +64,11 @@ const METHODS = new Set<HttpMethod>([
 ]);
 
 function asString(value: unknown): string {
-  return typeof value === "string" ? value : value === undefined ? "" : String(value);
+  return typeof value === "string"
+    ? value
+    : value === undefined
+      ? ""
+      : String(value);
 }
 
 function isRowArray(value: unknown): value is YamlRow[] {
@@ -80,7 +84,9 @@ function toRows(value: unknown): KeyValue[] {
     if (key === "") {
       return [];
     }
-    return [{ key, value: asString(row?.value), enabled: row?.disabled !== true }];
+    return [
+      { key, value: asString(row?.value), enabled: row?.disabled !== true },
+    ];
   });
 }
 
@@ -125,9 +131,8 @@ function toQueryParams(value: unknown, url: string | undefined): KeyValue[] {
 }
 
 function toRecord(value: unknown): Record<string, string> {
-  return toRows(value).reduce<Record<string, string>>(
-    (acc, { key, value: rowValue }) => ({ ...acc, [key]: rowValue }),
-    {},
+  return Object.fromEntries(
+    toRows(value).map(({ key, value: rowValue }) => [key, rowValue] as const),
   );
 }
 
@@ -195,10 +200,12 @@ function resolveScripts(
     ...(isScriptArray(runtime?.scripts) ? runtime.scripts : []),
   ];
   const pre = entries.find(
-    (script) => script?.type === "before-request" || script?.type === "pre-request",
+    (script) =>
+      script?.type === "before-request" || script?.type === "pre-request",
   );
   const post = entries.find(
-    (script) => script?.type === "after-response" || script?.type === "post-response",
+    (script) =>
+      script?.type === "after-response" || script?.type === "post-response",
   );
   if (!pre && !post) {
     return undefined;
@@ -229,7 +236,8 @@ export function parseOpenCollection(text: string): ParsedBru {
     ? (methodRaw as HttpMethod)
     : undefined;
   const url = http.url !== undefined ? asString(http.url) : undefined;
-  const name = doc.info?.name !== undefined ? asString(doc.info.name) : undefined;
+  const name =
+    doc.info?.name !== undefined ? asString(doc.info.name) : undefined;
   const { body, bodyMode, bodyForm } = resolveBody(http.body);
   const auth = resolveAuth(http.auth ?? doc.request?.auth);
   const scripts = resolveScripts(doc.request, doc.runtime);

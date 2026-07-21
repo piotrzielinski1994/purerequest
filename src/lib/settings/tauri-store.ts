@@ -1,12 +1,12 @@
-import { LazyStore } from "@tauri-apps/plugin-store";
 import { appDataDir, join } from "@tauri-apps/api/path";
+import { LazyStore } from "@tauri-apps/plugin-store";
+import { logMessage } from "@/lib/logging/file-log";
 import {
   DEFAULT_SETTINGS,
   mergeSettings,
   type Settings,
   type SettingsStore,
 } from "@/lib/settings/settings";
-import { logMessage } from "@/lib/logging/file-log";
 
 const SETTINGS_FILE = "settings.json";
 const KEYMAP_FILE = "keymap.json";
@@ -62,7 +62,10 @@ export function createTauriSettingsStore(): SettingsStore {
     // mirroring the keymap split - a color scheme is device-syncable on its own.
     const settingsPayload: Omit<Settings, "shortcuts"> = {
       ...withoutShortcuts,
-      theme: { mode: settings.theme.mode, colors: DEFAULT_SETTINGS.theme.colors },
+      theme: {
+        mode: settings.theme.mode,
+        colors: DEFAULT_SETTINGS.theme.colors,
+      },
     };
     await persist(settingsStore, SETTINGS_KEY, settingsPayload);
     await persist(keymapStore, SHORTCUTS_KEY, shortcuts);

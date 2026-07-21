@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   SHORTCUT_ACTIONS,
@@ -6,9 +6,9 @@ import {
   type ShortcutOverrides,
 } from "@/lib/shortcuts/registry";
 import {
-  safeNormalize,
-  resolveShortcuts,
   findConflict,
+  resolveShortcuts,
+  safeNormalize,
 } from "@/lib/shortcuts/resolve";
 
 const ACTION_IDS: ShortcutActionId[] = [

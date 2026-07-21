@@ -1,20 +1,19 @@
-import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { describe, expect, it } from "vitest";
 import { Content } from "@/components/workspace/content";
 import { ResponsePane } from "@/components/workspace/response-pane";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
+import { RESPONSE_RENDER_LIMIT_BYTES } from "@/lib/http/format";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
-import { RESPONSE_RENDER_LIMIT_BYTES } from "@/lib/http/format";
-import { fixtureTree } from "./fixtures";
-import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import type { RequestResponse } from "@/lib/workspace/model";
+import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
+import { fixtureTree } from "./fixtures";
 
 function OpenSettingsButton() {
   const { openSettings } = useWorkspace();

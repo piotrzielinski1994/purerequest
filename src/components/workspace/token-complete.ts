@@ -122,9 +122,7 @@ export function tokenCompletionAt(
     return null;
   }
   const query = open.prefix.trim().toLowerCase();
-  const candidates = all.filter((c) =>
-    c.name.toLowerCase().includes(query),
-  );
+  const candidates = all.filter((c) => c.name.toLowerCase().includes(query));
   if (candidates.length === 0) {
     return null;
   }

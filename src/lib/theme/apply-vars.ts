@@ -1,4 +1,7 @@
-import type { AppTokenName, ThemeColorOverrides } from "@/lib/settings/settings";
+import type {
+  AppTokenName,
+  ThemeColorOverrides,
+} from "@/lib/settings/settings";
 import { APP_TOKENS } from "@/lib/theme/theme-defaults";
 
 function cssVarName(token: AppTokenName): string {

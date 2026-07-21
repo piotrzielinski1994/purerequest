@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { apiMembers } from "@/components/workspace/script-api-complete";
 
@@ -10,7 +10,9 @@ describe("apiMembers", () => {
       "getProcessEnv",
       "getEnvName",
     ]);
-    expect(apiMembers("purerequest", "post")).toEqual(apiMembers("purerequest", "pre"));
+    expect(apiMembers("purerequest", "post")).toEqual(
+      apiMembers("purerequest", "pre"),
+    );
   });
 
   it("should list the console methods in both stages", () => {

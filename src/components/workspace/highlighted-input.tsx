@@ -1,15 +1,15 @@
-import { useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { TokenHighlight } from "@/components/workspace/var-token";
+import { useRef, useState } from "react";
+import type { TokenHighlightContext } from "@/components/workspace/editable-key-value-table";
 import {
   applyTokenCandidate,
+  type TokenCandidate,
   tokenCandidates,
   tokenCompletionAt,
-  type TokenCandidate,
 } from "@/components/workspace/token-complete";
 import { TokenSuggestionList } from "@/components/workspace/token-suggestions";
-import type { TokenHighlightContext } from "@/components/workspace/editable-key-value-table";
+import { TokenHighlight } from "@/components/workspace/var-token";
+import { cn } from "@/lib/utils";
 
 const TOKEN_LISTBOX_ID = "highlighted-input-token-listbox";
 
@@ -74,9 +74,10 @@ export function HighlightedInput({
       ? tokenCompletionAt(value, caret, allCandidates)
       : null;
   const isOpen = completion !== null;
-  const activeCandidate = completion?.candidates[
-    Math.min(activeIndex, completion.candidates.length - 1)
-  ];
+  const activeCandidate =
+    completion?.candidates[
+      Math.min(activeIndex, completion.candidates.length - 1)
+    ];
 
   const syncCaret = (el: HTMLInputElement) => {
     setCaret(el.selectionStart ?? el.value.length);

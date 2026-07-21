@@ -1,3 +1,4 @@
+import { bodyToDisk, legacyStoredToBody } from "@/lib/workspace/body-codec";
 import type {
   BodyMode,
   ConfigScope,
@@ -10,7 +11,6 @@ import type {
   RequestParams,
   TreeNode,
 } from "@/lib/workspace/model";
-import { bodyToDisk, legacyStoredToBody } from "@/lib/workspace/body-codec";
 import { slugify, uniqueSlug } from "@/lib/workspace/slug";
 
 export type FileMap = Record<string, string>;
@@ -25,13 +25,7 @@ const MANIFEST = "purerequest.workspace.json";
 // the user's border opacity. Anything else on disk is dropped.
 const HEX_COLOR = /^#([0-9a-f]{6}|[0-9a-f]{8})$/i;
 
-const BODY_MODES: BodyMode[] = [
-  "json",
-  "none",
-  "form",
-  "multipart",
-  "graphql",
-];
+const BODY_MODES: BodyMode[] = ["json", "none", "form", "multipart", "graphql"];
 
 type ParsedRequest = ConfigScope & {
   name?: string;
@@ -252,22 +246,23 @@ const CONFIG_KEYS: (keyof ConfigScope)[] = [
 // diff (an all-empty config contributes nothing). Exported so the request-settings
 // JSON editor emits the identical doc shape.
 export function configField(config: ConfigScope): Record<string, unknown> {
-  return CONFIG_KEYS.reduce<Record<string, unknown>>((acc, key) => {
-    const value = config[key];
-    if (value === undefined) {
-      return acc;
-    }
-    return { ...acc, [key]: value };
-  }, {});
+  return Object.fromEntries(
+    CONFIG_KEYS.flatMap((key) => {
+      const value = config[key];
+      return value === undefined ? [] : [[key, value] as const];
+    }),
+  );
 }
 
 // Read a config from a parsed doc: the flat top-level fields (new v5 shape) win,
 // falling back to the legacy nested `config` object (<= v4) for any field the top
 // level doesn't carry. `params` (legacy query) is always dropped. Exported so the
 // request-settings JSON editor reads the identical doc shape.
-export function readConfig(parsed: {
-  config?: (Record<string, unknown> & { params?: unknown }) | undefined;
-} & Partial<Record<keyof ConfigScope, unknown>>): ConfigScope {
+export function readConfig(
+  parsed: {
+    config?: (Record<string, unknown> & { params?: unknown }) | undefined;
+  } & Partial<Record<keyof ConfigScope, unknown>>,
+): ConfigScope {
   const legacy = configWithoutParams(parsed.config);
   // `variables` + each env's vars are now KeyValue[] rows; a legacy doc stored a
   // `name -> value` record. sanitizeRows / normalizeEnvironments tolerate both
@@ -281,16 +276,18 @@ export function readConfig(parsed: {
     }
     return value;
   };
-  return CONFIG_KEYS.reduce<ConfigScope>((acc, key) => {
-    const flat = parsed[key];
-    if (flat !== undefined) {
-      return { ...acc, [key]: normalize(key, flat) };
-    }
-    if (legacy[key] !== undefined) {
-      return { ...acc, [key]: normalize(key, legacy[key]) };
-    }
-    return acc;
-  }, {});
+  return Object.fromEntries(
+    CONFIG_KEYS.flatMap((key) => {
+      const flat = parsed[key];
+      if (flat !== undefined) {
+        return [[key, normalize(key, flat)] as const];
+      }
+      if (legacy[key] !== undefined) {
+        return [[key, normalize(key, legacy[key])] as const];
+      }
+      return [];
+    }),
+  ) as ConfigScope;
 }
 
 type ParsedFolder = Omit<ConfigScope, "environments"> & {
@@ -355,9 +352,16 @@ function readEnvironmentColors(
       clean[env.name] = env.color.toLowerCase();
     }
   }
-  if (typeof parsed.environmentColors === "object" && parsed.environmentColors) {
+  if (
+    typeof parsed.environmentColors === "object" &&
+    parsed.environmentColors
+  ) {
     for (const [name, color] of Object.entries(parsed.environmentColors)) {
-      if (typeof color === "string" && HEX_COLOR.test(color) && !(name in clean)) {
+      if (
+        typeof color === "string" &&
+        HEX_COLOR.test(color) &&
+        !(name in clean)
+      ) {
         clean[name] = color.toLowerCase();
       }
     }
@@ -546,7 +550,9 @@ function parseRequest(
       body: migrateBody(parsed),
       params: migrateParams(parsed),
       config: readConfig(parsed),
-      ...(parsed.httpVersion === "h3" ? { httpVersion: "h3" as HttpVersion } : {}),
+      ...(parsed.httpVersion === "h3"
+        ? { httpVersion: "h3" as HttpVersion }
+        : {}),
     },
   };
 }

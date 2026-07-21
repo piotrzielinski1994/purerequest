@@ -1,14 +1,13 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, within, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
-import { FolderPane } from "@/components/workspace/folder-pane";
-import { ContentHeader } from "@/components/workspace/content-header";
+import { describe, expect, it, vi } from "vitest";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
+import { ContentHeader } from "@/components/workspace/content-header";
+import { FolderPane } from "@/components/workspace/folder-pane";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import type { FolderNode, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
@@ -94,7 +93,7 @@ const savedFolder = (onTreeChange: ReturnType<typeof vi.fn>): FolderNode => {
   const calls = onTreeChange.mock.calls;
   const lastTree = calls[calls.length - 1][0] as TreeNode[];
   const folder = lastTree.find((n) => n.id === "folder-1");
-  if (!folder || folder.kind !== "folder") {
+  if (folder?.kind !== "folder") {
     throw new Error("folder-1 not found in persisted tree");
   }
   return folder;

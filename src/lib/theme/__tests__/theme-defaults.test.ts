@@ -1,17 +1,13 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { describe, it, expect } from "vitest";
-
+import { describe, expect, it } from "vitest";
+import type { AppTokenName, EditorTokenName } from "@/lib/settings/settings";
 import {
   APP_TOKENS,
-  EDITOR_TOKENS,
   DEFAULT_THEME_COLORS,
+  EDITOR_TOKENS,
 } from "@/lib/theme/theme-defaults";
-import type {
-  AppTokenName,
-  EditorTokenName,
-} from "@/lib/settings/settings";
 
 // Stage 2 - Themes feature. theme-defaults.ts is the single source of truth for
 // the built-in (non-sparse) color values. App-token light values mirror
@@ -20,10 +16,7 @@ import type {
 // import returns ""; the file-local node reference keeps node types out of the
 // app's no-node-types tsconfig - learnings #137).
 const REPO_ROOT = process.cwd();
-const indexCss = readFileSync(
-  path.join(REPO_ROOT, "src/index.css"),
-  "utf8",
-);
+const indexCss = readFileSync(path.join(REPO_ROOT, "src/index.css"), "utf8");
 
 // All 18 app tokens (spec §5.2).
 const EXPECTED_APP_TOKENS: AppTokenName[] = [

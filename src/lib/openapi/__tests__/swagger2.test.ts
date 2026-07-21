@@ -1,8 +1,7 @@
-import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
-
-import { parseOpenapiDocument } from "@/lib/openapi/parse-openapi";
+import { describe, expect, it } from "vitest";
 import { openapiToTree } from "@/lib/openapi/openapi-to-tree";
+import { parseOpenapiDocument } from "@/lib/openapi/parse-openapi";
 import { normalizeSwagger2 } from "@/lib/openapi/swagger2";
 import type {
   FolderNode,
@@ -25,7 +24,10 @@ function collectRequests(nodes: TreeNode[]): RequestNode[] {
   );
 }
 
-function treeRoot(doc: Record<string, unknown>, fallback = "fallback"): FolderNode {
+function treeRoot(
+  doc: Record<string, unknown>,
+  fallback = "fallback",
+): FolderNode {
   const tree = openapiToTree(JSON.stringify(doc), fallback);
   const root = tree[0];
   if (tree.length !== 1 || !root || root.kind !== "folder") {
@@ -34,7 +36,10 @@ function treeRoot(doc: Record<string, unknown>, fallback = "fallback"): FolderNo
   return root;
 }
 
-function rowValue(rows: KeyValue[] | undefined, key: string): string | undefined {
+function rowValue(
+  rows: KeyValue[] | undefined,
+  key: string,
+): string | undefined {
   return rows?.find((row) => row.key === key)?.value;
 }
 
@@ -99,7 +104,11 @@ describe("normalizeSwagger2 - servers (TC-003, E-1/E-2/E-3)", () => {
 
   // E-1 - behavior: no host -> no `servers` key at all (mapper -> relative paths).
   it("should omit the servers key when there is no host", () => {
-    const result = normalizeSwagger2({ swagger: "2.0", basePath: "/v1", paths: {} });
+    const result = normalizeSwagger2({
+      swagger: "2.0",
+      basePath: "/v1",
+      paths: {},
+    });
 
     expect("servers" in result).toBe(false);
   });
@@ -115,7 +124,12 @@ describe("normalizeSwagger2 - body split + params (TC-004, E-7)", () => {
         "/x": {
           post: {
             parameters: [
-              { name: "d", in: "body", required: true, schema: { $ref: "#/definitions/D" } },
+              {
+                name: "d",
+                in: "body",
+                required: true,
+                schema: { $ref: "#/definitions/D" },
+              },
             ],
           },
         },
@@ -192,7 +206,9 @@ describe("normalizeSwagger2 - purity", () => {
       paths: {
         "/x": {
           post: {
-            parameters: [{ name: "d", in: "body", schema: { $ref: "#/definitions/D" } }],
+            parameters: [
+              { name: "d", in: "body", schema: { $ref: "#/definitions/D" } },
+            ],
           },
         },
       },
@@ -222,7 +238,11 @@ describe("parseOpenapiDocument - swagger 2.0 gate (AC-001/002/008, TC-001)", () 
   // AC-002 - behavior: a swagger 1.0 doc is still rejected (null). Regression guard;
   // passes on today's code.
   it("should still reject a swagger 1.0 document", () => {
-    const doc = JSON.stringify({ swagger: "1.0", info: { title: "x" }, paths: {} });
+    const doc = JSON.stringify({
+      swagger: "1.0",
+      info: { title: "x" },
+      paths: {},
+    });
 
     expect(parseOpenapiDocument(doc)).toBeNull();
   });
@@ -289,7 +309,9 @@ describe("openapiToTree - swagger 2.0 end-to-end (AC-003..AC-006)", () => {
       paths: { "/x": { get: {} } },
     });
 
-    expect(rowValue(root.config.variables, "baseUrl")).toBe("https://api.x.com/v1");
+    expect(rowValue(root.config.variables, "baseUrl")).toBe(
+      "https://api.x.com/v1",
+    );
     expect(collectRequests(root.children)[0].url).toBe("{{baseUrl}}/x");
   });
 
@@ -310,7 +332,9 @@ describe("openapiToTree - swagger 2.0 end-to-end (AC-003..AC-006)", () => {
       paths: {
         "/x": {
           post: {
-            parameters: [{ name: "d", in: "body", schema: { $ref: "#/definitions/D" } }],
+            parameters: [
+              { name: "d", in: "body", schema: { $ref: "#/definitions/D" } },
+            ],
           },
         },
       },

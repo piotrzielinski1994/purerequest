@@ -1,17 +1,17 @@
-import { useEffect, useRef } from "react";
-import { Trash2 } from "lucide-react";
 import type { Extension } from "@codemirror/state";
-import { CodeEditor } from "@/components/workspace/code-editor";
+import { Trash2 } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useWorkspace } from "@/components/workspace/workspace-context";
-import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
+import { CodeEditor } from "@/components/workspace/code-editor";
 import {
+  type ConsoleLevel,
   consoleLineLevel,
   parseConsoleObjectLine,
-  tokenizeConsoleLine,
-  type ConsoleLevel,
   type TokenKind,
+  tokenizeConsoleLine,
 } from "@/components/workspace/console-line";
+import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
+import { useWorkspace } from "@/components/workspace/workspace-context";
 
 const LEVEL_CLASS: Record<ConsoleLevel, string> = {
   log: "text-foreground/80",

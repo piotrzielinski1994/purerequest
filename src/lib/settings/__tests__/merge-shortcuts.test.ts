@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { mergeSettings, DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { DEFAULT_SETTINGS, mergeSettings } from "@/lib/settings/settings";
 
 // The array migration lives in mergeShortcuts, which is private; exercise it
 // through the public mergeSettings entry and read the merged `.shortcuts`.

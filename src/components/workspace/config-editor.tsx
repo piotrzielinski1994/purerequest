@@ -1,21 +1,29 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { JSONSchema7 } from "json-schema";
 import { jsonLanguage } from "@codemirror/lang-json";
+import type { JSONSchema7 } from "json-schema";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CodeEditor } from "@/components/workspace/code-editor";
-import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
 import { makeSchemaExtensions } from "@/components/workspace/schema-intellisense";
+import {
+  type TokenCandidate,
+  tokenCandidates,
+} from "@/components/workspace/token-complete";
 import { tokenCompletionSource } from "@/components/workspace/token-complete-source";
 import { tokenCompletionConfig } from "@/components/workspace/token-suggestion-style";
-import {
-  tokenCandidates,
-  type TokenCandidate,
-} from "@/components/workspace/token-complete";
-import { resolveConfig, resolveProcessEnv } from "@/lib/workspace/resolve";
+import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
+import { useWorkspace } from "@/components/workspace/workspace-context";
 import {
   folderConfigJsonSchema,
   requestSettingsJsonSchema,
 } from "@/lib/config-schema/json-schemas";
-import { useWorkspace } from "@/components/workspace/workspace-context";
+import { diskToBody } from "@/lib/workspace/body-codec";
+import {
+  bodyField,
+  configField,
+  folderConfigDoc,
+  paramsField,
+  readConfig,
+  readFolderConfigDoc,
+} from "@/lib/workspace/disk-format";
 import type {
   BodyMode,
   ConfigScope,
@@ -27,19 +35,11 @@ import type {
   TreeNode,
 } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
-import type { RequestPatch } from "@/lib/workspace/update-request";
+import { resolveConfig, resolveProcessEnv } from "@/lib/workspace/resolve";
 import { updateNodeConfig } from "@/lib/workspace/update-config";
 import { setFolderEnvironmentColors } from "@/lib/workspace/update-folder-env-color";
+import type { RequestPatch } from "@/lib/workspace/update-request";
 import { updateRequest } from "@/lib/workspace/update-request";
-import { diskToBody } from "@/lib/workspace/body-codec";
-import {
-  bodyField,
-  configField,
-  folderConfigDoc,
-  paramsField,
-  readConfig,
-  readFolderConfigDoc,
-} from "@/lib/workspace/disk-format";
 
 // Resolve the in-scope `{{token}}` candidates for a node id (folder or request),
 // against the SAVED tree + active environment + folded `.env` - the same chain the
@@ -191,7 +191,11 @@ export function ConfigEditorForm({
   return (
     <RawJsonEditor
       id={id}
-      saved={JSON.stringify(folderConfigDoc(config, environmentColors), null, 2)}
+      saved={JSON.stringify(
+        folderConfigDoc(config, environmentColors),
+        null,
+        2,
+      )}
       parse={parseFolderDoc}
       onSave={(parsed) =>
         saveFolderConfigDoc(id, parsed.config, parsed.environmentColors)
@@ -209,7 +213,14 @@ export function ConfigEditorForm({
   );
 }
 
-const METHODS: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE", "QUERY"];
+const METHODS: HttpMethod[] = [
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "QUERY",
+];
 const BODY_MODES: BodyMode[] = ["json", "none", "form", "multipart"];
 
 function isKeyValueArray(value: unknown): value is KeyValue[] {

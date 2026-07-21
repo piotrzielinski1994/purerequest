@@ -1,10 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
-
+import { describe, expect, it, vi } from "vitest";
+import type { TauriWindow } from "@/lib/window/window-controller";
 import {
   createNoopWindowController,
   createWindowController,
 } from "@/lib/window/window-controller";
-import type { TauriWindow } from "@/lib/window/window-controller";
 
 describe("createNoopWindowController", () => {
   // behavior: the browser/test controller reports not-fullscreen and ignores sets
@@ -59,7 +58,10 @@ function fakeTauriWindow(initial: boolean): {
   return {
     win,
     state,
-    emitResize: () => resizeListeners.forEach((handler) => handler()),
+    emitResize: () =>
+      resizeListeners.forEach((handler) => {
+        handler();
+      }),
   };
 }
 

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   pureRefInner,
@@ -6,9 +6,9 @@ import {
   resolveTokenPreview,
   resolveWriteTarget,
 } from "@/components/workspace/url-token";
-import { resolveConfig } from "@/lib/workspace/resolve";
 import type { TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
+import { resolveConfig } from "@/lib/workspace/resolve";
 
 const tree: TreeNode[] = [
   {

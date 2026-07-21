@@ -1,10 +1,9 @@
-import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import { WorkspaceProvider } from "@/components/workspace/workspace-context";
+import { describe, expect, it } from "vitest";
 import { RequestPane } from "@/components/workspace/request-pane";
-import { fixtureTree, bodyFixtureTree } from "./fixtures";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
+import { bodyFixtureTree, fixtureTree } from "./fixtures";
 
 function bodyEditor(): HTMLElement {
   // CodeMirror renders an editable surface: .cm-content carries role="textbox"

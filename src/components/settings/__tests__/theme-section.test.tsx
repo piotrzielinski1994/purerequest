@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ThemeSection } from "@/components/settings/theme-section";
+import { createFakeHttpClient } from "@/components/workspace/__tests__/fake-http-client";
+import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import {
   DEFAULT_SETTINGS,
@@ -10,10 +11,8 @@ import {
   type SettingsStore,
   type ThemeMode,
 } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import { ThemeProvider } from "@/lib/theme/theme-context";
-import { ThemeSection } from "@/components/settings/theme-section";
-import { WorkspaceProvider } from "@/components/workspace/workspace-context";
-import { createFakeHttpClient } from "@/components/workspace/__tests__/fake-http-client";
 
 // Stage 1 — Themes feature. The Theme section is a mode selector (light / dark /
 // system). Selecting a mode saves it (saveThemeMode / useTheme().setMode) and the

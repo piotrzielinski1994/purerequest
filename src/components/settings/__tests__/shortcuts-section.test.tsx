@@ -1,17 +1,16 @@
-import { describe, it, expect, vi } from "vitest";
+import { formatForDisplay } from "@tanstack/hotkeys";
+import { HotkeysProvider } from "@tanstack/react-hotkeys";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { HotkeysProvider } from "@tanstack/react-hotkeys";
-import { formatForDisplay } from "@tanstack/hotkeys";
-
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { describe, expect, it, vi } from "vitest";
+import { ShortcutsSection } from "@/components/settings/shortcuts-section";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import {
   DEFAULT_SETTINGS,
   type Settings,
   type SettingsStore,
 } from "@/lib/settings/settings";
-import { ShortcutsSection } from "@/components/settings/shortcuts-section";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import {
   SHORTCUT_ACTIONS,
   type ShortcutOverrides,
@@ -176,7 +175,9 @@ describe("ShortcutsSection", () => {
 
     expect(await screen.findByText("Press keys…")).toBeInTheDocument();
     // The chip's keys are replaced by the recorder, so the label is gone.
-    expect(screen.queryByText(formatForDisplay("Mod+J"))).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(formatForDisplay("Mod+J")),
+    ).not.toBeInTheDocument();
   });
 
   // behavior + side-effect-contract: recording a free combo swaps that binding
@@ -219,9 +220,7 @@ describe("ShortcutsSection", () => {
     expect(alert).toHaveTextContent(new RegExp(CLOSE_REQUEST.name, "i"));
     expect(saveSpy).not.toHaveBeenCalled();
     // The original chip is restored.
-    expect(
-      screen.getByText(formatForDisplay("Mod+J")),
-    ).toBeInTheDocument();
+    expect(screen.getByText(formatForDisplay("Mod+J"))).toBeInTheDocument();
   });
 
   // behavior: cancelling an edit restores the original chip untouched.

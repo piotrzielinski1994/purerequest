@@ -29,7 +29,14 @@ export type ParsedBru = {
 
 type Block = { name: string; inner: string };
 
-const METHOD_NAMES = new Set(["get", "post", "put", "patch", "delete", "query"]);
+const METHOD_NAMES = new Set([
+  "get",
+  "post",
+  "put",
+  "patch",
+  "delete",
+  "query",
+]);
 
 // Split a bru document into top-level `name { ... }` blocks, brace-counting so a
 // nested `{`/`}` inside a body block doesn't close the block early. Anything with
@@ -84,9 +91,8 @@ function parseDict(inner: string): KeyValue[] {
 }
 
 function dictToRecord(inner: string): Record<string, string> {
-  return parseDict(inner).reduce<Record<string, string>>(
-    (acc, { key, value }) => ({ ...acc, [key]: value }),
-    {},
+  return Object.fromEntries(
+    parseDict(inner).map(({ key, value }) => [key, value] as const),
   );
 }
 
@@ -159,7 +165,10 @@ function selectorToKind(selector: string): BodyKind {
 // Pick the active body block: the method block's `body:` selector wins; else the
 // first usable block. `none` (or no body block) means no body. The `body:graphql`
 // query block is usable; its `body:graphql:vars` sibling is captured separately.
-function chooseBody(blocks: Block[], selector: string | undefined): Block | null {
+function chooseBody(
+  blocks: Block[],
+  selector: string | undefined,
+): Block | null {
   const usable = blocks.filter(
     (block) =>
       (block.name === "body" || block.name.startsWith("body:")) &&
@@ -176,7 +185,10 @@ function chooseBody(blocks: Block[], selector: string | undefined): Block | null
   return usable[0] ?? null;
 }
 
-function resolveAuth(blocks: Block[], selector: string | undefined): Auth | undefined {
+function resolveAuth(
+  blocks: Block[],
+  selector: string | undefined,
+): Auth | undefined {
   const bearer = blocks.find((block) => block.name === "auth:bearer");
   if (bearer) {
     return authOf({
@@ -214,15 +226,18 @@ export function parseBru(text: string): ParsedBru {
   const headersBlock = blocks.find((block) => block.name === "headers");
   const paramsBlock = blocks.find((block) => block.name === "params:query");
 
-  const variables = blocks
-    .filter((block) => block.name === "vars" || block.name === "vars:pre-request")
-    .reduce<Record<string, string>>(
-      (acc, block) => ({ ...acc, ...dictToRecord(block.inner) }),
-      {},
-    );
+  const variables = Object.fromEntries(
+    blocks
+      .filter(
+        (block) => block.name === "vars" || block.name === "vars:pre-request",
+      )
+      .flatMap((block) => Object.entries(dictToRecord(block.inner))),
+  );
 
   const preBlock = blocks.find((block) => block.name === "script:pre-request");
-  const postBlock = blocks.find((block) => block.name === "script:post-response");
+  const postBlock = blocks.find(
+    (block) => block.name === "script:post-response",
+  );
   const scripts: ScriptConfig | undefined =
     preBlock || postBlock
       ? {
@@ -255,7 +270,9 @@ export function parseBru(text: string): ParsedBru {
 
   return {
     ...(name !== undefined ? { name } : {}),
-    ...(methodBlock ? { method: methodBlock.name.toUpperCase() as HttpMethod } : {}),
+    ...(methodBlock
+      ? { method: methodBlock.name.toUpperCase() as HttpMethod }
+      : {}),
     ...(methodRecord.url !== undefined ? { url: methodRecord.url } : {}),
     headers: headersBlock ? parseDict(headersBlock.inner) : [],
     params: paramsBlock ? parseDict(paramsBlock.inner) : [],

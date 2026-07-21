@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
 import { Send, Square } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -7,15 +7,22 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { HighlightedInput } from "@/components/workspace/highlighted-input";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
 import { useWorkspace } from "@/components/workspace/workspace-context";
-import { HighlightedInput } from "@/components/workspace/highlighted-input";
 import { cn } from "@/lib/utils";
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import type { HttpMethod } from "@/lib/workspace/model";
 import { keyValuesToRecord } from "@/lib/workspace/model";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
-const METHODS: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE", "QUERY"];
+const METHODS: HttpMethod[] = [
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "QUERY",
+];
 
 function UrlField({
   url,

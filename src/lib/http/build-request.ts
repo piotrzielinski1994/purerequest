@@ -1,10 +1,10 @@
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
+import { encodeBody } from "@/lib/http/body-encode";
+import { interpolate } from "@/lib/http/interpolate";
+import type { HttpRequest } from "@/lib/http/model";
+import { applyPathParams } from "@/lib/http/path-params";
 import type { Auth, KeyValue, RequestNode } from "@/lib/workspace/model";
 import { keyValuesToRecord, requestHttpVersion } from "@/lib/workspace/model";
-import type { HttpRequest } from "@/lib/http/model";
-import { interpolate } from "@/lib/http/interpolate";
-import { encodeBody } from "@/lib/http/body-encode";
-import { applyPathParams } from "@/lib/http/path-params";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 const BODYLESS_METHODS = new Set(["GET", "DELETE"]);
 
@@ -35,7 +35,9 @@ function appendParams(url: string, params: KeyValue[]): string {
   const inUrl = new Set(search.keys());
   params
     .filter(({ key }) => !inUrl.has(key))
-    .forEach(({ key, value }) => search.append(key, value));
+    .forEach(({ key, value }) => {
+      search.append(key, value);
+    });
   return `${base}?${search.toString()}`;
 }
 

@@ -1,19 +1,19 @@
+import { EnvSection } from "@/components/settings/env-section";
+import { ShortcutsSection } from "@/components/settings/shortcuts-section";
+import { ThemeSection } from "@/components/settings/theme-section";
+import { UpdatesSection } from "@/components/settings/updates-section";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   PANE_TABS_LIST,
   PANE_TABS_TRIGGER,
 } from "@/components/workspace/pane-tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ThemeSection } from "@/components/settings/theme-section";
-import { EnvSection } from "@/components/settings/env-section";
-import { ShortcutsSection } from "@/components/settings/shortcuts-section";
-import { UpdatesSection } from "@/components/settings/updates-section";
-import { useUpdater } from "@/lib/updater/updater-context";
-import { useSettings } from "@/lib/settings/settings-context";
 import {
   SETTINGS_SECTIONS,
   type SettingsSection,
 } from "@/lib/settings/settings";
+import { useSettings } from "@/lib/settings/settings-context";
+import { useUpdater } from "@/lib/updater/updater-context";
 
 // The Settings content: a section sub-bar (Theme / Env / Shortcuts) mirroring the
 // request-pane tab strip, with the active section persisted per-installation. The

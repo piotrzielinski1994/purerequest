@@ -1,24 +1,23 @@
-import { describe, it, expect } from "vitest";
 import {
+  fireEvent,
   render,
   screen,
-  within,
   waitFor,
-  fireEvent,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
-import { Sidebar } from "@/components/workspace/sidebar";
+import { describe, expect, it } from "vitest";
 import { Content } from "@/components/workspace/content";
-import { TreeRow } from "@/components/workspace/tree-row";
+import { Sidebar } from "@/components/workspace/sidebar";
 import { TreeDndProvider } from "@/components/workspace/tree-dnd";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { TreeRow } from "@/components/workspace/tree-row";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
 import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import { createFakeHttpClient } from "./fake-http-client";

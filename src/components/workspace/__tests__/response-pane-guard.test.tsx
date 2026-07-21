@@ -1,17 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { EditorView } from "@codemirror/view";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { EditorView } from "@codemirror/view";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { describe, expect, it } from "vitest";
 import { ResponsePane } from "@/components/workspace/response-pane";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import { RESPONSE_RENDER_LIMIT_BYTES } from "@/lib/http/format";
-import { fixtureTree } from "./fixtures";
-import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
 import type { RequestResponse } from "@/lib/workspace/model";
+import { createFakeHttpClient, type FakeHttpClient } from "./fake-http-client";
+import { fixtureTree } from "./fixtures";
 
 function responseBodyText(): string {
   const editorEl = document.querySelector<HTMLElement>(".cm-editor");

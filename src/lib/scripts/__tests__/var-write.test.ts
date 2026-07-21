@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 // Imported even though these modules don't exist yet: the suite must fail on the
 // missing feature (module), not on a typo. Once var-write.ts ships these pin
@@ -10,13 +10,13 @@ import {
   resolveVarWriteTarget,
   setNodeVar,
 } from "@/lib/scripts/var-write";
-import { emptyBody, emptyParams } from "@/lib/workspace/model";
 import type {
   ConfigScope,
   FolderNode,
   RequestNode,
   TreeNode,
 } from "@/lib/workspace/model";
+import { emptyBody, emptyParams } from "@/lib/workspace/model";
 
 const request = (id: string, config: ConfigScope = {}): RequestNode => ({
   kind: "request",
@@ -136,9 +136,7 @@ describe("processEnvRefKey", () => {
 
   // AC-004 - behavior: two tokens is not a single pure reference -> null.
   it("should return null if the value holds more than one token", () => {
-    expect(
-      processEnvRefKey("{{process.env.A}}{{process.env.B}}"),
-    ).toBeNull();
+    expect(processEnvRefKey("{{process.env.A}}{{process.env.B}}")).toBeNull();
   });
 
   // AC-004 - behavior: a non-process.env token (a plain var pointer) -> null.

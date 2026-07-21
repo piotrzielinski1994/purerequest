@@ -1,19 +1,18 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, within, waitFor, act } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { EditorView } from "@codemirror/view";
-
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/components/workspace/workspace-context";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import { Content } from "@/components/workspace/content";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import {
+  useWorkspace,
+  WorkspaceProvider,
+} from "@/components/workspace/workspace-context";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
+import { SettingsProvider } from "@/lib/settings/settings-context";
+import { folderConfigDoc } from "@/lib/workspace/disk-format";
 import type { ConfigScope, TreeNode } from "@/lib/workspace/model";
 import { authOf, emptyBody, emptyParams } from "@/lib/workspace/model";
-import { folderConfigDoc } from "@/lib/workspace/disk-format";
 import { createFakeHttpClient } from "./fake-http-client";
 
 const FOLDER_CONFIG: ConfigScope = {
@@ -22,7 +21,10 @@ const FOLDER_CONFIG: ConfigScope = {
   auth: authOf({ active: "bearer", token: "folder-token" }),
   scripts: { pre: "// folder pre-request" },
   environments: [
-    { name: "local", variables: [{ key: "baseUrl", value: "http://localhost:8080" }] },
+    {
+      name: "local",
+      variables: [{ key: "baseUrl", value: "http://localhost:8080" }],
+    },
   ],
 };
 

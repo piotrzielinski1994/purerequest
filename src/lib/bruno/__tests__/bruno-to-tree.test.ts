@@ -1,16 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
+  type BrunoFileMap,
   brunoToTree,
   collectDotenv,
-  type BrunoFileMap,
 } from "@/lib/bruno/bruno-to-tree";
 import { parseDotenv } from "@/lib/workspace/environment";
-import { authOf } from "@/lib/workspace/model";
 import type { FolderNode, RequestNode, TreeNode } from "@/lib/workspace/model";
+import { authOf } from "@/lib/workspace/model";
 
 function asFolder(node: TreeNode | undefined): FolderNode {
-  if (!node || node.kind !== "folder") {
+  if (node?.kind !== "folder") {
     throw new Error("expected a folder node");
   }
   return node;
@@ -24,7 +24,8 @@ describe("brunoToTree - directories -> folders, .bru -> requests (AC-007)", () =
   // AC-007, TC-006 - behavior: a single root folder wraps the whole collection.
   it("should wrap the collection in a single root folder", () => {
     const files: BrunoFileMap = {
-      "bruno.json": '{ "name": "My API", "version": "1", "type": "collection" }',
+      "bruno.json":
+        '{ "name": "My API", "version": "1", "type": "collection" }',
       "get-root.bru": "get {\n  url: https://x.test\n}",
     };
 
@@ -80,9 +81,9 @@ describe("brunoToTree - directories -> folders, .bru -> requests (AC-007)", () =
     };
 
     const root = asFolder(brunoToTree(files, "fallback")[0]);
-    const request = root.children.find(
-      (node) => node.kind === "request",
-    ) as RequestNode | undefined;
+    const request = root.children.find((node) => node.kind === "request") as
+      | RequestNode
+      | undefined;
 
     expect(request).toBeDefined();
     expect(request?.name).toBe("Create");
@@ -121,8 +122,7 @@ describe("brunoToTree - collection name + environments (AC-008)", () => {
     const files: BrunoFileMap = {
       "bruno.json": '{ "name": "My API" }',
       "ping.bru": "get {\n  url: https://x.test\n}",
-      "environments/local.bru":
-        "vars {\n  baseUrl: https://api.example.com\n}",
+      "environments/local.bru": "vars {\n  baseUrl: https://api.example.com\n}",
     };
 
     const root = asFolder(brunoToTree(files, "fallback")[0]);
@@ -142,9 +142,7 @@ describe("brunoToTree - collection name + environments (AC-008)", () => {
 
     const root = asFolder(brunoToTree(files, "fallback")[0]);
 
-    expect(
-      root.children.some((node) => node.kind === "request"),
-    ).toBe(false);
+    expect(root.children.some((node) => node.kind === "request")).toBe(false);
   });
 });
 
@@ -161,9 +159,9 @@ describe("brunoToTree - OpenCollection YAML dispatch (AC-012)", () => {
     const root = asFolder(brunoToTree(files, "fallback")[0]);
 
     expect(root.name).toBe("as24");
-    const request = root.children.find(
-      (node) => node.kind === "request",
-    ) as RequestNode | undefined;
+    const request = root.children.find((node) => node.kind === "request") as
+      | RequestNode
+      | undefined;
     expect(request).toBeDefined();
     expect(request?.name).toBe("asd");
     expect(request?.method).toBe("GET");
@@ -187,11 +185,13 @@ describe("brunoToTree - OpenCollection YAML dispatch (AC-012)", () => {
     expect(lts.config.variables).toEqual([
       { key: "LTS_URL", value: "https://lts.test" },
     ]);
-    const request = lts.children.find(
-      (node) => node.kind === "request",
-    ) as RequestNode | undefined;
+    const request = lts.children.find((node) => node.kind === "request") as
+      | RequestNode
+      | undefined;
     expect(request?.method).toBe("GET");
-    expect(request?.config.auth).toEqual(authOf({ active: "bearer", token: "t" }));
+    expect(request?.config.auth).toEqual(
+      authOf({ active: "bearer", token: "t" }),
+    );
   });
 
   // AC-012 - behavior: a YAML environment file folds into root config.environments
@@ -199,7 +199,8 @@ describe("brunoToTree - OpenCollection YAML dispatch (AC-012)", () => {
   it("should fold a YAML environments/<env>.yml into root config.environments", () => {
     const files: BrunoFileMap = {
       "opencollection.yml": "info:\n  name: as24",
-      "ping.yml": "info:\n  name: ping\nhttp:\n  method: GET\n  url: https://x.test",
+      "ping.yml":
+        "info:\n  name: ping\nhttp:\n  method: GET\n  url: https://x.test",
       "environments/local.yml":
         "name: local\ncolor: green\nvariables:\n  - name: BASE_URL\n    value: http://localhost:8080",
     };
@@ -325,10 +326,12 @@ describe("brunoToTree - .env attaches to its owning folder node", () => {
   it("should attach each nested .env to its own subfolder's dotenv", () => {
     const files: BrunoFileMap = {
       "as24/opencollection.yml": "info:\n  name: as24",
-      "as24/ping.yml": "info:\n  name: ping\nhttp:\n  method: GET\n  url: https://x.test",
+      "as24/ping.yml":
+        "info:\n  name: ping\nhttp:\n  method: GET\n  url: https://x.test",
       "as24/.env": "CULTURE=en-CA",
       "mbu/opencollection.yml": "info:\n  name: mbu",
-      "mbu/ping.yml": "info:\n  name: ping\nhttp:\n  method: GET\n  url: https://y.test",
+      "mbu/ping.yml":
+        "info:\n  name: ping\nhttp:\n  method: GET\n  url: https://y.test",
       "mbu/.env": "BASE_URL=http://localhost",
     };
 

@@ -1,15 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { CompletionContext } from "@codemirror/autocomplete";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { CompletionContext } from "@codemirror/autocomplete";
-
+import { describe, expect, it } from "vitest";
+import { tokenCandidates } from "@/components/workspace/token-complete";
 // Imported even though it does not exist yet: the file must fail on the missing
 // module (the feature), not on a typo. Once token-complete-source.ts ships, these
 // assertions pin the pure CodeMirror completion source that wraps the tested core.
 import { tokenCompletionSource } from "@/components/workspace/token-complete-source";
-import { tokenCandidates } from "@/components/workspace/token-complete";
-import type { EffectiveConfig } from "@/lib/workspace/resolve";
 import { authOf } from "@/lib/workspace/model";
+import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 // Reused verbatim from token-complete.test.ts so the source is driven against the
 // exact same candidate fixtures the pure core is tested with.
@@ -98,12 +97,17 @@ describe("tokenCompletionSource", () => {
     const option = result?.options.find((o) => o.label === "BASE_URL");
 
     expect(typeof option?.apply).toBe("function");
-    (option?.apply as (v: EditorView, c: unknown, from: number, to: number) => void)(
-      view,
-      option,
-      result!.from,
-      4,
-    );
+    if (!result || !option) {
+      throw new Error("expected a BASE_URL completion option");
+    }
+    (
+      option.apply as (
+        v: EditorView,
+        c: unknown,
+        from: number,
+        to: number,
+      ) => void
+    )(view, option, result.from, 4);
     const doc = view.state.doc.toString();
     const head = view.state.selection.main.head;
     view.destroy();
@@ -121,12 +125,17 @@ describe("tokenCompletionSource", () => {
     const option = result?.options.find((o) => o.label === "BASE_URL");
 
     expect(typeof option?.apply).toBe("function");
-    (option?.apply as (v: EditorView, c: unknown, from: number, to: number) => void)(
-      view,
-      option,
-      result!.from,
-      4,
-    );
+    if (!result || !option) {
+      throw new Error("expected a BASE_URL completion option");
+    }
+    (
+      option.apply as (
+        v: EditorView,
+        c: unknown,
+        from: number,
+        to: number,
+      ) => void
+    )(view, option, result.from, 4);
     const doc = view.state.doc.toString();
     const head = view.state.selection.main.head;
     view.destroy();

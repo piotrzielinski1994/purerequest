@@ -1,10 +1,6 @@
-import { describe, it, expect } from "vitest";
-
-import {
-  createBrunoWriter,
-  createNoopBrunoWriter,
-} from "@/lib/bruno/writer";
+import { describe, expect, it } from "vitest";
 import type { BrunoFileMap } from "@/lib/bruno/bruno-to-tree";
+import { createBrunoWriter, createNoopBrunoWriter } from "@/lib/bruno/writer";
 
 function fakeWrites() {
   const written: Record<string, string> = {};
