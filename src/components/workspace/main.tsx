@@ -1,9 +1,11 @@
 import { openSearchPanel } from "@codemirror/search";
 import { EditorView } from "@codemirror/view";
 import {
+  cycleThemeMode,
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
+  themeToggleMessage,
 } from "@pziel/pureui";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -30,8 +32,6 @@ import {
 } from "@/lib/shortcuts/registry";
 import { resolveShortcuts } from "@/lib/shortcuts/resolve";
 import { useActionHotkeys } from "@/lib/shortcuts/use-action-hotkeys";
-import { cycleThemeMode } from "@/lib/theme/cycle-mode";
-import { themeToggleMessage } from "@/lib/theme/toggle-message";
 import type { FolderPicker } from "@/lib/workspace/folder-picker";
 import {
   PANEL_RESIZE_STEP,
