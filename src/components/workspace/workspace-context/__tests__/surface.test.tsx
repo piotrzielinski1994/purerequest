@@ -63,6 +63,8 @@ const EXPECTED_MEMBERS = [
   "isSettingsOpen",
   "isSettingsActive",
   "toggleFolder",
+  "collapseFolder",
+  "expandFolder",
   "collapseAllFolders",
   "expandAllFolders",
   "selectNode",

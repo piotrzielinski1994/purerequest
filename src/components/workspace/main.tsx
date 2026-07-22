@@ -40,6 +40,7 @@ import {
   stepLayout,
 } from "@/lib/workspace/panel-resize";
 import { buildQuickOpenEntries } from "@/lib/workspace/quick-open";
+import { resolveFolderTarget } from "@/lib/workspace/tree-select";
 
 // Open the find panel on a snapshotted CodeMirror view. Find has no global toggle - each
 // editor owns its own Cmd+F (CM keymap) - so the palette can't just re-fire the keystroke:
@@ -83,6 +84,8 @@ export function Main({
     revealNode,
     requestsById,
     openConfigEditor,
+    collapseFolder,
+    expandFolder,
     collapseAllFolders,
     expandAllFolders,
     setActiveRequest,
@@ -327,6 +330,18 @@ export function Main({
     "export-postman": () => exportPostman(selectedNodeId ?? undefined),
     "export-openapi": () => exportOpenapi(selectedNodeId ?? undefined),
     "open-quick-open": () => setIsQuickOpenOpen(true),
+    "collapse-folder": () => {
+      const target = resolveFolderTarget(tree, selectedNodeId);
+      if (target !== null) {
+        collapseFolder(target);
+      }
+    },
+    "expand-folder": () => {
+      const target = resolveFolderTarget(tree, selectedNodeId);
+      if (target !== null) {
+        expandFolder(target);
+      }
+    },
     "collapse-all-folders": collapseAllFolders,
     "expand-all-folders": expandAllFolders,
     "panel-expand": () => resizeFocusedPanel(PANEL_RESIZE_STEP),

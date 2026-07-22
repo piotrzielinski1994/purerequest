@@ -28,6 +28,8 @@ export type ShortcutActionId =
   | "open-command-palette"
   | "open-quick-open"
   | "open-find"
+  | "collapse-folder"
+  | "expand-folder"
   | "collapse-all-folders"
   | "expand-all-folders"
   | "panel-shrink"
@@ -236,6 +238,20 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     name: "Find",
     description: "Open the in-app find bar for the focused editor or viewer.",
     defaultHotkey: "Mod+F",
+  },
+  {
+    id: "collapse-folder",
+    name: "Collapse folder",
+    description:
+      "Collapse the selected folder (or the selected request's folder).",
+    defaultHotkey: "Mod+[",
+  },
+  {
+    id: "expand-folder",
+    name: "Expand folder",
+    description:
+      "Expand the selected folder (or the selected request's folder).",
+    defaultHotkey: "Mod+]",
   },
   {
     id: "collapse-all-folders",

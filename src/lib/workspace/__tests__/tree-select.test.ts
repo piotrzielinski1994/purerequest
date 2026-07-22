@@ -5,6 +5,7 @@ import {
   allFolderIds,
   flattenSelectable,
   rangeBetween,
+  resolveFolderTarget,
 } from "@/lib/workspace/tree-select";
 
 const request = (id: string): RequestNode => ({
@@ -88,6 +89,49 @@ describe("allFolderIds", () => {
   // behavior: an empty tree yields no ids.
   it("should return an empty array for an empty tree", () => {
     expect(allFolderIds([])).toEqual([]);
+  });
+});
+
+describe("resolveFolderTarget", () => {
+  const tree: TreeNode[] = [
+    folder("f1", [folder("f2", [request("r-nested")]), request("r-in-f1")]),
+    request("r-root"),
+  ];
+
+  // TC-003 - behavior: a selected folder resolves to its own id.
+  it("should return the folder id if a folder is selected", () => {
+    expect(resolveFolderTarget(tree, "f1")).toBe("f1");
+  });
+
+  // TC-003 - behavior: a nested folder resolves to itself, not an ancestor.
+  it("should return the nested folder's own id if a nested folder is selected", () => {
+    expect(resolveFolderTarget(tree, "f2")).toBe("f2");
+  });
+
+  // TC-004 - behavior: a selected request resolves to its parent folder id.
+  it("should return the parent folder id if a request inside a folder is selected", () => {
+    expect(resolveFolderTarget(tree, "r-in-f1")).toBe("f1");
+  });
+
+  // TC-004 - behavior: a request nested two folders deep resolves to its
+  // immediate parent folder, not the root of the chain.
+  it("should return the immediate parent folder id if a deeply nested request is selected", () => {
+    expect(resolveFolderTarget(tree, "r-nested")).toBe("f2");
+  });
+
+  // TC-005 - behavior: a top-level request (parent is the root) resolves to null.
+  it("should return null if a top-level request whose parent is the root is selected", () => {
+    expect(resolveFolderTarget(tree, "r-root")).toBeNull();
+  });
+
+  // TC-005 - behavior: a null selection resolves to null.
+  it("should return null if nothing is selected", () => {
+    expect(resolveFolderTarget(tree, null)).toBeNull();
+  });
+
+  // TC-005 - behavior: an id that is not in the tree resolves to null.
+  it("should return null if the selected id is not in the tree", () => {
+    expect(resolveFolderTarget(tree, "does-not-exist")).toBeNull();
   });
 });
 

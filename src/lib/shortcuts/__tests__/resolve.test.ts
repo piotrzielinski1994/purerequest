@@ -41,6 +41,8 @@ const ACTION_IDS: ShortcutActionId[] = [
   "open-command-palette",
   "open-quick-open",
   "open-find",
+  "collapse-folder",
+  "expand-folder",
   "collapse-all-folders",
   "expand-all-folders",
   "panel-expand",

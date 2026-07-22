@@ -51,7 +51,7 @@ describe("tree drop indicator (AC-009)", () => {
     renderRow(usersFolder, { overId: "folder-users", position: "inside" });
 
     const row = screen.getByRole("treeitem", { name: "Users" });
-    expect(row.className).toMatch(/ring/);
+    expect(row.className).toMatch(/ring-primary/);
     // No insertion line for an inside-drop.
     expect(screen.queryByTestId("drop-line")).not.toBeInTheDocument();
   });
@@ -62,7 +62,7 @@ describe("tree drop indicator (AC-009)", () => {
 
     expect(screen.queryByTestId("drop-line")).not.toBeInTheDocument();
     const row = screen.getByRole("treeitem", { name: "Users" });
-    expect(row.className).not.toMatch(/ring/);
+    expect(row.className).not.toMatch(/ring-primary/);
   });
 });
 

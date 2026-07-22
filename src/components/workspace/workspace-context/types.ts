@@ -324,6 +324,8 @@ export type WorkspaceContextValue = {
   isSettingsOpen: boolean;
   isSettingsActive: boolean;
   toggleFolder: (id: string) => void;
+  collapseFolder: (id: string) => void;
+  expandFolder: (id: string) => void;
   // Collapse every folder (clear the expanded set) / expand every folder in the
   // tree at any depth. Sidebar-wide actions (shortcut + palette + context menu).
   collapseAllFolders: () => void;

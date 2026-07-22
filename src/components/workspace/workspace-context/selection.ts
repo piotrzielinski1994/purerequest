@@ -18,6 +18,8 @@ export type SelectionApi = {
   selectInTree: (id: string, mode: SelectMode) => void;
   clearSelection: () => void;
   toggleFolder: (id: string) => void;
+  collapseFolder: (id: string) => void;
+  expandFolder: (id: string) => void;
   collapseAllFolders: () => void;
   expandAllFolders: () => void;
 };
@@ -125,6 +127,24 @@ export function createSelection(internals: WorkspaceInternals): SelectionApi {
   const toggleFolder = (id: string) =>
     setExpandedFolderIds((current) => toggleInSet(current, id));
 
+  const collapseFolder = (id: string) =>
+    setExpandedFolderIds((current) => {
+      if (!current.has(id)) {
+        return current;
+      }
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+
+  const expandFolder = (id: string) =>
+    setExpandedFolderIds((current) => {
+      if (current.has(id)) {
+        return current;
+      }
+      return new Set(current).add(id);
+    });
+
   const collapseAllFolders = () => setExpandedFolderIds(new Set());
 
   const expandAllFolders = () =>
@@ -138,6 +158,8 @@ export function createSelection(internals: WorkspaceInternals): SelectionApi {
     selectInTree,
     clearSelection,
     toggleFolder,
+    collapseFolder,
+    expandFolder,
     collapseAllFolders,
     expandAllFolders,
   };

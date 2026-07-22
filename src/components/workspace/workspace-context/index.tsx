@@ -566,6 +566,8 @@ export function WorkspaceProvider({
       selectInTree,
       clearSelection,
       toggleFolder,
+      collapseFolder,
+      expandFolder,
       collapseAllFolders,
       expandAllFolders,
     } = createSelection(internals);
@@ -747,6 +749,8 @@ export function WorkspaceProvider({
       isSettingsOpen,
       isSettingsActive,
       toggleFolder,
+      collapseFolder,
+      expandFolder,
       collapseAllFolders,
       expandAllFolders,
       selectNode,
