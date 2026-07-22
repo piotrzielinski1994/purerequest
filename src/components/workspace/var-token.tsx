@@ -1,4 +1,4 @@
-import { cn } from "@pziel/pureui";
+import { cn, Input } from "@pziel/pureui";
 import { Copy, PencilLine } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -7,7 +7,6 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { Input } from "@/components/ui/input";
 import {
   resolvePathTokenPreview,
   resolveTokenPreview,

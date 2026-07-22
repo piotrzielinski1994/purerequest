@@ -3,7 +3,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-} from "@/components/ui/select";
+} from "@pziel/pureui";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 
 const NO_ENVIRONMENT = "__none__";

@@ -1,9 +1,9 @@
-import { useEffect, useRef } from "react";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@/components/ui/resizable";
+} from "@pziel/pureui";
+import { useEffect, useRef } from "react";
 import { ContentHeader } from "@/components/workspace/content-header";
 import { FolderPane } from "@/components/workspace/folder-pane";
 import { RequestPane } from "@/components/workspace/request-pane";

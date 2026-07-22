@@ -1,20 +1,18 @@
-import { Button } from "@pziel/pureui";
-import { useState } from "react";
-import { toast } from "sonner";
 import {
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-} from "@/components/ui/select";
+} from "@pziel/pureui";
+import { useState } from "react";
+import { toast } from "sonner";
 import { CodeEditor } from "@/components/workspace/code-editor";
 import { useEditorExtensions } from "@/components/workspace/use-editor-extensions";
 import { useWorkspace } from "@/components/workspace/workspace-context";

@@ -1,11 +1,11 @@
-import { cn } from "@pziel/pureui";
 import {
   CommandDialog,
   CommandEmpty,
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+  cn,
+} from "@pziel/pureui";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
 import {
   type QuickOpenEntry,

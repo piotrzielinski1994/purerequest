@@ -1,5 +1,5 @@
+import { Input } from "@pziel/pureui";
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { JsonViewer } from "@/components/workspace/json-viewer";

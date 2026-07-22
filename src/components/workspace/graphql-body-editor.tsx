@@ -1,12 +1,12 @@
 import { autocompletion } from "@codemirror/autocomplete";
 import { EditorView } from "@codemirror/view";
-import { graphqlLanguageSupport } from "cm6-graphql";
-import { useMemo } from "react";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@/components/ui/resizable";
+} from "@pziel/pureui";
+import { graphqlLanguageSupport } from "cm6-graphql";
+import { useMemo } from "react";
 import { BodyEditor } from "@/components/workspace/body-editor";
 import { CodeEditor } from "@/components/workspace/code-editor";
 import type { TokenCandidate } from "@/components/workspace/token-complete";
