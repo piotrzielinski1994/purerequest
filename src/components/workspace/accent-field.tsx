@@ -1,5 +1,5 @@
+import { cn } from "@pziel/pureui";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
 
 // Accept #rrggbb or #rrggbbaa - the optional alpha pair lets the user dial the
 // border's opacity (e.g. #dc262640 = faint red) instead of a fixed blend.

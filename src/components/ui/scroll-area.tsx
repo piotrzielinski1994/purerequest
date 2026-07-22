@@ -1,9 +1,8 @@
 "use client";
 
+import { cn } from "@pziel/pureui";
 import { ScrollArea as ScrollAreaPrimitive } from "radix-ui";
 import type * as React from "react";
-
-import { cn } from "@/lib/utils";
 
 function ScrollArea({
   className,

@@ -1,3 +1,4 @@
+import { cn } from "@pziel/pureui";
 import { CornerLeftUp, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,6 @@ import {
 } from "@/components/workspace/pane-tabs";
 import { ScriptEditor } from "@/components/workspace/script-editor";
 import type { ScriptStage } from "@/lib/scripts/model";
-import { cn } from "@/lib/utils";
 import { parseDotenv } from "@/lib/workspace/environment";
 import type {
   Auth,
