@@ -3,7 +3,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-} from "@/components/ui/select";
+} from "@pziel/pureui";
 import { BodyEditor } from "@/components/workspace/body-editor";
 import { EditableKeyValueTable } from "@/components/workspace/editable-key-value-table";
 import { GraphqlBodyEditor } from "@/components/workspace/graphql-body-editor";

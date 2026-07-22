@@ -1,12 +1,12 @@
-import { Button } from "@pziel/pureui";
 import {
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@pziel/pureui";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import { countDescendants } from "@/lib/workspace/tree-edit";
 import { findNode } from "@/lib/workspace/tree-locate";

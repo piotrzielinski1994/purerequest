@@ -1,4 +1,3 @@
-import { formatForDisplay } from "@tanstack/hotkeys";
 import {
   CommandDialog,
   CommandEmpty,
@@ -6,7 +5,8 @@ import {
   CommandItem,
   CommandList,
   CommandShortcut,
-} from "@/components/ui/command";
+} from "@pziel/pureui";
+import { formatForDisplay } from "@tanstack/hotkeys";
 import type { ShortcutAction } from "@/lib/shortcuts/registry";
 
 export type PaletteCommand = {

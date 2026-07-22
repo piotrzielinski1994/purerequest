@@ -1,9 +1,9 @@
-import { type CSSProperties, useCallback } from "react";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@/components/ui/resizable";
+} from "@pziel/pureui";
+import { type CSSProperties, useCallback } from "react";
 import { Main } from "@/components/workspace/main";
 import { Sidebar } from "@/components/workspace/sidebar";
 import { useWorkspace } from "@/components/workspace/workspace-context";

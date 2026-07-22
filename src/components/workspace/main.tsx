@@ -1,12 +1,12 @@
 import { openSearchPanel } from "@codemirror/search";
 import { EditorView } from "@codemirror/view";
-import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@/components/ui/resizable";
+} from "@pziel/pureui";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
 import { CodeGenDialog } from "@/components/workspace/code-gen-dialog";
 import {

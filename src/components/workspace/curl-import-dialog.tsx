@@ -1,13 +1,13 @@
-import { Button } from "@pziel/pureui";
-import { useState } from "react";
 import {
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@pziel/pureui";
+import { useState } from "react";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 
 export function CurlImportDialog() {

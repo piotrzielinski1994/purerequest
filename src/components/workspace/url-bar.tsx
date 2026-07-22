@@ -1,12 +1,13 @@
-import { Button, cn } from "@pziel/pureui";
-import { Send, Square } from "lucide-react";
-import { useEffect, useRef } from "react";
 import {
+  Button,
+  cn,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-} from "@/components/ui/select";
+} from "@pziel/pureui";
+import { Send, Square } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { HighlightedInput } from "@/components/workspace/highlighted-input";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
 import { useWorkspace } from "@/components/workspace/workspace-context";

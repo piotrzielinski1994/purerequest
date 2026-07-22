@@ -1,20 +1,19 @@
-import { Button, cn } from "@pziel/pureui";
-import { CornerLeftUp, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
 import {
+  Button,
+  cn,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-} from "@/components/ui/select";
+} from "@pziel/pureui";
+import { CornerLeftUp, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip } from "@/components/ui/tooltip";
 import { AccentField } from "@/components/workspace/accent-field";
