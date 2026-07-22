@@ -1,115 +1,44 @@
 import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from "react";
-import type { ThemeColors, ThemeMode } from "@/lib/settings/settings";
+  ThemeProvider as BaseThemeProvider,
+  type ThemeContextValue,
+  useTheme as useBaseTheme,
+  useThemeOptional as useBaseThemeOptional,
+} from "@pziel/pureui";
+import type { ReactNode } from "react";
+import type { ThemeColors } from "@/lib/settings/settings";
 import { useSettings } from "@/lib/settings/settings-context";
 import { applyThemeVars } from "@/lib/theme/apply-vars";
-import {
-  type EffectiveMode,
-  resolveEffectiveMode,
-} from "@/lib/theme/effective-mode";
 import { applyDefaults } from "@/lib/theme/overrides";
 import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
 
-type ThemeContextValue = {
-  mode: ThemeMode;
-  effectiveMode: EffectiveMode;
-  setMode: (mode: ThemeMode) => void;
-  colors: ThemeColors;
-  effectiveColors: ThemeColors;
-  setColors: (colors: ThemeColors) => void;
-};
+const computeEffectiveColors = (colors: ThemeColors): ThemeColors =>
+  applyDefaults(colors, DEFAULT_THEME_COLORS);
 
-const ThemeContext = createContext<ThemeContextValue | null>(null);
-
-const MEDIA_QUERY = "(prefers-color-scheme: dark)";
-
-function getPrefersDark(): boolean {
-  if (typeof window === "undefined" || !window.matchMedia) {
-    return false;
-  }
-  return window.matchMedia(MEDIA_QUERY).matches;
-}
-
+// Thin wrapper over pureui's generic ThemeProvider: wires this app's settings +
+// color subsystem (savers, inline-var writer, defaults merge) into the shared
+// provider that owns mode resolution and the `.dark` toggle.
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { settings, saveThemeMode, saveThemeColors } = useSettings();
-  const mode = settings.theme.mode;
-  const colors = settings.theme.colors;
-
-  const [prefersDark, setPrefersDark] = useState(getPrefersDark);
-
-  // Layout effect (not passive) so the OS listener is attached synchronously on
-  // commit - it can't miss a preference change that fires right after mount.
-  useLayoutEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) {
-      return;
-    }
-    const mql = window.matchMedia(MEDIA_QUERY);
-    const onChange = (event: MediaQueryListEvent) =>
-      setPrefersDark(event.matches);
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-
-  const effectiveMode = resolveEffectiveMode(mode, prefersDark);
-
-  const effectiveColors = useMemo(
-    () => applyDefaults(colors, DEFAULT_THEME_COLORS),
-    [colors],
-  );
-
-  useLayoutEffect(() => {
-    document.documentElement.classList.toggle("dark", effectiveMode === "dark");
-    // Apply only the active effective mode's SPARSE overrides as inline vars -
-    // the built-in defaults already come from :root/.dark in index.css.
-    applyThemeVars(
-      document.documentElement,
-      effectiveMode,
-      colors[effectiveMode],
-    );
-  }, [effectiveMode, colors]);
-
-  const value = useMemo<ThemeContextValue>(
-    () => ({
-      mode,
-      effectiveMode,
-      setMode: saveThemeMode,
-      colors,
-      effectiveColors,
-      setColors: saveThemeColors,
-    }),
-    [
-      mode,
-      effectiveMode,
-      saveThemeMode,
-      colors,
-      effectiveColors,
-      saveThemeColors,
-    ],
-  );
-
   return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+    <BaseThemeProvider<ThemeColors>
+      mode={settings.theme.mode}
+      colors={settings.theme.colors}
+      setMode={saveThemeMode}
+      setColors={saveThemeColors}
+      computeEffectiveColors={computeEffectiveColors}
+      applyVars={applyThemeVars}
+    >
+      {children}
+    </BaseThemeProvider>
   );
 }
 
-export function useTheme(): ThemeContextValue {
-  const value = useContext(ThemeContext);
-  if (!value) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-  return value;
+// Re-typed to this app's ThemeColors so the 12 call sites keep their concrete
+// context type without importing pureui's generic directly.
+export function useTheme(): ThemeContextValue<ThemeColors> {
+  return useBaseTheme<ThemeColors>();
 }
 
-// Returns null when rendered outside a ThemeProvider instead of throwing - lets
-// the CodeMirror editors (which read the active editor colors) render in
-// isolation (tests, or any subtree mounted without the root provider) by falling
-// back to the built-in defaults, mirroring the toast/hotkeys no-provider pattern.
-export function useThemeOptional(): ThemeContextValue | null {
-  return useContext(ThemeContext);
+export function useThemeOptional(): ThemeContextValue<ThemeColors> | null {
+  return useBaseThemeOptional<ThemeColors>();
 }
