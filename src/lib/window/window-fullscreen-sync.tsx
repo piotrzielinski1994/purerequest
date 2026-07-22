@@ -1,6 +1,6 @@
+import type { WindowController } from "@pziel/pureui";
+import { useWindowFullscreenSync } from "@pziel/pureui";
 import { useSettings } from "@/lib/settings/settings-context";
-import { useWindowFullscreenSync } from "@/lib/window/use-window-fullscreen-sync";
-import type { WindowController } from "@/lib/window/window-controller";
 
 // Mount-only bridge: feeds the persisted `windowFullscreen` flag + its saver into
 // the sync hook. Renders nothing. Lives inside the SettingsProvider.
