@@ -41,6 +41,8 @@ const ACTION_IDS: ShortcutActionId[] = [
   "open-command-palette",
   "open-quick-open",
   "open-find",
+  "collapse-folder",
+  "expand-folder",
   "collapse-all-folders",
   "expand-all-folders",
   "panel-expand",
@@ -68,11 +70,16 @@ describe("SHORTCUT_ACTIONS registry", () => {
     expect(ids).toEqual([...ACTION_IDS].sort());
   });
 
-  // AC-001 — behavior
-  it("should give every action a non-empty default hotkey", () => {
+  // AC-001 — behavior. Palette-only actions ship with an intentionally empty
+  // default hotkey (runnable from the command palette, user-rebindable, no
+  // default key); every other action keeps a non-empty default.
+  const PALETTE_ONLY: ShortcutActionId[] = ["collapse-folder", "expand-folder"];
+  it("should give every non-palette-only action a non-empty default hotkey", () => {
     SHORTCUT_ACTIONS.forEach((action) => {
       expect(typeof action.defaultHotkey).toBe("string");
-      expect(action.defaultHotkey.length).toBeGreaterThan(0);
+      if (!PALETTE_ONLY.includes(action.id)) {
+        expect(action.defaultHotkey.length).toBeGreaterThan(0);
+      }
     });
   });
 

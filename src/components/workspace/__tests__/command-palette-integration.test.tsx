@@ -86,9 +86,11 @@ describe("command palette open/close (Mod+K)", () => {
 
     for (const action of PALETTE_ACTIONS) {
       expect(within(dialog).getByText(action.name)).toBeInTheDocument();
-      expect(
-        within(dialog).getByText(formatForDisplay(action.defaultHotkey)),
-      ).toBeInTheDocument();
+      if (action.defaultHotkey.length > 0) {
+        expect(
+          within(dialog).getByText(formatForDisplay(action.defaultHotkey)),
+        ).toBeInTheDocument();
+      }
     }
 
     const palette = SHORTCUT_ACTIONS.find(
