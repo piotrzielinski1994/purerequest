@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@pziel/pureui";
 import { RawJsonEditor } from "@/components/workspace/config-editor";
 import { themeColorsJsonSchema } from "@/lib/config-schema/json-schemas";
 import type {

@@ -1,7 +1,6 @@
-import { cn } from "@pziel/pureui";
+import { Button, cn } from "@pziel/pureui";
 import { Send, Square } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,

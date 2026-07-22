@@ -1,6 +1,6 @@
+import { Button } from "@pziel/pureui";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { showUpdateToast } from "@/lib/updater/show-update-toast";
 import type { UpdateController } from "@/lib/updater/update-controller";
 
