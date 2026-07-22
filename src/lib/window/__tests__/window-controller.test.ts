@@ -1,36 +1,6 @@
+import type { TauriWindow } from "@pziel/pureui";
 import { describe, expect, it, vi } from "vitest";
-import type { TauriWindow } from "@/lib/window/window-controller";
-import {
-  createNoopWindowController,
-  createWindowController,
-} from "@/lib/window/window-controller";
-
-describe("createNoopWindowController", () => {
-  // behavior: the browser/test controller reports not-fullscreen and ignores sets
-  it("should report false for isFullscreen", async () => {
-    const controller = createNoopWindowController();
-
-    expect(await controller.isFullscreen()).toBe(false);
-  });
-
-  // behavior: setFullscreen is a no-op that resolves
-  it("should resolve setFullscreen without throwing", async () => {
-    const controller = createNoopWindowController();
-
-    await expect(controller.setFullscreen(true)).resolves.toBeUndefined();
-  });
-
-  // behavior: onFullscreenChange never fires and returns a no-op unsubscribe
-  it("should return an unsubscribe function from onFullscreenChange", async () => {
-    const controller = createNoopWindowController();
-    const listener = vi.fn();
-
-    const unsubscribe = await controller.onFullscreenChange(listener);
-    unsubscribe();
-
-    expect(listener).not.toHaveBeenCalled();
-  });
-});
+import { createWindowController } from "@/lib/window/window-controller";
 
 function fakeTauriWindow(initial: boolean): {
   win: TauriWindow;
