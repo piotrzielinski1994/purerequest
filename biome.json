@@ -1,13 +1,8 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
-  },
+  "extends": ["@pziel/pureui/biome"],
   "files": {
     "includes": [
-      "**",
       "!!**/dist",
       "!!**/node_modules",
       "!!**/src-tauri/target",
@@ -16,32 +11,13 @@
       "!!**/storybook-static"
     ]
   },
-  "formatter": {
-    "enabled": true,
-    "formatWithErrors": false,
-    "indentStyle": "space",
-    "indentWidth": 2,
-    "lineEnding": "lf",
-    "lineWidth": 80,
-    "attributePosition": "auto",
-    "bracketSameLine": false,
-    "bracketSpacing": true,
-    "expand": "auto",
-    "useEditorconfig": true
-  },
   "linter": {
-    "enabled": true,
-    "domains": {
-      "react": "recommended"
-    },
     "rules": {
-      "preset": "recommended",
       "a11y": "off",
       "correctness": {
         "useExhaustiveDependencies": "off"
       },
       "suspicious": {
-        "noExplicitAny": "error",
         "noArrayIndexKey": "off"
       },
       "style": {
@@ -60,37 +36,5 @@
         }
       }
     }
-  ],
-  "javascript": {
-    "formatter": {
-      "jsxQuoteStyle": "double",
-      "quoteProperties": "asNeeded",
-      "trailingCommas": "all",
-      "semicolons": "always",
-      "arrowParentheses": "always",
-      "bracketSameLine": false,
-      "quoteStyle": "double",
-      "attributePosition": "auto",
-      "bracketSpacing": true
-    }
-  },
-  "html": {
-    "formatter": {
-      "indentScriptAndStyle": false,
-      "selfCloseVoidElements": "always"
-    }
-  },
-  "css": {
-    "parser": {
-      "tailwindDirectives": true
-    }
-  },
-  "assist": {
-    "enabled": true,
-    "actions": {
-      "source": {
-        "organizeImports": "on"
-      }
-    }
-  }
+  ]
 }
