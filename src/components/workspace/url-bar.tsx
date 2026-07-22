@@ -1,3 +1,4 @@
+import { cn } from "@pziel/pureui";
 import { Send, Square } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,6 @@ import {
 import { HighlightedInput } from "@/components/workspace/highlighted-input";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
 import { useWorkspace } from "@/components/workspace/workspace-context";
-import { cn } from "@/lib/utils";
 import type { HttpMethod } from "@/lib/workspace/model";
 import { keyValuesToRecord } from "@/lib/workspace/model";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";

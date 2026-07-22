@@ -1,3 +1,4 @@
+import { cn } from "@pziel/pureui";
 import { Copy, PencilLine } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,7 +14,6 @@ import {
   type TokenPreview,
 } from "@/components/workspace/url-token";
 import { useWorkspace } from "@/components/workspace/workspace-context";
-import { cn } from "@/lib/utils";
 import type { EffectiveConfig } from "@/lib/workspace/resolve";
 
 // {{var}} or :param - the token grammar shared by the URL bar and config grids.

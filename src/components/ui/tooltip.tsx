@@ -1,7 +1,6 @@
+import { cn } from "@pziel/pureui";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import * as React from "react";
-
-import { cn } from "@/lib/utils";
 
 const HOVER_DELAY_MS = 500;
 

@@ -1,3 +1,4 @@
+import { cn } from "@pziel/pureui";
 import {
   CommandDialog,
   CommandEmpty,
@@ -6,7 +7,6 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
-import { cn } from "@/lib/utils";
 import {
   type QuickOpenEntry,
   scoreQuickOpen,

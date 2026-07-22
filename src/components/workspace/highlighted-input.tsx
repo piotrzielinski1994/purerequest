@@ -1,3 +1,4 @@
+import { cn } from "@pziel/pureui";
 import { Eye, EyeOff } from "lucide-react";
 import { useRef, useState } from "react";
 import type { TokenHighlightContext } from "@/components/workspace/editable-key-value-table";
@@ -9,7 +10,6 @@ import {
 } from "@/components/workspace/token-complete";
 import { TokenSuggestionList } from "@/components/workspace/token-suggestions";
 import { TokenHighlight } from "@/components/workspace/var-token";
-import { cn } from "@/lib/utils";
 
 const TOKEN_LISTBOX_ID = "highlighted-input-token-listbox";
 

@@ -1,7 +1,7 @@
+import { cn } from "@pziel/pureui";
 import { useEffect, useRef } from "react";
 import type { TokenCandidate } from "@/components/workspace/token-complete";
 import { TOKEN_KIND_COLOR } from "@/components/workspace/token-suggestion-style";
-import { cn } from "@/lib/utils";
 
 // The React listbox rendered under a token-aware text input (`HighlightedInput`).
 // One kind-colored row per candidate: the name (left, kind color, truncated) and

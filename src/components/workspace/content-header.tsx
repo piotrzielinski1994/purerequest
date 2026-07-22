@@ -15,6 +15,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { cn } from "@pziel/pureui";
 import { Folder, Plus, Settings, X } from "lucide-react";
 import { useState } from "react";
 import {
@@ -33,7 +34,6 @@ import { openContextMenuOnKey } from "@/components/workspace/tree-nav";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import { useShortcutOverrides } from "@/lib/settings/settings-context";
 import { resolveShortcuts } from "@/lib/shortcuts/resolve";
-import { cn } from "@/lib/utils";
 import type { TreeNode } from "@/lib/workspace/model";
 import { findNode } from "@/lib/workspace/tree-locate";
 

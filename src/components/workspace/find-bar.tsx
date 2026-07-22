@@ -1,6 +1,6 @@
+import { cn } from "@pziel/pureui";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef } from "react";
-import { cn } from "@/lib/utils";
 
 // Shared presentational find bar - reused (styled) by the CodeMirror search panel.
 // Purely driven by props; it computes no matches itself. Design.md compliant: no rounded corners

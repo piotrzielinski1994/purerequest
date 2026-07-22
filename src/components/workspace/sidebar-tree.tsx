@@ -10,6 +10,7 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import { cn } from "@pziel/pureui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ContextMenu,
@@ -29,7 +30,6 @@ import { TreeRow } from "@/components/workspace/tree-row";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import { useShortcutOverrides } from "@/lib/settings/settings-context";
 import { resolveShortcuts } from "@/lib/shortcuts/resolve";
-import { cn } from "@/lib/utils";
 import { dragOverlayLabel } from "@/lib/workspace/drag-overlay-label";
 import { resolveTreeKey } from "@/lib/workspace/tree-keyboard";
 import {
