@@ -1,7 +1,9 @@
 import { openSearchPanel } from "@codemirror/search";
 import { EditorView } from "@codemirror/view";
 import {
+  CommandPalette,
   cycleThemeMode,
+  type PaletteCommand,
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
@@ -11,10 +13,6 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CloseConfirmDialog } from "@/components/workspace/close-confirm-dialog";
 import { CodeGenDialog } from "@/components/workspace/code-gen-dialog";
-import {
-  CommandPalette,
-  type PaletteCommand,
-} from "@/components/workspace/command-palette";
 import { Console } from "@/components/workspace/console";
 import { Content } from "@/components/workspace/content";
 import { CurlImportDialog } from "@/components/workspace/curl-import-dialog";
@@ -364,14 +362,19 @@ export function Main({
   const commands: PaletteCommand[] = SHORTCUT_ACTIONS.filter(
     (action) => action.id !== "open-command-palette",
   )
-    .map((action) => {
+    .map((action): PaletteCommand | null => {
       const run = paletteRuns[action.id];
       if (!run) {
         return null;
       }
       // A disabled action (empty binding list) shows no shortcut chip but is
       // still runnable from the palette; otherwise show its first binding.
-      return { action, binding: effective[action.id][0] ?? "", run };
+      return {
+        key: action.id,
+        name: action.name,
+        binding: effective[action.id][0] ?? "",
+        run,
+      };
     })
     .filter((command): command is PaletteCommand => command !== null);
 

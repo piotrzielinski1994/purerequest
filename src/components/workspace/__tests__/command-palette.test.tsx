@@ -1,9 +1,8 @@
+import { CommandPalette, type PaletteCommand } from "@pziel/pureui";
 import { formatForDisplay } from "@tanstack/hotkeys";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-
-import { CommandPalette } from "@/components/workspace/command-palette";
 import {
   SHORTCUT_ACTIONS,
   type ShortcutAction,
@@ -13,14 +12,13 @@ const TOGGLE_CONSOLE = SHORTCUT_ACTIONS.find((a) => a.id === "toggle-console")!;
 const TOGGLE_SIDEBAR = SHORTCUT_ACTIONS.find((a) => a.id === "toggle-sidebar")!;
 const NEW_REQUEST = SHORTCUT_ACTIONS.find((a) => a.id === "new-request")!;
 
-type Command = {
-  action: ShortcutAction;
-  binding: string;
-  run: () => void;
-};
-
-function makeCommand(action: ShortcutAction, run = vi.fn()): Command {
-  return { action, binding: action.defaultHotkey, run };
+function makeCommand(action: ShortcutAction, run = vi.fn()): PaletteCommand {
+  return {
+    key: action.id,
+    name: action.name,
+    binding: action.defaultHotkey,
+    run,
+  };
 }
 
 describe("CommandPalette", () => {
@@ -35,9 +33,9 @@ describe("CommandPalette", () => {
     render(<CommandPalette open onOpenChange={vi.fn()} commands={commands} />);
 
     for (const command of commands) {
-      expect(await screen.findByText(command.action.name)).toBeInTheDocument();
+      expect(await screen.findByText(command.name)).toBeInTheDocument();
       expect(
-        screen.getByText(formatForDisplay(command.binding)),
+        screen.getByText(formatForDisplay(command.binding ?? "")),
       ).toBeInTheDocument();
     }
   });
@@ -48,7 +46,12 @@ describe("CommandPalette", () => {
     const user = userEvent.setup();
     const run = vi.fn();
     const onOpenChange = vi.fn();
-    const disabled: Command = { action: TOGGLE_CONSOLE, binding: "", run };
+    const disabled: PaletteCommand = {
+      key: TOGGLE_CONSOLE.id,
+      name: TOGGLE_CONSOLE.name,
+      binding: "",
+      run,
+    };
 
     render(
       <CommandPalette open onOpenChange={onOpenChange} commands={[disabled]} />,
