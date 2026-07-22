@@ -244,14 +244,14 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     name: "Collapse folder",
     description:
       "Collapse the selected folder (or the selected request's folder).",
-    defaultHotkey: "",
+    defaultHotkey: "Mod+[",
   },
   {
     id: "expand-folder",
     name: "Expand folder",
     description:
       "Expand the selected folder (or the selected request's folder).",
-    defaultHotkey: "",
+    defaultHotkey: "Mod+]",
   },
   {
     id: "collapse-all-folders",

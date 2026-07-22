@@ -2,7 +2,7 @@ import type { Hotkey } from "@tanstack/hotkeys";
 import { type UseHotkeyDefinition, useHotkeys } from "@tanstack/react-hotkeys";
 import { useSettings } from "@/lib/settings/settings-context";
 import type { ShortcutActionId } from "@/lib/shortcuts/registry";
-import { resolveShortcuts, safeNormalize } from "@/lib/shortcuts/resolve";
+import { resolveShortcuts } from "@/lib/shortcuts/resolve";
 
 export function useActionHotkeys(
   handlers: Partial<Record<ShortcutActionId, () => void>>,
@@ -15,14 +15,12 @@ export function useActionHotkeys(
   const definitions: UseHotkeyDefinition[] = (
     Object.keys(handlers) as ShortcutActionId[]
   ).flatMap((id) =>
-    effective[id]
-      .filter((hotkey) => safeNormalize(hotkey) !== null)
-      .map((hotkey) => ({
-        hotkey: hotkey as Hotkey,
-        callback: () => {
-          handlers[id]?.();
-        },
-      })),
+    effective[id].map((hotkey) => ({
+      hotkey: hotkey as Hotkey,
+      callback: () => {
+        handlers[id]?.();
+      },
+    })),
   );
 
   // No global ignoreInputs: let the library pick per-hotkey. Mod/Ctrl combos

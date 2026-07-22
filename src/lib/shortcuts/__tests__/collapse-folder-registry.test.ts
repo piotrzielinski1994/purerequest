@@ -11,27 +11,41 @@ function findAction(id: ShortcutActionId) {
 }
 
 describe("SHORTCUT_ACTIONS collapse-folder / expand-folder", () => {
-  // AC-002, AC-005, TC-008 - behavior: collapse-folder is registered with an
-  // EMPTY default hotkey (no default key), a palette label "Collapse folder",
-  // and a non-empty description.
-  it("should register collapse-folder with an empty default hotkey", () => {
+  // AC-002, AC-005, TC-008 - behavior: collapse-folder is registered with the
+  // Mod+[ default, a palette label "Collapse folder", and a non-empty description.
+  it("should register collapse-folder with the Mod+[ default hotkey", () => {
     const action = findAction("collapse-folder");
 
     expect(action).toBeDefined();
-    expect(action!.defaultHotkey).toBe("");
+    expect(action!.defaultHotkey).toBe("Mod+[");
     expect(action!.name).toBe("Collapse folder");
     expect(action!.description.length).toBeGreaterThan(0);
   });
 
-  // AC-002, AC-005, TC-008 - behavior: expand-folder is registered with an EMPTY
-  // default hotkey, a palette label "Expand folder", and a non-empty description.
-  it("should register expand-folder with an empty default hotkey", () => {
+  // AC-002, AC-005, TC-008 - behavior: expand-folder is registered with the
+  // Mod+] default, a palette label "Expand folder", and a non-empty description.
+  it("should register expand-folder with the Mod+] default hotkey", () => {
     const action = findAction("expand-folder");
 
     expect(action).toBeDefined();
-    expect(action!.defaultHotkey).toBe("");
+    expect(action!.defaultHotkey).toBe("Mod+]");
     expect(action!.name).toBe("Expand folder");
     expect(action!.description.length).toBeGreaterThan(0);
+  });
+
+  // AC-005 - behavior: neither default collides with the collapse-all / expand-all
+  // bracket chords (those carry Shift).
+  it("should not conflict the folder defaults with the all-folders defaults", () => {
+    const effective = resolveShortcuts({});
+
+    expect(findConflict("Mod+[", "expand-folder", effective)).toBe(
+      "collapse-folder",
+    );
+    expect(findConflict("Mod+]", "collapse-folder", effective)).toBe(
+      "expand-folder",
+    );
+    expect(effective["collapse-all-folders"]).toEqual(["Mod+Shift+["]);
+    expect(effective["expand-all-folders"]).toEqual(["Mod+Shift+]"]);
   });
 });
 
