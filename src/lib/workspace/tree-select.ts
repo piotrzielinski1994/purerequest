@@ -1,4 +1,5 @@
 import type { TreeNode } from "@/lib/workspace/model";
+import { findNode, locateNode } from "@/lib/workspace/tree-locate";
 
 // The selectable rows (folders + requests) in visible DFS order: a folder's
 // children are listed only when the folder is expanded. This order is what
@@ -25,6 +26,23 @@ export function allFolderIds(nodes: TreeNode[]): string[] {
   return nodes.flatMap((node) =>
     node.kind === "folder" ? [node.id, ...allFolderIds(node.children)] : [],
   );
+}
+
+export function resolveFolderTarget(
+  nodes: TreeNode[],
+  id: string | null,
+): string | null {
+  if (id === null) {
+    return null;
+  }
+  const node = findNode(nodes, id);
+  if (node === null) {
+    return null;
+  }
+  if (node.kind === "folder") {
+    return id;
+  }
+  return locateNode(nodes, id)?.parentId ?? null;
 }
 
 // The inclusive range of ids between `anchor` and `target` in the visible order,
