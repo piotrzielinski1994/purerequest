@@ -300,7 +300,7 @@ function FolderRow({ node, depth }: { node: FolderNode; depth: number }) {
           onDoubleClick={() => beginRename(node.id)}
           style={{ paddingLeft: `${depth * 14 + 6}px` }}
           className={cn(
-            "group flex w-max min-w-full cursor-pointer touch-none items-center gap-1 py-1 pr-2 text-[13px] hover:bg-accent",
+            "group flex w-max min-w-full cursor-pointer touch-none items-center gap-1 py-1 pr-2 text-[13px] outline-none hover:bg-accent focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
             isDragging && "opacity-50",
             isSelected && "bg-accent",
             dropInside && "ring-1 ring-inset ring-primary",
@@ -421,7 +421,7 @@ function RequestRow({ node, depth }: { node: RequestNode; depth: number }) {
           onDoubleClick={() => beginRename(node.id)}
           style={{ paddingLeft: `${depth * 14 + 10}px` }}
           className={cn(
-            "group flex w-max min-w-full cursor-pointer touch-none items-center gap-2 py-1 pr-2 text-[13px] hover:bg-accent",
+            "group flex w-max min-w-full cursor-pointer touch-none items-center gap-2 py-1 pr-2 text-[13px] outline-none hover:bg-accent focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
             isDragging && "opacity-50",
             isSelected && "bg-accent",
           )}
