@@ -1,13 +1,9 @@
+import type { UpdateController, UpdateInfo } from "@pziel/pureui";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import { UpdatesSection } from "@/components/settings/updates-section";
-import type {
-  UpdateController,
-  UpdateInfo,
-} from "@/lib/updater/update-controller";
 
 // sonner is the observable boundary; the UpdateController + version source are
 // injected as props (built per-env in __root.tsx, not in SettingsContext). The
