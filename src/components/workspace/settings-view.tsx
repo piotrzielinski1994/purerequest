@@ -1,3 +1,4 @@
+import { useUpdater } from "@pziel/pureui";
 import { EnvSection } from "@/components/settings/env-section";
 import { ShortcutsSection } from "@/components/settings/shortcuts-section";
 import { ThemeSection } from "@/components/settings/theme-section";
@@ -13,7 +14,6 @@ import {
   type SettingsSection,
 } from "@/lib/settings/settings";
 import { useSettings } from "@/lib/settings/settings-context";
-import { useUpdater } from "@/lib/updater/updater-context";
 
 // The Settings content: a section sub-bar (Theme / Env / Shortcuts) mirroring the
 // request-pane tab strip, with the active section persisted per-installation. The
