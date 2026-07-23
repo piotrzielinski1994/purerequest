@@ -13,6 +13,7 @@ import {
   resolveFocusedPanel,
   stepLayout,
   themeToggleMessage,
+  useActionHotkeys,
 } from "@pziel/pureui";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -33,8 +34,7 @@ import {
   SHORTCUT_ACTIONS,
   type ShortcutActionId,
 } from "@/lib/shortcuts/registry";
-import { resolveShortcuts } from "@/lib/shortcuts/resolve";
-import { useActionHotkeys } from "@/lib/shortcuts/use-action-hotkeys";
+import { useEffectiveShortcuts } from "@/lib/shortcuts/use-effective-shortcuts";
 import { buildQuickOpenEntries } from "@/lib/workspace/quick-open";
 import { resolveFolderTarget } from "@/lib/workspace/tree-select";
 
@@ -365,12 +365,15 @@ export function Main({
     "panel-shrink": () => resizeFocusedPanel(-PANEL_RESIZE_STEP),
   };
 
-  useActionHotkeys({
-    ...handlers,
-    "open-command-palette": openPalette,
-  });
+  const effective = useEffectiveShortcuts();
+  useActionHotkeys(
+    {
+      ...handlers,
+      "open-command-palette": openPalette,
+    },
+    effective,
+  );
 
-  const effective = resolveShortcuts(settings.shortcuts);
   // Find is palette-runnable but NOT a global hotkey: each CodeMirror surface owns
   // its own Cmd+F (CM keymap), so the palette re-fires the binding at the focused
   // surface rather than routing through the global hotkey layer.
