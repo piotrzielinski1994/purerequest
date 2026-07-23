@@ -1,8 +1,8 @@
 import { EditorView } from "@codemirror/view";
+import { applyDefaults } from "@pziel/pureui";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
-
 import { ThemeSection } from "@/components/settings/theme-section";
 import { createFakeHttpClient } from "@/components/workspace/__tests__/fake-http-client";
 import {
@@ -16,7 +16,6 @@ import {
   type ThemeColors,
 } from "@/lib/settings/settings";
 import { SettingsProvider } from "@/lib/settings/settings-context";
-import { applyDefaults } from "@/lib/theme/overrides";
 import { ThemeProvider } from "@/lib/theme/theme-context";
 import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
 

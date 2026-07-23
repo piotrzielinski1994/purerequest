@@ -1,4 +1,6 @@
 import {
+  applyDefaults,
+  applyThemeVars,
   ThemeProvider as BaseThemeProvider,
   type ThemeContextValue,
   useTheme as useBaseTheme,
@@ -7,9 +9,7 @@ import {
 import type { ReactNode } from "react";
 import type { ThemeColors } from "@/lib/settings/settings";
 import { useSettings } from "@/lib/settings/settings-context";
-import { applyThemeVars } from "@/lib/theme/apply-vars";
-import { applyDefaults } from "@/lib/theme/overrides";
-import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
+import { APP_TOKENS, DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
 
 const computeEffectiveColors = (colors: ThemeColors): ThemeColors =>
   applyDefaults(colors, DEFAULT_THEME_COLORS);
@@ -26,7 +26,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setMode={saveThemeMode}
       setColors={saveThemeColors}
       computeEffectiveColors={computeEffectiveColors}
-      applyVars={applyThemeVars}
+      applyVars={(el, m, c) => applyThemeVars(el, m, c, APP_TOKENS)}
     >
       {children}
     </BaseThemeProvider>

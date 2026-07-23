@@ -1,5 +1,5 @@
 import type { Extension } from "@codemirror/state";
-import { toCodeMirrorKey } from "@pziel/pureui";
+import { applyDefaults, toCodeMirrorKey } from "@pziel/pureui";
 import { useMemo } from "react";
 import { editorFind } from "@/components/workspace/editor-find";
 import {
@@ -11,7 +11,6 @@ import {
 } from "@/components/workspace/editor-theme";
 import { useShortcutOverrides } from "@/lib/settings/settings-context";
 import { resolveShortcuts } from "@/lib/shortcuts/resolve";
-import { applyDefaults } from "@/lib/theme/overrides";
 import { useThemeOptional } from "@/lib/theme/theme-context";
 import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
 
