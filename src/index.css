@@ -1,1 +1,8 @@
 @import "@pziel/pureui/styles/theme.css";
+
+/* Tailwind v4 auto-detects sources but skips node_modules, so utility classes
+   used ONLY inside @pziel/pureui components (e.g. the command palette / dialog's
+   translate-x-[-50%], top-[50%], max-w-lg centering) are never generated and the
+   palette renders off-screen. Explicitly scan the pureui bundle so its classes
+   are emitted. See docs/learnings.md. */
+@source "../node_modules/@pziel/pureui/dist";

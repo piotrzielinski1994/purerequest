@@ -3,6 +3,8 @@ export type ShortcutActionId =
   | "close-settings"
   | "toggle-console"
   | "toggle-sidebar"
+  | "focus-sidebar"
+  | "focus-toggle-sidebar"
   | "toggle-theme"
   | "next-request"
   | "prev-request"
@@ -82,6 +84,20 @@ export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = [
     name: "Toggle sidebar",
     description: "Show or hide the collection sidebar.",
     defaultHotkey: "Mod+B",
+  },
+  {
+    id: "focus-sidebar",
+    name: "Focus sidebar",
+    description:
+      "Move focus to the collection sidebar, revealing it first if hidden.",
+    defaultHotkey: "Mod+E",
+  },
+  {
+    id: "focus-toggle-sidebar",
+    name: "Focus or toggle sidebar",
+    description:
+      "Focus the sidebar (revealing it if hidden); hide it if it is already focused.",
+    defaultHotkey: "Mod+0",
   },
   {
     id: "toggle-theme",
