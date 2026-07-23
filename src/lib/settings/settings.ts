@@ -1,3 +1,5 @@
+import type { SettingsStore as GenericSettingsStore } from "@pziel/pureui";
+
 import {
   SHORTCUT_ACTIONS,
   type ShortcutOverrides,
@@ -118,10 +120,7 @@ function emptyThemeColors(): ThemeColors {
   };
 }
 
-export type SettingsStore = {
-  load: () => Promise<Settings>;
-  save: (settings: Settings) => Promise<void>;
-};
+export type SettingsStore = GenericSettingsStore<Settings>;
 
 export const DEFAULT_SETTINGS: Settings = {
   version: 1,
