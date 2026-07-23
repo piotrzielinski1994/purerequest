@@ -271,6 +271,27 @@ export function Main({
       saveSidebarHidden(nextHidden);
       requestPanelFocus(nextHidden ? "content" : "sidebar");
     },
+    "focus-sidebar": () => {
+      // Reveal if hidden, then focus. Never hides.
+      if (settings.sidebarHidden) {
+        saveSidebarHidden(false);
+      }
+      requestPanelFocus("sidebar");
+    },
+    "focus-toggle-sidebar": () => {
+      // Focus-first, toggle-second: hide only when the sidebar already owns focus.
+      const sidebarFocused =
+        resolveFocusedPanel(document.activeElement)?.panelId === "sidebar";
+      if (!settings.sidebarHidden && sidebarFocused) {
+        saveSidebarHidden(true);
+        requestPanelFocus("content");
+        return;
+      }
+      if (settings.sidebarHidden) {
+        saveSidebarHidden(false);
+      }
+      requestPanelFocus("sidebar");
+    },
     "toggle-theme": toggleTheme,
     "next-request": () => stepRequest(1),
     "prev-request": () => stepRequest(-1),
