@@ -2,6 +2,11 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
 
+// A few tests opt into `@vitest-environment node` (build-level guards with no
+// DOM). The DOM stubs below reference jsdom globals, so skip them when there is
+// no document - guarding here keeps those node tests from crashing on import.
+const hasDom = typeof document !== "undefined";
+
 class ResizeObserverStub {
   observe() {}
   unobserve() {}
@@ -13,7 +18,7 @@ if (!("ResizeObserver" in globalThis)) {
     ResizeObserverStub as unknown as typeof ResizeObserver;
 }
 
-if (!Element.prototype.scrollIntoView) {
+if (hasDom && !Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
 
@@ -21,7 +26,7 @@ if (!Element.prototype.scrollIntoView) {
 // textRange().getClientRects, which jsdom leaves undefined (throws "not a
 // function" the moment the JS-script editor dispatches a change). Stub both so a
 // CM editor with autocomplete mounts + edits under jsdom.
-if (!Range.prototype.getClientRects) {
+if (hasDom && !Range.prototype.getClientRects) {
   Range.prototype.getClientRects = () =>
     ({
       length: 0,
@@ -29,7 +34,7 @@ if (!Range.prototype.getClientRects) {
       [Symbol.iterator]: function* () {},
     }) as unknown as DOMRectList;
 }
-if (!Range.prototype.getBoundingClientRect) {
+if (hasDom && !Range.prototype.getBoundingClientRect) {
   Range.prototype.getBoundingClientRect = () =>
     ({
       top: 0,
@@ -45,20 +50,20 @@ if (!Range.prototype.getBoundingClientRect) {
 
 // Radix Select/Popover open via pointer-capture APIs jsdom doesn't implement;
 // stub them so a test can open a select and click an option.
-if (!Element.prototype.hasPointerCapture) {
+if (hasDom && !Element.prototype.hasPointerCapture) {
   Element.prototype.hasPointerCapture = () => false;
 }
-if (!Element.prototype.setPointerCapture) {
+if (hasDom && !Element.prototype.setPointerCapture) {
   Element.prototype.setPointerCapture = () => {};
 }
-if (!Element.prototype.releasePointerCapture) {
+if (hasDom && !Element.prototype.releasePointerCapture) {
   Element.prototype.releasePointerCapture = () => {};
 }
 
 // sonner's <Toaster theme="system"> reads window.matchMedia on mount, which
 // jsdom doesn't implement; stub it so a mounted Toaster (e.g. the __root layout
 // in the bootstrap integration test) doesn't throw.
-if (!window.matchMedia) {
+if (hasDom && !window.matchMedia) {
   window.matchMedia = (query: string) =>
     ({
       matches: false,
