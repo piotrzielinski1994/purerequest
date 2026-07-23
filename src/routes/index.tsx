@@ -1,3 +1,4 @@
+import { createNoopFolderPicker, type FolderPicker } from "@pziel/pureui";
 import { createRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { WorkspaceLoader } from "@/components/workspace/workspace-loader";
@@ -41,13 +42,9 @@ import {
   DEMO_WORKSPACE_PATH,
   demoFiles,
 } from "@/lib/workspace/demo-seed";
-import type { FolderPicker } from "@/lib/workspace/folder-picker";
-import {
-  createNoopFolderPicker,
-  createTauriFolderPicker,
-} from "@/lib/workspace/folder-picker";
 import type { WorkspaceFs } from "@/lib/workspace/fs";
 import { createInMemoryWorkspaceFs } from "@/lib/workspace/in-memory-fs";
+import { createTauriFolderPicker } from "@/lib/workspace/tauri-folder-picker";
 import { createTauriWorkspaceFs } from "@/lib/workspace/tauri-fs";
 import { rootRoute } from "@/routes/__root";
 

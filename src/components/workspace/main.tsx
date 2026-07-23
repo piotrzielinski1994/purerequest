@@ -3,10 +3,15 @@ import { EditorView } from "@codemirror/view";
 import {
   CommandPalette,
   cycleThemeMode,
+  type FolderPicker,
+  PANEL_RESIZE_STEP,
   type PaletteCommand,
+  type PanelResizeTarget,
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
+  resolveFocusedPanel,
+  stepLayout,
   themeToggleMessage,
 } from "@pziel/pureui";
 import { useCallback, useEffect, useState } from "react";
@@ -30,13 +35,6 @@ import {
 } from "@/lib/shortcuts/registry";
 import { resolveShortcuts } from "@/lib/shortcuts/resolve";
 import { useActionHotkeys } from "@/lib/shortcuts/use-action-hotkeys";
-import type { FolderPicker } from "@/lib/workspace/folder-picker";
-import {
-  PANEL_RESIZE_STEP,
-  type PanelResizeTarget,
-  resolveFocusedPanel,
-  stepLayout,
-} from "@/lib/workspace/panel-resize";
 import { buildQuickOpenEntries } from "@/lib/workspace/quick-open";
 import { resolveFolderTarget } from "@/lib/workspace/tree-select";
 
@@ -210,9 +208,9 @@ export function Main({
   // `document.activeElement` alone can't tell a resize which panel is active;
   // this tracks the last-clicked panel (null when the last click was outside a
   // resizable panel, e.g. the content area) as the fallback target.
-  const [pointerTarget, setPointerTarget] = useState<PanelResizeTarget | null>(
-    null,
-  );
+  const [pointerTarget, setPointerTarget] = useState<PanelResizeTarget<
+    "workspace" | "main"
+  > | null>(null);
   useEffect(() => {
     const onPointerDown = (event: PointerEvent) => {
       const next = resolveFocusedPanel(event.target as Element | null);
@@ -228,7 +226,7 @@ export function Main({
   // from the palette can't read `document.activeElement` (focus is trapped in
   // the modal), so it falls back to this snapshot.
   const [paletteResizeTarget, setPaletteResizeTarget] =
-    useState<PanelResizeTarget | null>(null);
+    useState<PanelResizeTarget<"workspace" | "main"> | null>(null);
   // The CodeMirror view focused when the palette opened, so the palette "Find" command can
   // reopen its search panel after the modal stole focus (see openFindOn).
   const [paletteFindTarget, setPaletteFindTarget] = useState<EditorView | null>(

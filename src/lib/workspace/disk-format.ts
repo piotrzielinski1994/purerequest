@@ -1,3 +1,4 @@
+import { slugify, uniqueSlug } from "@pziel/pureui";
 import { bodyToDisk, legacyStoredToBody } from "@/lib/workspace/body-codec";
 import type {
   BodyMode,
@@ -11,7 +12,6 @@ import type {
   RequestParams,
   TreeNode,
 } from "@/lib/workspace/model";
-import { slugify, uniqueSlug } from "@/lib/workspace/slug";
 
 export type FileMap = Record<string, string>;
 

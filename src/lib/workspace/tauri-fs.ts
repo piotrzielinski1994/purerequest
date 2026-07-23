@@ -1,3 +1,4 @@
+import { toResult } from "@pziel/pureui";
 import {
   mkdir,
   readDir,
@@ -5,7 +6,6 @@ import {
   remove,
   writeTextFile,
 } from "@tauri-apps/plugin-fs";
-import { toResult } from "@/lib/result";
 import type { FileMap } from "@/lib/workspace/disk-format";
 import type { ReadResult, WorkspaceFs, WriteResult } from "@/lib/workspace/fs";
 import {

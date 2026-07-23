@@ -1,3 +1,4 @@
+import { slugify, uniqueSlug } from "@pziel/pureui";
 import type { PostmanFileMap } from "@/lib/postman/postman-to-tree";
 import type {
   Auth,
@@ -10,7 +11,6 @@ import type {
   ScriptConfig,
   TreeNode,
 } from "@/lib/workspace/model";
-import { slugify, uniqueSlug } from "@/lib/workspace/slug";
 
 export type PostmanExportRoot = {
   name: string;
