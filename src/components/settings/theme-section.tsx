@@ -1,4 +1,4 @@
-import { Button } from "@pziel/pureui";
+import { applyDefaults, Button, diffOverrides } from "@pziel/pureui";
 import { RawJsonEditor } from "@/components/workspace/config-editor";
 import { themeColorsJsonSchema } from "@/lib/config-schema/json-schemas";
 import type {
@@ -7,8 +7,11 @@ import type {
   ThemeMode,
 } from "@/lib/settings/settings";
 import { useSettings } from "@/lib/settings/settings-context";
-import { applyDefaults, diffOverrides } from "@/lib/theme/overrides";
-import { DEFAULT_THEME_COLORS } from "@/lib/theme/theme-defaults";
+import {
+  APP_TOKENS,
+  DEFAULT_THEME_COLORS,
+  EDITOR_TOKENS,
+} from "@/lib/theme/theme-defaults";
 
 const MODES: { id: ThemeMode; label: string }[] = [
   { id: "light", label: "Light" },
@@ -52,7 +55,14 @@ function ColorEditor() {
       saved={JSON.stringify(effective, null, 2)}
       parse={parseThemeColors}
       onSave={(parsed) =>
-        saveThemeColors(diffOverrides(parsed, DEFAULT_THEME_COLORS))
+        saveThemeColors(
+          diffOverrides(
+            parsed,
+            DEFAULT_THEME_COLORS,
+            APP_TOKENS,
+            EDITOR_TOKENS,
+          ),
+        )
       }
       commit={(_parsed, tree) => tree}
       schema={themeColorsJsonSchema}
