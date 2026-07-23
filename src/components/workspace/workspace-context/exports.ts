@@ -1,3 +1,4 @@
+import { slugify } from "@pziel/pureui";
 import { toast } from "sonner";
 import type { WorkspaceInternals } from "@/components/workspace/workspace-context/types";
 import {
@@ -12,7 +13,6 @@ import {
   type PostmanExportRoot,
   treeToPostmanFiles,
 } from "@/lib/postman/tree-to-postman";
-import { slugify } from "@/lib/workspace/slug";
 import { findNode } from "@/lib/workspace/tree-locate";
 
 export type ExportsApi = {

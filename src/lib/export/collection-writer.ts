@@ -1,6 +1,6 @@
+import { slugify } from "@pziel/pureui";
 import { open } from "@tauri-apps/plugin-dialog";
 import { mkdir, writeTextFile } from "@tauri-apps/plugin-fs";
-import { slugify } from "@/lib/workspace/slug";
 
 export type CollectionFileMap = Record<string, string>;
 

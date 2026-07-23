@@ -1,3 +1,4 @@
+import type { FolderPicker } from "@pziel/pureui";
 import { useEffect, useState } from "react";
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
@@ -16,7 +17,6 @@ import {
   type ProcessEnv,
   parseDotenv,
 } from "@/lib/workspace/environment";
-import type { FolderPicker } from "@/lib/workspace/folder-picker";
 import type { WorkspaceFs } from "@/lib/workspace/fs";
 import type { TreeNode } from "@/lib/workspace/model";
 

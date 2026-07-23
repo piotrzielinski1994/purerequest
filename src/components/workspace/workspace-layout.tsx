@@ -1,4 +1,5 @@
 import {
+  type FolderPicker,
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
@@ -12,7 +13,6 @@ import type { BrunoCollectionReader } from "@/lib/bruno/reader";
 import type { OpenapiReader } from "@/lib/openapi/reader";
 import type { PostmanCollectionReader } from "@/lib/postman/reader";
 import { useSettings } from "@/lib/settings/settings-context";
-import type { FolderPicker } from "@/lib/workspace/folder-picker";
 
 export function WorkspaceLayout({
   picker,
