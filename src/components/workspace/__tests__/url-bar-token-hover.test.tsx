@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { UrlBar } from "@/components/workspace/url-bar";
@@ -171,6 +171,65 @@ describe("UrlBar token hover preview", () => {
     await user.click(await screen.findByRole("button", { name: /copy/i }));
     expect(writeText).toHaveBeenCalledWith("en-CA");
     writeText.mockRestore();
+  });
+
+  // behavior: a long value overflows the popup input; a vertical wheel gesture
+  // over the input scrolls it HORIZONTALLY so the tail of the value is reachable
+  // without a mouse (trackpads/mice emit deltaY, and a single-line input has no
+  // vertical scroll to consume it). jsdom has no layout so scrollLeft is clamped
+  // to 0 - we install a settable spy on the element and assert the handler wrote.
+  it("should scroll the value input horizontally on a vertical wheel gesture", async () => {
+    const user = userEvent.setup();
+    renderBar({ activeEnvironment: "prod" });
+
+    await user.hover(screen.getByText("{{baseUrl}}"));
+    const input = await screen.findByRole("textbox", { name: /value/i });
+
+    let scrollLeft = 0;
+    Object.defineProperty(input, "scrollLeft", {
+      configurable: true,
+      get: () => scrollLeft,
+      set: (value: number) => {
+        scrollLeft = value;
+      },
+    });
+
+    fireEvent.wheel(input, { deltaY: 60, deltaX: 0 });
+
+    expect(scrollLeft).toBe(60);
+  });
+
+  // behavior: the popup lingers after the pointer leaves the token, rather than
+  // vanishing the instant hover state clears - so the pointer can travel from the
+  // token into the popup (to click copy / edit) without it closing underneath.
+  // Real timers (fake timers deadlock radix's hover open/close delay under
+  // userEvent): after a wait that comfortably exceeds the OLD near-instant delay
+  // but stays under the intended linger, the popup is still open; then it closes.
+  it("should keep the popup open for a delay after the pointer leaves, then close", async () => {
+    const user = userEvent.setup();
+    renderBar({ activeEnvironment: "prod" });
+
+    await user.hover(screen.getByText("{{baseUrl}}"));
+    expect(
+      await screen.findByRole("textbox", { name: /value/i }),
+    ).toBeInTheDocument();
+
+    await user.unhover(screen.getByText("{{baseUrl}}"));
+
+    // 150ms after the pointer left the popup is still open - the linger window.
+    // (With the old ~40ms close delay it would already be gone here.)
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(screen.getByRole("textbox", { name: /value/i })).toBeInTheDocument();
+
+    // ...and it does eventually close once the full delay elapses.
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByRole("textbox", { name: /value/i }),
+        ).not.toBeInTheDocument();
+      },
+      { timeout: 1000 },
+    );
   });
 
   // behavior: an unresolved token shows an explicit "unresolved" hint, no input

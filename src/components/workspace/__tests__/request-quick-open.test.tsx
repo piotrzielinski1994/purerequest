@@ -136,3 +136,50 @@ describe("RequestQuickOpen", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });
+
+describe("RequestQuickOpen row layout", () => {
+  const deepEntry: QuickOpenEntry = {
+    id: "req-deep",
+    kind: "request",
+    name: "/customer/id-mapping/by-autotrader-id/{autotraderId}",
+    breadcrumb: "as24 / unified-customer",
+    method: "GET",
+    url: "{{BASE}}/customer/id-mapping/by-autotrader-id/{autotraderId}",
+  };
+
+  const renderDeep = () =>
+    render(
+      <RequestQuickOpen
+        open
+        onOpenChange={vi.fn()}
+        entries={[deepEntry]}
+        onSelect={vi.fn()}
+      />,
+    );
+
+  // behavior: the right-hand breadcrumb shows ONLY the last folder segment, not
+  // the full " / "-joined ancestor path - a deep path would otherwise crowd the
+  // row. "as24 / unified-customer" collapses to "unified-customer".
+  it("should show only the last folder segment on the right, not the full path", async () => {
+    renderDeep();
+
+    expect(await screen.findByText("unified-customer")).toBeInTheDocument();
+    expect(
+      screen.queryByText("as24 / unified-customer"),
+    ).not.toBeInTheDocument();
+  });
+
+  // behavior: the long request name renders inside an auto-scrolling label (the
+  // same TabLabel used by tabs) so it never wraps to a second line. The label
+  // clips overflow instead of growing the row's height.
+  it("should render the request name in an overflow-hidden auto-scroll label", async () => {
+    renderDeep();
+
+    const name = await screen.findByText(
+      "/customer/id-mapping/by-autotrader-id/{autotraderId}",
+    );
+    const label = name.closest('[data-slot="tab-label"]');
+    expect(label).not.toBeNull();
+    expect(label?.className).toContain("overflow-hidden");
+  });
+});

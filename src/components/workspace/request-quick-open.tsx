@@ -7,10 +7,16 @@ import {
   cn,
 } from "@pziel/pureui";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
+import { TabLabel } from "@/components/workspace/tab-label";
 import {
   type QuickOpenEntry,
   scoreQuickOpen,
 } from "@/lib/workspace/quick-open";
+
+// The breadcrumb is the " / "-joined ancestor folder path; the row only has
+// space for its LAST segment (the nearest folder), pinned to the right.
+const lastFolder = (breadcrumb: string): string =>
+  breadcrumb.split(" / ").pop() ?? "";
 
 type RequestQuickOpenProps = {
   open: boolean;
@@ -61,6 +67,7 @@ export function RequestQuickOpen({
             value={entry.id}
             keywords={[entry.name, entry.breadcrumb, entry.url ?? ""]}
             onSelect={() => select(entry.id)}
+            className="group"
           >
             {entry.method && (
               <span
@@ -72,10 +79,12 @@ export function RequestQuickOpen({
                 {entry.method}
               </span>
             )}
-            <span>{entry.name}</span>
+            <TabLabel className="min-w-0 flex-1 max-w-none">
+              {entry.name}
+            </TabLabel>
             {entry.breadcrumb !== "" && (
-              <span className="ml-auto truncate text-xs text-muted-foreground">
-                {entry.breadcrumb}
+              <span className="ml-auto shrink-0 pl-2 text-xs text-muted-foreground">
+                {lastFolder(entry.breadcrumb)}
               </span>
             )}
           </CommandItem>

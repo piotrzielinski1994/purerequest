@@ -139,9 +139,15 @@ describe("TooLargeBody routes through ScrollArea (AC-003)", () => {
   });
 });
 
-describe("ResponseBody JSON viewer routes through ScrollArea (AC-003)", () => {
-  // TC-006 - behavior: the JSON-viewer wrapper for an under-limit body is a ScrollArea.
-  it("should render the JSON viewer wrapper as a data-slot scroll-area if the body is valid JSON under the limit", async () => {
+describe("ResponseBody JSON viewer owns its own CodeMirror scroller", () => {
+  // The JSON viewer is CodeMirror; per design.md a `.cm-scroller` owns its own
+  // internal scroller (both axes) and MUST NOT be wrapped in a Radix ScrollArea -
+  // the ScrollArea viewport (display:table; min-width:100%) expands CM to full
+  // content width and hides its scrollbars, killing horizontal scroll for a long
+  // response line. So the response viewer is NOT inside a scroll-area; CM scrolls
+  // itself (the global thin ::-webkit-scrollbar covers the bar). (Regression: the
+  // consistent-scrollbars feature wrapped it "for free" and broke horizontal scroll.)
+  it("should NOT wrap the response JSON viewer in a data-slot scroll-area", async () => {
     const smallBody = JSON.stringify({ args: { foo: "bar" } }, null, 2);
     const user = renderResponseWith({
       status: 200,
@@ -157,6 +163,6 @@ describe("ResponseBody JSON viewer routes through ScrollArea (AC-003)", () => {
     const editor = await screen.findByText(
       (_, node) => node?.classList.contains("cm-editor") ?? false,
     );
-    expect(isInsideScrollArea(editor)).toBe(true);
+    expect(isInsideScrollArea(editor)).toBe(false);
   });
 });
