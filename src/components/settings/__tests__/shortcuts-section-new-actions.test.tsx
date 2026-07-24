@@ -1,22 +1,51 @@
+import { ShortcutsSection } from "@pziel/pureui";
 import { formatForDisplay } from "@tanstack/hotkeys";
 import { HotkeysProvider } from "@tanstack/react-hotkeys";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ShortcutsSection } from "@/components/settings/shortcuts-section";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { SettingsProvider, useSettings } from "@/lib/settings/settings-context";
 import {
   SHORTCUT_ACTIONS,
   type ShortcutActionId,
 } from "@/lib/shortcuts/registry";
+import { findConflict, resolveShortcuts } from "@/lib/shortcuts/resolve";
+
+// Wire the hoisted pureui ShortcutsSection with the app's real registry - a
+// consume-integration proof that the real action catalog renders through it.
+function WiredShortcutsSection() {
+  const {
+    settings,
+    addShortcut,
+    removeShortcut,
+    replaceShortcut,
+    resetShortcut,
+  } = useSettings();
+
+  return (
+    <ShortcutsSection
+      actions={SHORTCUT_ACTIONS}
+      effective={resolveShortcuts(settings.shortcuts)}
+      overrides={settings.shortcuts}
+      store={{
+        add: addShortcut,
+        remove: removeShortcut,
+        replace: replaceShortcut,
+        reset: resetShortcut,
+      }}
+      findConflict={findConflict}
+      help="Press Add and type a combination to bind it; an action can have several."
+    />
+  );
+}
 
 function renderSection() {
   const store = createInMemorySettingsStore({ ...DEFAULT_SETTINGS });
   return render(
     <HotkeysProvider>
       <SettingsProvider store={store}>
-        <ShortcutsSection />
+        <WiredShortcutsSection />
       </SettingsProvider>
     </HotkeysProvider>,
   );

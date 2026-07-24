@@ -1,23 +1,53 @@
+import { ShortcutsSection } from "@pziel/pureui";
 import { formatForDisplay } from "@tanstack/hotkeys";
 import { HotkeysProvider } from "@tanstack/react-hotkeys";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { ShortcutsSection } from "@/components/settings/shortcuts-section";
 import { createInMemorySettingsStore } from "@/lib/settings/in-memory-store";
 import {
   DEFAULT_SETTINGS,
   type Settings,
   type SettingsStore,
 } from "@/lib/settings/settings";
-import { SettingsProvider } from "@/lib/settings/settings-context";
+import { SettingsProvider, useSettings } from "@/lib/settings/settings-context";
 import {
   SHORTCUT_ACTIONS,
   type ShortcutOverrides,
 } from "@/lib/shortcuts/registry";
+import { findConflict, resolveShortcuts } from "@/lib/shortcuts/resolve";
 
 // jsdom reports a non-mac platform, so Mod records as Control (learnings).
 // Recording Control+Y should canonicalize to the "Mod+Y" override.
+
+// Wire the hoisted pureui ShortcutsSection with the app's real registry, resolve
+// and settings mutators - the same wiring as the SettingsView render site, so
+// this stays a consume-integration proof over the real action catalog.
+function WiredShortcutsSection() {
+  const {
+    settings,
+    addShortcut,
+    removeShortcut,
+    replaceShortcut,
+    resetShortcut,
+  } = useSettings();
+
+  return (
+    <ShortcutsSection
+      actions={SHORTCUT_ACTIONS}
+      effective={resolveShortcuts(settings.shortcuts)}
+      overrides={settings.shortcuts}
+      store={{
+        add: addShortcut,
+        remove: removeShortcut,
+        replace: replaceShortcut,
+        reset: resetShortcut,
+      }}
+      findConflict={findConflict}
+      help="Press Add and type a combination to bind it; an action can have several."
+    />
+  );
+}
 
 function renderSection(overrides: ShortcutOverrides = {}) {
   const seeded: Settings = { ...DEFAULT_SETTINGS, shortcuts: overrides };
@@ -28,7 +58,7 @@ function renderSection(overrides: ShortcutOverrides = {}) {
   const result = render(
     <HotkeysProvider>
       <SettingsProvider store={store}>
-        <ShortcutsSection />
+        <WiredShortcutsSection />
       </SettingsProvider>
     </HotkeysProvider>,
   );
