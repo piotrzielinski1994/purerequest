@@ -11,10 +11,13 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
 } from "@pziel/pureui";
 import { CornerLeftUp, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip } from "@/components/ui/tooltip";
 import { AccentField } from "@/components/workspace/accent-field";
 import {

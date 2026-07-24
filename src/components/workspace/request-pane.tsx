@@ -1,5 +1,5 @@
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@pziel/pureui";
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BodyPanel } from "@/components/workspace/body-panel";
 import { RequestSettingsForm } from "@/components/workspace/config-editor";
 import {

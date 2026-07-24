@@ -10,16 +10,17 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { cn, dragOverlayLabel } from "@pziel/pureui";
-import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
-} from "@/components/ui/context-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
+  cn,
+  dragOverlayLabel,
+  ScrollArea,
+} from "@pziel/pureui";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type DropIndicator,
   TreeDndProvider,

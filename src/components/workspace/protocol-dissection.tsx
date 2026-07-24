@@ -1,7 +1,6 @@
-import { cn } from "@pziel/pureui";
+import { cn, ScrollArea } from "@pziel/pureui";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import type {
   DissectionField,
   DissectionLayer,
