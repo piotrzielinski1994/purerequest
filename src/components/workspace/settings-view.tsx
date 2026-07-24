@@ -5,11 +5,13 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  UpdatesSection,
   useUpdater,
 } from "@pziel/pureui";
+import { useState } from "react";
+import { toast } from "sonner";
 import { EnvSection } from "@/components/settings/env-section";
 import { ThemeSection } from "@/components/settings/theme-section";
-import { UpdatesSection } from "@/components/settings/updates-section";
 import {
   PANE_TABS_LIST,
   PANE_TABS_TRIGGER,
@@ -21,6 +23,7 @@ import {
 import { useSettings } from "@/lib/settings/settings-context";
 import { SHORTCUT_ACTIONS } from "@/lib/shortcuts/registry";
 import { findConflict, resolveShortcuts } from "@/lib/shortcuts/resolve";
+import { createSonnerUpdateToastSink } from "@/lib/updater/update-toast-sink";
 
 function ShortcutSettings() {
   const {
@@ -62,6 +65,7 @@ function ShortcutSettings() {
 export function SettingsView() {
   const { settings, saveSettingsSection } = useSettings();
   const { controller, getVersion } = useUpdater();
+  const [sink] = useState(createSonnerUpdateToastSink);
   const stored = settings.settingsSection;
   // Coerce any stale/invalid persisted value to the first section.
   const section: SettingsSection =
@@ -105,7 +109,12 @@ export function SettingsView() {
       <TabsContent value="updates" className="min-h-0 flex-1">
         <ScrollArea className="h-full">
           <div className="max-w-3xl p-6">
-            <UpdatesSection controller={controller} getVersion={getVersion} />
+            <UpdatesSection
+              controller={controller}
+              getVersion={getVersion}
+              sink={sink}
+              notify={{ info: toast, error: toast }}
+            />
           </div>
         </ScrollArea>
       </TabsContent>

@@ -1,13 +1,20 @@
-import type { UpdateController, UpdateInfo } from "@pziel/pureui";
+import {
+  type UpdateController,
+  type UpdateInfo,
+  UpdatesSection,
+} from "@pziel/pureui";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { UpdatesSection } from "@/components/settings/updates-section";
+import { createSonnerUpdateToastSink } from "@/lib/updater/update-toast-sink";
 
-// sonner is the observable boundary; the UpdateController + version source are
-// injected as props (built per-env in __root.tsx, not in SettingsContext). The
-// toast is asserted on the mocked sonner call, not on rendered DOM.
+// R18 consume-integration: purerequest no longer owns UpdatesSection - it renders
+// the hoisted pureui section wired with its REAL sonner sink
+// (createSonnerUpdateToastSink, untouched) and BOTH one-shot messages routed
+// through plain `toast` ({ info: toast, error: toast }). sonner is the observable
+// boundary (mocked); the controller + version source are injected as props from
+// the SettingsView call site (useUpdater()).
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), {
     error: vi.fn(),
@@ -33,7 +40,12 @@ function renderSection(
   getVersion: () => Promise<string> = () => Promise.resolve("0.1.0"),
 ) {
   return render(
-    <UpdatesSection controller={controller} getVersion={getVersion} />,
+    <UpdatesSection
+      controller={controller}
+      getVersion={getVersion}
+      sink={createSonnerUpdateToastSink()}
+      notify={{ info: toast, error: toast }}
+    />,
   );
 }
 
@@ -46,12 +58,12 @@ function toastMessages(): string[] {
   ];
 }
 
-describe("UpdatesSection", () => {
+describe("UpdatesSection (purerequest consume)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  // TC-011 behavior: renders the current version string from the injected source
+  // TC-010 behavior: renders the current version string from the injected source
   it("should render the current version from the injected version source", async () => {
     renderSection({ check: () => Promise.resolve(null) }, () =>
       Promise.resolve("1.2.3"),
@@ -60,7 +72,7 @@ describe("UpdatesSection", () => {
     expect(await screen.findByText(/1\.2\.3/)).toBeInTheDocument();
   });
 
-  // TC-007 side-effect-contract: check reports no update -> "latest" toast + button idle again
+  // TC-010 side-effect-contract: check reports no update -> plain "latest" toast + button idle
   it("should show an up-to-date toast and re-enable the button if no update is found", async () => {
     const user = userEvent.setup();
     renderSection({ check: () => Promise.resolve(null) });
@@ -82,7 +94,7 @@ describe("UpdatesSection", () => {
     });
   });
 
-  // TC-008 side-effect-contract: update found -> update toast (message carries version)
+  // TC-010 side-effect-contract: update found -> update toast (message carries version)
   it("should show the update toast if an update is found", async () => {
     const user = userEvent.setup();
     renderSection({
@@ -98,7 +110,7 @@ describe("UpdatesSection", () => {
     });
   });
 
-  // TC-009 side-effect-contract: check rejects -> "check failed" toast + button not stuck
+  // TC-010 side-effect-contract: check rejects -> plain "check failed" toast + button not stuck
   it("should show a check-failed toast and re-enable the button if the check rejects", async () => {
     const user = userEvent.setup();
     renderSection({
