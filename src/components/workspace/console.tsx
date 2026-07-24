@@ -1,7 +1,7 @@
 import type { Extension } from "@codemirror/state";
+import { ScrollArea } from "@pziel/pureui";
 import { Trash2 } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { CodeEditor } from "@/components/workspace/code-editor";
 import {
   type ConsoleLevel,

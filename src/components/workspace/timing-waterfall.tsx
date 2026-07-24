@@ -1,4 +1,4 @@
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@pziel/pureui";
 import { formatDuration } from "@/lib/http/format";
 import { buildWaterfallRows } from "@/lib/http/timing";
 import type { RequestResponse } from "@/lib/workspace/model";

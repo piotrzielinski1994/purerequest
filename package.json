@@ -25,7 +25,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@jitl/quickjs-singlefile-browser-release-asyncify": "^0.32.0",
-    "@pziel/pureui": "file:../pureui/pziel-pureui-0.13.0.tgz",
+    "@pziel/pureui": "file:../pureui/pziel-pureui-0.14.0.tgz",
     "@radix-ui/react-dialog": "^1.1.20",
     "@radix-ui/react-slot": "^1.3.0",
     "@tanstack/react-form": "^1.33.2",

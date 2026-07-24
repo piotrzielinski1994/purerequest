@@ -1,9 +1,15 @@
-import { ShortcutsSection, useUpdater } from "@pziel/pureui";
+import {
+  ScrollArea,
+  ShortcutsSection,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  useUpdater,
+} from "@pziel/pureui";
 import { EnvSection } from "@/components/settings/env-section";
 import { ThemeSection } from "@/components/settings/theme-section";
 import { UpdatesSection } from "@/components/settings/updates-section";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   PANE_TABS_LIST,
   PANE_TABS_TRIGGER,

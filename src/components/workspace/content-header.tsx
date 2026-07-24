@@ -15,15 +15,15 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { cn } from "@pziel/pureui";
-import { Folder, Plus, Settings, X } from "lucide-react";
-import { useState } from "react";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+  cn,
+} from "@pziel/pureui";
+import { Folder, Plus, Settings, X } from "lucide-react";
+import { useState } from "react";
 import { METHOD_COLOR } from "@/components/workspace/method-color";
 import {
   EDITOR_TAB_ID,

@@ -1,7 +1,12 @@
-import { Input } from "@pziel/pureui";
+import {
+  Input,
+  ScrollArea,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@pziel/pureui";
 import { useState } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { JsonViewer } from "@/components/workspace/json-viewer";
 import { KeyValueTable } from "@/components/workspace/key-value-table";
 import {

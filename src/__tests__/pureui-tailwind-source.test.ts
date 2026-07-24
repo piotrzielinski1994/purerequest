@@ -50,5 +50,12 @@ describe("app Tailwind build scans @pziel/pureui", () => {
     expect(candidates).toContain("left-[50%]");
     expect(candidates).toContain("translate-x-[-50%]");
     expect(candidates).toContain("translate-y-[-50%]");
+
+    // The R16 primitives (scroll-area, context-menu, tabs) were hoisted into
+    // pureui, so their unique classes now live ONLY in the pureui bundle too.
+    // Same guard: without scanning pureui these never get generated.
+    expect(candidates).toContain("bg-foreground/20"); // scroll-area thumb
+    expect(candidates).toContain("min-w-[10rem]"); // context-menu content
+    expect(candidates).toContain("after:opacity-0"); // tabs trigger
   });
 });
