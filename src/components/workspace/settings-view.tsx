@@ -1,6 +1,5 @@
-import { useUpdater } from "@pziel/pureui";
+import { ShortcutsSection, useUpdater } from "@pziel/pureui";
 import { EnvSection } from "@/components/settings/env-section";
-import { ShortcutsSection } from "@/components/settings/shortcuts-section";
 import { ThemeSection } from "@/components/settings/theme-section";
 import { UpdatesSection } from "@/components/settings/updates-section";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,6 +13,41 @@ import {
   type SettingsSection,
 } from "@/lib/settings/settings";
 import { useSettings } from "@/lib/settings/settings-context";
+import { SHORTCUT_ACTIONS } from "@/lib/shortcuts/registry";
+import { findConflict, resolveShortcuts } from "@/lib/shortcuts/resolve";
+
+function ShortcutSettings() {
+  const {
+    settings,
+    addShortcut,
+    removeShortcut,
+    replaceShortcut,
+    resetShortcut,
+  } = useSettings();
+
+  return (
+    <ShortcutsSection
+      actions={SHORTCUT_ACTIONS}
+      effective={resolveShortcuts(settings.shortcuts)}
+      overrides={settings.shortcuts}
+      store={{
+        add: addShortcut,
+        remove: removeShortcut,
+        replace: replaceShortcut,
+        reset: resetShortcut,
+      }}
+      findConflict={findConflict}
+      help={
+        <>
+          Press Add and type a combination to bind it; an action can have
+          several. Remove the × on a binding to drop it (removing the last one
+          disables the action). Escape cancels recording, so it cannot be
+          assigned.
+        </>
+      }
+    />
+  );
+}
 
 // The Settings content: a section sub-bar (Theme / Env / Shortcuts) mirroring the
 // request-pane tab strip, with the active section persisted per-installation. The
@@ -58,7 +92,7 @@ export function SettingsView() {
       <TabsContent value="shortcuts" className="min-h-0 flex-1">
         <ScrollArea className="h-full">
           <div className="max-w-3xl p-6">
-            <ShortcutsSection />
+            <ShortcutSettings />
           </div>
         </ScrollArea>
       </TabsContent>
