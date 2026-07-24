@@ -18,6 +18,12 @@ import type { EffectiveConfig } from "@/lib/workspace/resolve";
 // {{var}} or :param - the token grammar shared by the URL bar and config grids.
 export const TOKEN_PATTERN = /(\{\{[^}]+\}\}|:[A-Za-z_][A-Za-z0-9_]*)/g;
 
+// The hover card opens quickly but lingers on close so the pointer can travel
+// from the token chip into the popup (to click copy / edit) without it closing
+// underneath. A near-instant close delay makes the popup feel like it vanishes.
+const HOVER_OPEN_DELAY_MS = 80;
+const HOVER_CLOSE_DELAY_MS = 300;
+
 function TokenValueEditor({ preview }: { preview: TokenPreview }) {
   const { setTokenValue, revealTokenSource } = useWorkspace();
   // Seed the input with the FULLY-RESOLVED value, not the raw token. A var whose
@@ -122,7 +128,10 @@ function TokenChip({
     return <span className={flatColor}>{token}</span>;
   }
   return (
-    <HoverCard openDelay={80} closeDelay={40}>
+    <HoverCard
+      openDelay={HOVER_OPEN_DELAY_MS}
+      closeDelay={HOVER_CLOSE_DELAY_MS}
+    >
       <HoverCardTrigger asChild>
         <span
           className={cn(

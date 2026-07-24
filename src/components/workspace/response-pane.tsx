@@ -53,9 +53,14 @@ function ResponseBody({ body }: { body: string }) {
   return (
     <>
       {filtered.ok ? (
-        <ScrollArea className="min-h-0 flex-1">
+        // No ScrollArea here: JsonViewer is CodeMirror and owns its own
+        // `.cm-scroller` (both axes). A Radix ScrollArea viewport expands CM to
+        // full content width and hides its scrollbars, which kills horizontal
+        // scroll for a long response line (design.md: a `.cm-scroller` can't host
+        // a ScrollArea - it falls back to the global thin scrollbar CSS).
+        <div className="min-h-0 flex-1">
           <JsonViewer text={filtered.text} />
-        </ScrollArea>
+        </div>
       ) : (
         <div className="flex-1 overflow-auto p-3 font-mono text-xs text-muted-foreground">
           No match
