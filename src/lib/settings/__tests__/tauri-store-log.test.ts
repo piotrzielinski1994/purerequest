@@ -17,11 +17,11 @@ vi.mock("@tauri-apps/plugin-store", () => ({
   },
 }));
 
-vi.mock("@/lib/logging/file-log", () => ({
+vi.mock("@/lib/logging/tauri-log-sink", () => ({
   logMessage: vi.fn(),
 }));
 
-import { logMessage } from "@/lib/logging/file-log";
+import { logMessage } from "@/lib/logging/tauri-log-sink";
 import { DEFAULT_SETTINGS } from "@/lib/settings/settings";
 import { createTauriSettingsStore } from "@/lib/settings/tauri-store";
 
