@@ -52,6 +52,17 @@ function TokenValueEditor({ preview }: { preview: TokenPreview }) {
             (event.target as HTMLInputElement).blur();
           }
         }}
+        onWheel={(event) => {
+          // A single-line input has no vertical scroll to consume the wheel, so
+          // map the dominant delta to horizontal scroll - lets a trackpad/mouse
+          // reach the tail of a value too long for the popup's fixed width.
+          const input = event.currentTarget;
+          const delta =
+            Math.abs(event.deltaY) > Math.abs(event.deltaX)
+              ? event.deltaY
+              : event.deltaX;
+          input.scrollLeft += delta;
+        }}
         className="h-9 flex-1 rounded-none border-0 bg-transparent font-mono text-xs shadow-none focus-visible:ring-0"
       />
       <button
