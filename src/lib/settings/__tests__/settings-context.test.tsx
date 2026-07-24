@@ -42,6 +42,12 @@ function ShortcutProbe() {
       </button>
       <button
         type="button"
+        onClick={() => addShortcut("toggle-console", "Mod+'")}
+      >
+        add apostrophe shortcut
+      </button>
+      <button
+        type="button"
         onClick={() => removeShortcut("toggle-console", "Mod+K")}
       >
         remove shortcut
@@ -306,6 +312,31 @@ describe("SettingsProvider shortcut actions", () => {
     await waitFor(() => {
       expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
         JSON.stringify(["Mod+J", "Mod+K"]),
+      );
+    });
+  });
+
+  // regression: a punctuation key outside @tanstack/hotkeys' known-key set (here
+  // the apostrophe) must persist, not be silently dropped by safeNormalize.
+  it("should persist a single-character punctuation binding like Mod+'", async () => {
+    const user = userEvent.setup();
+    const store = createInMemorySettingsStore();
+
+    render(
+      <SettingsProvider store={store}>
+        <ShortcutProbe />
+      </SettingsProvider>,
+    );
+
+    await screen.findByTestId("toggle-console-binding");
+
+    await user.click(
+      screen.getByRole("button", { name: /add apostrophe shortcut/i }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-console-binding")).toHaveTextContent(
+        JSON.stringify(["Mod+J", "Mod+'"]),
       );
     });
   });
