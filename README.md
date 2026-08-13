@@ -27,23 +27,8 @@ npm install
 
 | Command | Description |
 | --- | --- |
-| `npm start` | Launch the desktop app (`tauri dev`) - native window + Vite dev server. |
-| `npm run dev` | Frontend-only Vite dev server (browser, no native shell) - seeds a demo workspace so the UI is interactive without a Tauri host. |
-| `npm run build` | Typecheck + production frontend build (`dist/`). |
-| `npm run tauri build` | Produce a native desktop bundle. |
-| `npm run lint` | Biome check (lint + format + import sort). |
-| `npm run lint:fix` | Biome check with safe autofixes applied. |
-| `npm run typecheck` | `tsc --noEmit`. |
-| `npm run format` | Biome format write. |
-| `npm test` | Frontend behavior + integration tests (Vitest, run once). |
-| `npm run test:watch` | Vitest in watch mode. |
-| `npm run e2e` | Playwright E2E against the `npm run dev` build (starts the dev server itself). |
-
-Rust backend tests: `cd src-tauri && cargo test`.
-
-> E2E prerequisite (one-time): `npx playwright install` to fetch the browser. E2E drives the
-> browser build wired to fakes (in-memory fs + fake HTTP), not the native Tauri boundary - that
-> stays covered by `cargo test`.
+| `npm start` | Run the app in development (`tauri dev`). |
+| `npm run tauri build` | Build the distributable desktop bundle. |
 
 ## Installing
 
@@ -107,27 +92,3 @@ The on-disk workspace format and JSON data model are documented in
 
 > Workspace files (including auth tokens / variable values) are stored **plaintext** - treat a
 > workspace folder as sensitive and gitignore secrets accordingly.
-
-## Repo layout
-
-```
-src/                    React app: main entry, router, routes, components, lib
-  lib/
-    runtime/            environment.ts (isDevBrowser: gates the dev-browser fakes)
-    bruno/              Bruno import: parseBru (.bru) + parseOpenCollection (.yml), brunoToTree
-    postman/            Postman import: parsePostman (v2.1 JSON -> subtree), postmanToTree
-    http/               HTTP loop: buildHttpRequest, filterJson, HttpClient port + Tauri/fake adapters
-    settings/           per-installation settings: model + port, Tauri-store + in-memory adapters, provider
-    workspace/          workspace domain: model, resolveConfig, disk-format, fs port + adapters, demo-seed
-src-tauri/              Rust desktop shell (send_http_request/cancel_http_request)
-  src/tap_client.rs     hand-rolled hyper + tokio-rustls send client (owns socket + TLS, taps wire bytes)
-  src/quic_client.rs    HTTP/3 send client on quinn + h3 (tapping UDP socket + rustls KeyLog)
-  src/quic_crypto.rs    RFC 9001 QUIC crypto (HKDF, header protection, AEAD) for packet decryption
-  src/quic_dissect.rs   decodes a captured QUIC session into the layered Protocols-tab dissection
-  src/qpack.rs          RFC 9204 QPACK decoder for HTTP/3 header blocks
-  src/pcap_capture.rs   libpcap/BPF side-car capturing L2-L4 packet bytes (built with `--features pcap-capture`)
-  src/dissect.rs        decodes captured bytes into the layered Protocols-tab dissection (TCP/TLS/HTTP-2)
-  src/hpack.rs          RFC 7541 HPACK decoder for HTTP/2 header blocks
-tests/                  e2e/ (Playwright) + integration/ (Vitest jsdom)
-docs/                   spec/plan per feature, ADR, learnings
-```
