@@ -57,8 +57,8 @@ Don't add: one-off task context, things obvious from the code itself, or anythin
   - New convention or gotcha that future-you would miss -> add to CLAUDE.md (or docs/learnings.md).
   - Removed feature or file referenced in either doc -> remove the reference.
 - No duplicates between README.md and CLAUDE.md. Each fact lives in exactly one place:
-  - README.md = onboarding facts a human needs to run the app: install steps, commands, repo layout sketch.
-  - CLAUDE.md = working rules for an agent editing this repo: conventions, gotchas, "how to add a feature", invariants.
+  - README.md = human onboarding: what the app is, install/run steps, commands, a short feature summary, repo layout sketch. No agent-facing internals.
+  - CLAUDE.md = working rules for an agent editing this repo: conventions, gotchas, architecture internals, "how to add a feature", invariants.
   - If a fact would fit both, put it in CLAUDE.md and link from README only if a human reader needs the pointer.
 - If neither doc needs to change, say so explicitly in the pre-commit summary so it's a deliberate decision, not an oversight.
 

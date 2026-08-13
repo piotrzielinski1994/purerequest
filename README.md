@@ -52,10 +52,8 @@ Rust backend tests: `cd src-tauri && cargo test`.
 - **Any OS (manual):** download the installer for your platform from the [latest Release](https://github.com/piotrzielinski1994/purerequest/releases/latest).
 
 Both package manifests are updated automatically on every published Release: the Homebrew cask via
-[`publish-cask.yml`](.github/workflows/publish-cask.yml) (pushes to the owned tap) and the winget
-manifest via [`publish-winget.yml`](.github/workflows/publish-winget.yml) (opens a PR against
-`microsoft/winget-pkgs`). See [packaging/winget/](packaging/winget/) for the initial manifests that
-must be submitted manually once, before the workflow can take over.
+[`publish-cask.yml`](.github/workflows/publish-cask.yml) and the winget manifest via
+[`publish-winget.yml`](.github/workflows/publish-winget.yml). See [packaging/winget/](packaging/winget/) for the initial manifests that must be submitted manually once, before the workflow can take over.
 
 ## Releasing installers
 
@@ -113,36 +111,23 @@ The on-disk workspace format and JSON data model are documented in
 ## Repo layout
 
 ```
-index.html              Vite entry HTML
-src/
-  main.tsx              React entry: providers + RouterProvider
-  router.tsx            Code-based TanStack Router assembly
-  app/providers.tsx     QueryClientProvider + HotkeysProvider
-  routes/               __root (layout + 404), index (workspace home); dev build wires fakes + demo seed
-  components/
-    workspace/          workspace layout: sidebar tree, tabs, panes, console, loader
-    ui/                 shadcn primitives
-  lib/                  utils.ts (cn)
+src/                    React app: main entry, router, routes, components, lib
+  lib/
     runtime/            environment.ts (isDevBrowser: gates the dev-browser fakes)
-    bruno/              Bruno import: parseBru (.bru) + parseOpenCollection (.yml), brunoToTree (ext-dispatch), reader port
-    postman/            Postman import: parsePostman (v2.1 JSON -> subtree), postmanToTree (file-map + env fold), reader port
+    bruno/              Bruno import: parseBru (.bru) + parseOpenCollection (.yml), brunoToTree
+    postman/            Postman import: parsePostman (v2.1 JSON -> subtree), postmanToTree
     http/               HTTP loop: buildHttpRequest, filterJson, HttpClient port + Tauri/fake adapters
     settings/           per-installation settings: model + port, Tauri-store + in-memory adapters, provider
     workspace/          workspace domain: model, resolveConfig, disk-format, fs port + adapters, demo-seed
-  index.css             Tailwind v4 + theme tokens
-  test/setup.ts         Vitest + Testing Library setup
-src-tauri/              Rust desktop shell (send_http_request/cancel_http_request, tauri.conf.json)
+src-tauri/              Rust desktop shell (send_http_request/cancel_http_request)
   src/tap_client.rs     hand-rolled hyper + tokio-rustls send client (owns socket + TLS, taps wire bytes)
   src/quic_client.rs    HTTP/3 send client on quinn + h3 (tapping UDP socket + rustls KeyLog)
   src/quic_crypto.rs    RFC 9001 QUIC crypto (HKDF, header protection, AEAD) for packet decryption
   src/quic_dissect.rs   decodes a captured QUIC session into the layered Protocols-tab dissection
-  src/qpack.rs          RFC 9204 QPACK decoder for HTTP/3 header blocks (used by quic_dissect.rs)
-  src/pcap_capture.rs   libpcap/BPF side-car capturing L2-L4 packet bytes; compiled out unless built with `--features pcap-capture` (then PUREREQUEST_PCAP=1 arms it)
+  src/qpack.rs          RFC 9204 QPACK decoder for HTTP/3 header blocks
+  src/pcap_capture.rs   libpcap/BPF side-car capturing L2-L4 packet bytes (built with `--features pcap-capture`)
   src/dissect.rs        decodes captured bytes into the layered Protocols-tab dissection (TCP/TLS/HTTP-2)
-  src/hpack.rs          RFC 7541 HPACK decoder for HTTP/2 header blocks (used by dissect.rs)
-tests/
-  e2e/                  Playwright specs (*.e2e.ts) against the dev-browser build
-  integration/          Vitest jsdom routing/app-shell tests (*.spec.tsx)
-playwright.config.ts    Playwright config (webServer = npm run dev on :1430)
+  src/hpack.rs          RFC 7541 HPACK decoder for HTTP/2 header blocks
+tests/                  e2e/ (Playwright) + integration/ (Vitest jsdom)
 docs/                   spec/plan per feature, ADR, learnings
 ```
