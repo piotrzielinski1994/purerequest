@@ -43,6 +43,7 @@ import {
 } from "@/lib/bruno/writer";
 import { createFakeHttpClient } from "@/lib/http/fake-client";
 import type { HttpClient, ResponseState } from "@/lib/http/model";
+import { createNoopLogStream, type LogStream } from "@/lib/logging/log-stream";
 import {
   createNoopOpenapiWriter,
   type OpenapiExportWriter,
@@ -56,6 +57,8 @@ import type { ScriptRunner } from "@/lib/scripts/model";
 import type { DraftTab, PanelGroupKey } from "@/lib/settings/settings";
 import { parseDotenv } from "@/lib/workspace/environment";
 import type { WriteResult } from "@/lib/workspace/fs";
+import type { LogLine } from "@/lib/workspace/log-line";
+import { parseLogLine } from "@/lib/workspace/log-line";
 import type { RequestNode, TreeNode } from "@/lib/workspace/model";
 import type { MoveTarget } from "@/lib/workspace/move";
 import {
@@ -81,6 +84,14 @@ export type {
 } from "@/components/workspace/workspace-context/types";
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
+
+type LogLinesContextValue = {
+  logLines: LogLine[];
+  appendLogLine: (raw: string, level?: number) => void;
+  clearLogLines: () => void;
+};
+
+const LogLinesContext = createContext<LogLinesContextValue | null>(null);
 
 type WorkspaceProviderProps = {
   children: ReactNode;
@@ -109,6 +120,7 @@ type WorkspaceProviderProps = {
   envText?: string;
   onActiveEnvironmentChange?: (name: string | null) => void;
   onEnvChange?: (text: string) => void;
+  logStream?: LogStream;
 };
 
 export function WorkspaceProvider({
@@ -133,8 +145,10 @@ export function WorkspaceProvider({
   envText: initialEnvText = "",
   onActiveEnvironmentChange,
   onEnvChange,
+  logStream,
 }: WorkspaceProviderProps) {
   const [tree, setTree] = useState<TreeNode[]>(initialTree);
+  const [logLines, setLogLines] = useState<LogLine[]>([]);
   const [activeEnvironment, setActiveEnvironmentState] = useState<
     string | null
   >(initialActiveEnvironment ?? null);
@@ -404,6 +418,32 @@ export function WorkspaceProvider({
   useEffect(() => {
     onEnvChangeRef.current = onEnvChange;
   }, [onEnvChange]);
+
+  const appendLogLine = useCallback(
+    (raw: string, level?: number) =>
+      setLogLines((current) => [...current, parseLogLine(raw, level)]),
+    [],
+  );
+  const clearLogLines = useCallback(() => setLogLines([]), []);
+
+  useEffect(() => {
+    const stream = logStream ?? createNoopLogStream();
+    let disposed = false;
+    let unsubscribe: (() => void) | null = null;
+    stream.subscribe(appendLogLine).then((fn) => {
+      if (disposed) {
+        fn();
+        return;
+      }
+      unsubscribe = fn;
+    });
+    return () => {
+      disposed = true;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [logStream, appendLogLine]);
 
   // Env names in scope for the focused node (combobox options).
   const scopedEnvNames = useMemo(
@@ -864,10 +904,17 @@ export function WorkspaceProvider({
     registerActiveEditor,
   ]);
 
+  const logLinesValue = useMemo<LogLinesContextValue>(
+    () => ({ logLines, appendLogLine, clearLogLines }),
+    [logLines, appendLogLine, clearLogLines],
+  );
+
   return (
-    <WorkspaceContext.Provider value={value}>
-      {children}
-    </WorkspaceContext.Provider>
+    <LogLinesContext.Provider value={logLinesValue}>
+      <WorkspaceContext.Provider value={value}>
+        {children}
+      </WorkspaceContext.Provider>
+    </LogLinesContext.Provider>
   );
 }
 
@@ -875,6 +922,14 @@ export function useWorkspace(): WorkspaceContextValue {
   const value = useContext(WorkspaceContext);
   if (!value) {
     throw new Error("useWorkspace must be used within a WorkspaceProvider");
+  }
+  return value;
+}
+
+export function useLogLines(): LogLinesContextValue {
+  const value = useContext(LogLinesContext);
+  if (!value) {
+    throw new Error("useLogLines must be used within a WorkspaceProvider");
   }
   return value;
 }

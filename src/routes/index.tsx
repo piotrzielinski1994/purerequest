@@ -1,5 +1,6 @@
 import { createNoopFolderPicker, type FolderPicker } from "@pziel/pureui";
 import { createRoute } from "@tanstack/react-router";
+import { isTauri } from "@tauri-apps/api/core";
 import { useState } from "react";
 import { WorkspaceLoader } from "@/components/workspace/workspace-loader";
 import type { BrunoCollectionReader } from "@/lib/bruno/reader";
@@ -15,6 +16,10 @@ import {
 import { createFakeHttpClient } from "@/lib/http/fake-client";
 import type { HttpClient } from "@/lib/http/model";
 import { createTauriHttpClient } from "@/lib/http/tauri-client";
+import {
+  createNoopLogStream,
+  createTauriLogStream,
+} from "@/lib/logging/log-stream";
 import type { OpenapiReader } from "@/lib/openapi/reader";
 import {
   createNoopOpenapiReader,
@@ -90,6 +95,12 @@ function createAdapters(): Adapters {
 function HomePage() {
   const [adapters] = useState(createAdapters);
   const [scriptRunner] = useState(createQuickJsScriptRunner);
+  // Only the real Tauri host has a log stream to subscribe to; dev-browser and
+  // jsdom get the noop (no tauri-plugin-log host). Mirrors the window controller
+  // guard - attachLogger must never run outside the native build.
+  const [logStream] = useState(() =>
+    isTauri() ? createTauriLogStream() : createNoopLogStream(),
+  );
 
   return (
     <WorkspaceLoader
@@ -103,6 +114,7 @@ function HomePage() {
       openapiWriter={adapters.openapiWriter}
       httpClient={adapters.httpClient}
       scriptRunner={scriptRunner}
+      logStream={logStream}
     />
   );
 }

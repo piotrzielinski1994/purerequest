@@ -40,13 +40,15 @@ pub fn init<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     let log_name = current_launch_log_name();
     // `targets` REPLACES the builder's seeded defaults ([Stdout, LogDir{None}]);
     // `target` would push, leaving a stray app-name `purerequest.log` + a duplicate
-    // Stdout. We want exactly Stdout + our single per-launch file.
+    // Stdout. We want exactly Stdout + our single per-launch file + the Webview
+    // target (the FE Logs tab subscribes via tauri-plugin-log's attachLogger).
     let plugin = tauri_plugin_log::Builder::new()
         .targets([
             Target::new(TargetKind::Stdout),
             Target::new(TargetKind::LogDir {
                 file_name: Some(log_name.clone()),
             }),
+            Target::new(TargetKind::Webview),
         ])
         .level(log::LevelFilter::Info)
         .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)

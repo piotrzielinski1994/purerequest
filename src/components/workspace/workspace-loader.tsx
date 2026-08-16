@@ -5,6 +5,7 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import type { BrunoCollectionReader } from "@/lib/bruno/reader";
 import type { BrunoExportWriter } from "@/lib/bruno/writer";
 import type { HttpClient } from "@/lib/http/model";
+import type { LogStream } from "@/lib/logging/log-stream";
 import type { OpenapiReader } from "@/lib/openapi/reader";
 import type { OpenapiExportWriter } from "@/lib/openapi/writer";
 import type { PostmanCollectionReader } from "@/lib/postman/reader";
@@ -61,6 +62,7 @@ export function WorkspaceLoader({
   openapiWriter,
   httpClient,
   scriptRunner,
+  logStream,
 }: {
   fs: WorkspaceFs;
   picker?: FolderPicker;
@@ -72,6 +74,7 @@ export function WorkspaceLoader({
   openapiWriter?: OpenapiExportWriter;
   httpClient?: HttpClient;
   scriptRunner?: ScriptRunner;
+  logStream?: LogStream;
 }) {
   const { settings, saveOpenTabs, saveDraftTabs, saveActiveEnvironment } =
     useSettings();
@@ -146,6 +149,7 @@ export function WorkspaceLoader({
         postmanWriter={postmanWriter}
         openapiWriter={openapiWriter}
         workspaceName={DEFAULT_WORKSPACE_NAME}
+        logStream={logStream}
       >
         <WorkspaceLayout
           picker={picker}
@@ -186,6 +190,7 @@ export function WorkspaceLoader({
       activeEnvironment={knownEnvironment}
       onActiveEnvironmentChange={saveActiveEnvironment}
       onEnvChange={(text) => fs.writeEnv(workspacePath ?? "", text)}
+      logStream={logStream}
     >
       <WorkspaceLayout
         picker={picker}
