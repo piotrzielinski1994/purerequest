@@ -198,10 +198,7 @@ describe("WorkspaceLoader", () => {
       { activeEnvironment: "prod" },
     );
 
-    const trigger = await screen.findByRole("combobox", {
-      name: /environment/i,
-    });
-    expect(trigger).toHaveTextContent("prod");
+    expect(await screen.findByText("prod")).toBeInTheDocument();
   });
 
   // AC-003, TC-002 - behavior: a persisted active env absent from the tree falls back

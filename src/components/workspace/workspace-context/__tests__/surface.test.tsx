@@ -11,6 +11,7 @@ import {
 const EXPECTED_MEMBERS = [
   "tree",
   "isWorkspaceWritable",
+  "isLoading",
   "consoleLines",
   "clearConsole",
   "appendConsoleLine",

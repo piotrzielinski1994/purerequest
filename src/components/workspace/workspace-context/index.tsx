@@ -98,6 +98,7 @@ type WorkspaceProviderProps = {
   tree?: TreeNode[];
   consoleLines?: string[];
   initialLogLines?: string[];
+  isLoading?: boolean;
   initialExpandedIds?: string[];
   initialActiveRequestId?: string;
   initialOpenRequestIds?: string[];
@@ -129,6 +130,7 @@ export function WorkspaceProvider({
   tree: initialTree = [],
   consoleLines: initialConsoleLines = [],
   initialLogLines = [],
+  isLoading = false,
   initialExpandedIds = [],
   initialActiveRequestId,
   initialOpenRequestIds,
@@ -597,6 +599,7 @@ export function WorkspaceProvider({
       editorDirty,
       popupCanSave,
       isWorkspaceWritable,
+      isLoading,
       activeScopeId,
       scopedEnvNames,
       effectiveEnvironment,
@@ -718,6 +721,7 @@ export function WorkspaceProvider({
     return {
       tree,
       isWorkspaceWritable,
+      isLoading,
       consoleLines,
       clearConsole: () => setConsoleLines([]),
       appendConsoleLine: (line: string) =>
@@ -869,6 +873,7 @@ export function WorkspaceProvider({
     tree,
     workspaceName,
     isWorkspaceWritable,
+    isLoading,
     consoleLines,
     expandedFolderIds,
     selectedNodeId,

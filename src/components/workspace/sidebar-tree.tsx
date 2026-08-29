@@ -103,6 +103,7 @@ export function SidebarTree() {
   const {
     tree,
     isWorkspaceWritable,
+    isLoading,
     moveNode,
     moveNodes,
     selectedIds,
@@ -354,25 +355,69 @@ export function SidebarTree() {
                     handleKeyDown,
                   }}
                 >
-                  <ul
-                    role="tree"
-                    aria-label="Collection"
-                    // A plain left-click on the empty tree area clears the selection.
-                    onClick={(event) => {
-                      if (event.target === event.currentTarget) {
-                        clearSelection();
-                      }
-                    }}
-                  >
-                    {tree.map((node) => (
-                      <TreeRow key={node.id} node={node} depth={0} />
-                    ))}
-                  </ul>
-                  {tree.length > 0 && (
-                    <RootDropZone
-                      isDragActive={activeId !== null}
-                      onClear={clearSelection}
-                    />
+                  {isLoading ? (
+                    <div
+                      className="space-y-1 p-2"
+                      aria-label="Loading collection"
+                      aria-busy="true"
+                    >
+                      {Array.from({ length: 8 }).map((_, i) => {
+                        const depth = i % 3;
+                        const isFolder = i % 2 === 0;
+                        const padding = isFolder
+                          ? depth * 14 + 6
+                          : depth * 14 + 10;
+                        const gap = isFolder ? 1 : 2;
+                        return (
+                          <div
+                            key={i}
+                            className="group flex w-max min-w-full cursor-pointer touch-none items-center py-1 pr-2 text-[13px]"
+                            style={{
+                              paddingLeft: `${padding}px`,
+                              gap: `${gap * 4}px`,
+                            }}
+                          >
+                            {isFolder && (
+                              <div
+                                className="size-3.5 shrink-0 bg-muted animate-pulse"
+                              />
+                            )}
+                            <div
+                              className={cn(
+                                "bg-muted animate-pulse",
+                                isFolder
+                                  ? "whitespace-nowrap"
+                                  : "w-10 shrink-0 font-mono",
+                              )}
+                            />
+                            <div className="h-3 flex-1 max-w-32 bg-muted animate-pulse" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <>
+                      <ul
+                        role="tree"
+                        aria-label="Collection"
+                        // A plain left-click on the empty tree area clears the selection.
+                        onClick={(event) => {
+                          if (event.target === event.currentTarget) {
+                            clearSelection();
+                          }
+                        }}
+                      >
+                        {tree.map((node) => (
+                          <TreeRow key={node.id} node={node} depth={0} />
+                        ))}
+                      </ul>
+                      {tree.length > 0 && (
+                        <RootDropZone
+                          isDragActive={activeId !== null}
+                          onClear={clearSelection}
+                        />
+                      )}
+                    </>
                   )}
                 </TreeNavProvider>
                 <DragOverlay>
@@ -394,7 +439,7 @@ export function SidebarTree() {
                 </DragOverlay>
               </TreeDndProvider>
             </DndContext>
-            {tree.length === 0 && isWorkspaceWritable && (
+            {tree.length === 0 && !isLoading && isWorkspaceWritable && (
               <div className="flex flex-col gap-1 px-3 py-4 text-center">
                 <p className="text-sm font-medium">No requests yet</p>
                 <p className="text-xs text-muted-foreground">
@@ -403,7 +448,7 @@ export function SidebarTree() {
                 </p>
               </div>
             )}
-            {tree.length === 0 && !isWorkspaceWritable && (
+            {tree.length === 0 && !isLoading && !isWorkspaceWritable && (
               <div className="flex flex-col gap-1 px-3 py-4 text-center">
                 <p className="text-sm font-medium">No workspace</p>
                 <p className="text-xs text-muted-foreground">

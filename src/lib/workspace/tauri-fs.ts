@@ -1,4 +1,5 @@
 import { toResult } from "@pziel/pureui";
+import { invoke } from "@tauri-apps/api/core";
 import {
   mkdir,
   readDir,
@@ -23,31 +24,58 @@ const MANAGED_FILE =
 // but reconcile's MANAGED_FILE filter never targets `.env` for removal.
 const READONLY_FILE = /(?:^|\/)\.env$/;
 
+async function collectPaths(
+  absDir: string,
+  relPrefix: string,
+  out: { relPath: string; absPath: string }[],
+): Promise<void> {
+  const entries = await readDir(absDir);
+  await Promise.all(
+    entries.map(async (entry) => {
+      const relPath = `${relPrefix}${entry.name}`;
+      const absPath = `${absDir}/${entry.name}`;
+      if (entry.isDirectory) {
+        await collectPaths(absPath, `${relPath}/`, out);
+        return;
+      }
+      if (
+        entry.isFile &&
+        (MANAGED_FILE.test(relPath) || READONLY_FILE.test(relPath))
+      ) {
+        out.push({ relPath, absPath });
+      }
+    }),
+  );
+}
+
 async function collect(
   absDir: string,
   relPrefix: string,
   files: FileMap,
 ): Promise<void> {
-  const entries = await readDir(absDir);
-  for (const entry of entries) {
-    const relPath = `${relPrefix}${entry.name}`;
-    const absPath = `${absDir}/${entry.name}`;
-    if (entry.isDirectory) {
-      await collect(absPath, `${relPath}/`, files);
-      continue;
-    }
-    if (
-      entry.isFile &&
-      (MANAGED_FILE.test(relPath) || READONLY_FILE.test(relPath))
-    ) {
-      files[relPath] = await readTextFile(absPath);
-    }
+  const paths: { relPath: string; absPath: string }[] = [];
+  await collectPaths(absDir, relPrefix, paths);
+  const contents = await Promise.all(
+    paths.map(async ({ relPath, absPath }) => ({
+      relPath,
+      content: await readTextFile(absPath),
+    })),
+  );
+  for (const { relPath, content } of contents) {
+    files[relPath] = content;
   }
 }
 
 export function createTauriWorkspaceFs(): WorkspaceFs {
   return {
     readWorkspace: async (rootPath): Promise<ReadResult> => {
+      // Single-IPC Rust read: ~10x faster than 438× plugin-fs IPC on WSL UNC.
+      const rust = await toResult(
+        invoke<FileMap>("read_workspace", { rootPath }),
+      );
+      if (rust.ok) {
+        return { ok: true, files: rust.value };
+      }
       const files: FileMap = {};
       const read = await toResult(collect(rootPath, "", files));
       if (!read.ok) {
@@ -58,7 +86,15 @@ export function createTauriWorkspaceFs(): WorkspaceFs {
     writeWorkspace: async (rootPath, files): Promise<WriteResult> => {
       const current: FileMap = {};
       // Fresh/unreadable target: treat as empty, write everything.
-      await toResult(collect(rootPath, "", current));
+      // Prefer the Rust bulk read for speed on WSL UNC.
+      const rustCurrent = await toResult(
+        invoke<FileMap>("read_workspace", { rootPath }),
+      );
+      if (rustCurrent.ok) {
+        Object.assign(current, rustCurrent.value);
+      } else {
+        await toResult(collect(rootPath, "", current));
+      }
       const plan = planReconcile(current, files);
       const written = await toResult(
         (async (): Promise<void> => {

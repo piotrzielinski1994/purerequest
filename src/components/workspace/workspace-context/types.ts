@@ -131,6 +131,7 @@ export type WorkspaceInternals = {
   editorDirty: boolean;
   popupCanSave: boolean;
   isWorkspaceWritable: boolean;
+  isLoading: boolean;
   activeScopeId: string | null;
   scopedEnvNames: string[];
   effectiveEnvironment: string | null;
@@ -253,6 +254,9 @@ export type WorkspaceContextValue = {
   // when no workspace is set at all - the sidebar then shows a read-only hint
   // instead of a create-your-first-thing prompt.
   isWorkspaceWritable: boolean;
+  // True while the workspace is being read from disk (initial load or switch).
+  // Sidebar shows skeleton loaders, not the empty hint.
+  isLoading: boolean;
   consoleLines: string[];
   clearConsole: () => void;
   appendConsoleLine: (line: string) => void;

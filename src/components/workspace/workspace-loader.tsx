@@ -1,8 +1,8 @@
 import type { FolderPicker } from "@pziel/pureui";
-import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { logMessage } from "@/lib/logging/tauri-log-sink";
 import type { BrunoCollectionReader } from "@/lib/bruno/reader";
 import type { BrunoExportWriter } from "@/lib/bruno/writer";
 import type { HttpClient } from "@/lib/http/model";
@@ -103,6 +103,8 @@ export function WorkspaceLoader({
       workspacePath,
       logLines: [`[workspace] loading ${workspacePath}...`],
     });
+    void logMessage("info", `[workspace] loading ${workspacePath}...`);
+    const start = performance.now();
     let isMounted = true;
     // A configured workspacePath that is fresh/unreadable/not-yet-a-workspace
     // still mounts a WRITABLE empty workspace (an empty tree + onTreeChange wired
@@ -120,10 +122,15 @@ export function WorkspaceLoader({
       if (!isMounted) {
         return;
       }
+      const elapsed = Math.round(performance.now() - start);
       if (!read.ok) {
+        void logMessage(
+          "warn",
+          `[workspace] failed to read workspace: ${read.error} (${elapsed}ms)`,
+        );
         setState(
           freshWorkspace([
-            `[workspace] failed to read workspace: ${read.error}`,
+            `[workspace] failed to read workspace: ${read.error} (${elapsed}ms)`,
             `[workspace] initialized empty workspace at ${workspacePath}`,
           ]),
         );
@@ -131,9 +138,13 @@ export function WorkspaceLoader({
       }
       const parsed = deserialize(read.files);
       if (!parsed.ok) {
+        void logMessage(
+          "warn",
+          `[workspace] failed to parse workspace: ${parsed.error} (${elapsed}ms)`,
+        );
         setState(
           freshWorkspace([
-            `[workspace] failed to parse workspace: ${parsed.error}`,
+            `[workspace] failed to parse workspace: ${parsed.error} (${elapsed}ms)`,
             `[workspace] initialized empty workspace at ${workspacePath}`,
           ]),
         );
@@ -142,10 +153,18 @@ export function WorkspaceLoader({
       const skipped = parsed.skipped.map(
         (path) => `[workspace] skipped malformed file: ${path}`,
       );
+      const fileCount = Object.keys(read.files).length;
+      void logMessage(
+        "info",
+        `[workspace] loaded ${workspacePath} (${fileCount} files, ${elapsed}ms)`,
+      );
       setState({
         status: "loaded",
         tree: parsed.tree,
-        logLines: [`[workspace] loaded ${workspacePath}`, ...skipped],
+        logLines: [
+          `[workspace] loaded ${workspacePath} (${fileCount} files, ${elapsed}ms)`,
+          ...skipped,
+        ],
         workspaceName: readWorkspaceName(
           read.files["purerequest.workspace.json"],
         ),
@@ -160,23 +179,26 @@ export function WorkspaceLoader({
 
   if (state.status === "loading") {
     return (
-      <div className="flex h-full w-full flex-col bg-background">
-        <div className="flex flex-1 items-center justify-center">
-          <div className="flex flex-col items-center gap-3 border bg-background px-8 py-6 shadow-sm">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
-            <span className="text-sm text-foreground">Loading workspace...</span>
-            <span
-              className="max-w-[60ch] truncate text-xs text-muted-foreground"
-              title={state.workspacePath}
-            >
-              {state.workspacePath}
-            </span>
-          </div>
-        </div>
-        <div className="border-t bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground">
-          {state.logLines[0]}
-        </div>
-      </div>
+      <WorkspaceProvider
+        key={`${state.workspacePath}::loading`}
+        tree={[]}
+        isLoading
+        initialLogLines={state.logLines}
+        httpClient={httpClient}
+        scriptRunner={scriptRunner}
+        brunoWriter={brunoWriter}
+        postmanWriter={postmanWriter}
+        openapiWriter={openapiWriter}
+        workspaceName={DEFAULT_WORKSPACE_NAME}
+        logStream={logStream}
+      >
+        <WorkspaceLayout
+          picker={picker}
+          reader={reader}
+          postmanReader={postmanReader}
+          openapiReader={openapiReader}
+        />
+      </WorkspaceProvider>
     );
   }
 

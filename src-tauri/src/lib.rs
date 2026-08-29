@@ -353,6 +353,62 @@ async fn cancel_http_request(request_id: String) {
     }
 }
 
+fn is_managed_file(rel: &str) -> bool {
+    rel == "purerequest.workspace.json"
+        || rel == "folder.json"
+        || rel.ends_with("/folder.json")
+        || rel.ends_with(".req.json")
+}
+
+fn is_readonly_file(rel: &str) -> bool {
+    rel == ".env" || rel.ends_with("/.env")
+}
+
+fn collect_workspace_files(
+    root: &std::path::Path,
+    rel_prefix: &str,
+    out: &mut std::collections::HashMap<String, String>,
+) -> Result<(), String> {
+    let entries = std::fs::read_dir(root).map_err(|e| e.to_string())?;
+    for entry in entries {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        let name = entry
+            .file_name()
+            .into_string()
+            .map_err(|_| "invalid file name".to_string())?;
+        let rel = if rel_prefix.is_empty() {
+            name.clone()
+        } else {
+            format!("{rel_prefix}{name}")
+        };
+        let file_type = entry.file_type().map_err(|e| e.to_string())?;
+        if file_type.is_dir() {
+            let next_rel = format!("{rel}/");
+            collect_workspace_files(&path, &next_rel, out)?;
+        } else if file_type.is_file()
+            && (is_managed_file(&rel) || is_readonly_file(&rel))
+        {
+            let content =
+                std::fs::read_to_string(&path).map_err(|e| format!("{rel}: {e}"))?;
+            out.insert(rel, content);
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn read_workspace(root_path: String) -> Result<std::collections::HashMap<String, String>, String> {
+    let root = std::path::PathBuf::from(&root_path);
+    tokio::task::spawn_blocking(move || {
+        let mut files = std::collections::HashMap::new();
+        collect_workspace_files(&root, "", &mut files)?;
+        Ok(files)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -369,7 +425,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             send_http_request,
             cancel_http_request,
-            logging::log_message
+            logging::log_message,
+            read_workspace
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
