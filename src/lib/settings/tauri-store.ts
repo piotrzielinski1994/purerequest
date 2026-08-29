@@ -14,15 +14,22 @@ const THEME_FILE = "theme.json";
 const SETTINGS_KEY = "settings";
 const SHORTCUTS_KEY = "shortcuts";
 const THEME_COLORS_KEY = "colors";
-const DEFAULT_COLLECTION_DIR = "collection";
+const DEFAULT_WORKSPACE_DIR = "workspace";
+const LEGACY_COLLECTION_DIR = "collection";
 
-// The default home for a fresh install: a `collection` subfolder of the app data
+// The default home for a fresh install: a `workspace` subfolder of the app data
 // dir (sibling to settings.json), so the workspace is writable out of the box
 // without the user hand-editing settings.json. Falls back to undefined (read-only
 // empty) only if the path API itself fails.
 async function defaultWorkspacePath(): Promise<string | undefined> {
   return appDataDir()
-    .then((dir) => join(dir, DEFAULT_COLLECTION_DIR))
+    .then((dir) => join(dir, DEFAULT_WORKSPACE_DIR))
+    .catch(() => undefined);
+}
+
+async function legacyDefaultWorkspacePath(): Promise<string | undefined> {
+  return appDataDir()
+    .then((dir) => join(dir, LEGACY_COLLECTION_DIR))
     .catch(() => undefined);
 }
 
@@ -51,9 +58,17 @@ export function createTauriSettingsStore(): SettingsStore {
       ...withShortcuts,
       theme: { mode: withShortcuts.theme.mode, colors: persistedColors },
     });
-    return withTheme.workspacePath !== undefined
-      ? withTheme
-      : { ...withTheme, workspacePath: await defaultWorkspacePath() };
+    if (withTheme.workspacePath !== undefined) {
+      const legacy = await legacyDefaultWorkspacePath();
+      if (legacy !== undefined && withTheme.workspacePath === legacy) {
+        const migrated = await defaultWorkspacePath();
+        return migrated !== undefined
+          ? { ...withTheme, workspacePath: migrated }
+          : withTheme;
+      }
+      return withTheme;
+    }
+    return { ...withTheme, workspacePath: await defaultWorkspacePath() };
   };
 
   const save = async (settings: Settings): Promise<void> => {

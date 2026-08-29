@@ -20,6 +20,12 @@ Briefing for Claude Code. Read [README.md](README.md) first - setup, commands, r
 
 - Read [docs/design.md](docs/design.md) before any UI change - it's the visual contract (shared with the `purequery` repo). Key rule: **no rounded corners anywhere** (`--radius` and every `--radius-*` pinned to `0rem` in `index.css`); don't raise them or add `rounded-full`/`rounded-xs`/`rounded-[..]` (token-based `rounded-{sm,md,lg}` are tolerated since they resolve to 0, but prefer stripping). Status dots are the one exception (a `size-2` filled circle). Inputs carry the autofill opt-out attrs (see `ui/input.tsx`).
 
+## Console vs Logs
+
+- **Console tab** - only request-execution output: `[pre]` / `[post]` script `console.*` (`log`/`warn`/`error` + thrown errors). Never app debug noise.
+- **Logs tab** - app debug / lifecycle: `[workspace] ...` (load/persist/move failed, picker, etc.), Tauri `log::*` from Rust, and any `[import]` / system diagnostics. The `Logs` list is filterable by `level:` / `key=value` via `filterLogLines`.
+- If you add a new `[workspace]` / `[import]` / system line, send it to `Logs` via `appendLogLine` / `logMessage` / `initialLogLines`, NOT `consoleLines` / `appendConsoleLine`. Keep `consoleLineLevel` for the console - `Logs` uses `parseLogLine` levels.
+
 ## Learning from conversation
 
 If during a session you learn something project-specific that future-you would otherwise have to re-derive - a non-obvious convention the user prefers, a constraint that bit us, a gotcha worth recording - append it to [docs/learnings.md](docs/learnings.md). Examples: formatting rules the user repeated, gotchas that broke a hook/CI, naming conventions enforced via review.

@@ -1,4 +1,5 @@
 import type { FolderPicker } from "@pziel/pureui";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { WorkspaceProvider } from "@/components/workspace/workspace-context";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
@@ -22,12 +23,12 @@ import type { WorkspaceFs } from "@/lib/workspace/fs";
 import type { TreeNode } from "@/lib/workspace/model";
 
 type LoadState =
-  | { status: "loading" }
+  | { status: "loading"; workspacePath: string; logLines: string[] }
   | { status: "empty" }
   | {
       status: "loaded";
       tree: TreeNode[];
-      consoleLines: string[];
+      logLines: string[];
       workspaceName: string;
       processEnv: ProcessEnv;
       envText: string;
@@ -47,7 +48,7 @@ function readWorkspaceName(manifestRaw: string | undefined): string {
   }
 }
 
-const EMPTY_CONSOLE_LINES = [
+const EMPTY_LOG_LINES = [
   '[workspace] Set "workspacePath" in settings.json to an exported workspace folder.',
 ];
 
@@ -79,25 +80,38 @@ export function WorkspaceLoader({
   const { settings, saveOpenTabs, saveDraftTabs, saveActiveEnvironment } =
     useSettings();
   const workspacePath = settings.workspacePath;
-  const [state, setState] = useState<LoadState>(
-    workspacePath ? { status: "loading" } : { status: "empty" },
+  const [state, setState] = useState<LoadState>(() =>
+    workspacePath
+      ? {
+          status: "loading",
+          workspacePath,
+          logLines: [`[workspace] loading ${workspacePath}...`],
+        }
+      : { status: "empty" },
   );
   const [initialOpenRequestIds] = useState(settings.openRequestIds);
   const [initialDraftTabs] = useState(settings.draftTabs);
 
   useEffect(() => {
     if (!workspacePath) {
+      setState({ status: "empty" });
       return;
     }
+    // Immediate feedback: show loading indicator + log before the async read.
+    setState({
+      status: "loading",
+      workspacePath,
+      logLines: [`[workspace] loading ${workspacePath}...`],
+    });
     let isMounted = true;
     // A configured workspacePath that is fresh/unreadable/not-yet-a-workspace
     // still mounts a WRITABLE empty workspace (an empty tree + onTreeChange wired
     // to this path), so the first folder/request the user creates bootstraps the
     // dir on disk. Read-only empty is reserved for when NO path is set at all.
-    const freshWorkspace = (): LoadState => ({
+    const freshWorkspace = (logLines: string[]): LoadState => ({
       status: "loaded",
       tree: [],
-      consoleLines: [],
+      logLines,
       workspaceName: DEFAULT_WORKSPACE_NAME,
       processEnv: {},
       envText: "",
@@ -107,21 +121,31 @@ export function WorkspaceLoader({
         return;
       }
       if (!read.ok) {
-        setState(freshWorkspace());
+        setState(
+          freshWorkspace([
+            `[workspace] failed to read workspace: ${read.error}`,
+            `[workspace] initialized empty workspace at ${workspacePath}`,
+          ]),
+        );
         return;
       }
       const parsed = deserialize(read.files);
       if (!parsed.ok) {
-        setState(freshWorkspace());
+        setState(
+          freshWorkspace([
+            `[workspace] failed to parse workspace: ${parsed.error}`,
+            `[workspace] initialized empty workspace at ${workspacePath}`,
+          ]),
+        );
         return;
       }
-      const consoleLines = parsed.skipped.map(
+      const skipped = parsed.skipped.map(
         (path) => `[workspace] skipped malformed file: ${path}`,
       );
       setState({
         status: "loaded",
         tree: parsed.tree,
-        consoleLines,
+        logLines: [`[workspace] loaded ${workspacePath}`, ...skipped],
         workspaceName: readWorkspaceName(
           read.files["purerequest.workspace.json"],
         ),
@@ -135,14 +159,32 @@ export function WorkspaceLoader({
   }, [fs, workspacePath]);
 
   if (state.status === "loading") {
-    return null;
+    return (
+      <div className="flex h-full w-full flex-col bg-background">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="flex flex-col items-center gap-3 border bg-background px-8 py-6 shadow-sm">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            <span className="text-sm text-foreground">Loading workspace...</span>
+            <span
+              className="max-w-[60ch] truncate text-xs text-muted-foreground"
+              title={state.workspacePath}
+            >
+              {state.workspacePath}
+            </span>
+          </div>
+        </div>
+        <div className="border-t bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground">
+          {state.logLines[0]}
+        </div>
+      </div>
+    );
   }
 
   if (state.status === "empty") {
     return (
       <WorkspaceProvider
         tree={[]}
-        consoleLines={EMPTY_CONSOLE_LINES}
+        initialLogLines={EMPTY_LOG_LINES}
         httpClient={httpClient}
         scriptRunner={scriptRunner}
         brunoWriter={brunoWriter}
@@ -171,7 +213,7 @@ export function WorkspaceLoader({
     <WorkspaceProvider
       key={workspacePath}
       tree={state.tree}
-      consoleLines={state.consoleLines}
+      initialLogLines={state.logLines}
       initialOpenRequestIds={initialOpenRequestIds}
       initialDraftTabs={initialDraftTabs}
       onTabsChange={saveOpenTabs}

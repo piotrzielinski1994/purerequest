@@ -9,7 +9,7 @@ the per-feature specs under [features/](features/).)
 ## What a workspace is
 
 A **workspace** is a folder on disk holding the collection tree + config. By
-default it lives in a `collection` subfolder of the app data dir (next to
+default it lives in a `workspace` subfolder of the app data dir (next to
 `settings.json`), created on first write - so a fresh install is writable out of
 the box. Point the app elsewhere by hand-editing `workspacePath` in that
 `settings.json`; it loads on launch (a configured-but-empty or not-yet-created

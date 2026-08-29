@@ -13,6 +13,7 @@ const EXPECTED_MEMBERS = [
   "isWorkspaceWritable",
   "consoleLines",
   "clearConsole",
+  "appendConsoleLine",
   "expandedFolderIds",
   "selectedNodeId",
   "selectedIds",

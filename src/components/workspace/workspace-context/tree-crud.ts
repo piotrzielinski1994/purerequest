@@ -66,7 +66,7 @@ export function createTreeCrud(
     autoNameIds,
     onTreeChangeRef,
     setTree,
-    setConsoleLines,
+    appendLogLine,
     setExpandedFolderIds,
     setOpenRequestIds,
     setActiveRequestId,
@@ -367,10 +367,7 @@ export function createTreeCrud(
     setTree(next);
     onTreeChangeRef.current?.(next).then((result) => {
       if (!result.ok) {
-        setConsoleLines((lines) => [
-          ...lines,
-          `[workspace] failed to persist move: ${result.error}`,
-        ]);
+        appendLogLine(`[workspace] failed to persist move: ${result.error}`);
       }
     });
   };

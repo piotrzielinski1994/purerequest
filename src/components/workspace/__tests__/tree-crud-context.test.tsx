@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  useLogLines,
   useWorkspace,
   WorkspaceProvider,
 } from "@/components/workspace/workspace-context";
@@ -262,11 +263,11 @@ function renderProbe(
 }
 
 function ConsoleProbe() {
-  const { consoleLines } = useWorkspace();
+  const { logLines } = useLogLines();
   return (
     <ul data-testid="console">
-      {consoleLines.map((line, index) => (
-        <li key={index}>{line}</li>
+      {logLines.map((line, index) => (
+        <li key={index}>{line.message}</li>
       ))}
     </ul>
   );

@@ -21,7 +21,7 @@
     "fs:allow-remove",
     {
       "identifier": "fs:scope",
-      "allow": [{ "path": "$HOME/**" }]
+      "allow": [{ "path": "$HOME/**" }, { "path": "$HOME" }, { "path": "**" }]
     }
   ]
 }

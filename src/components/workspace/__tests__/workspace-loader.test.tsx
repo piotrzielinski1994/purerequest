@@ -252,8 +252,9 @@ describe("WorkspaceLoader", () => {
     expect(await screen.findByText("Threaded API")).toBeInTheDocument();
   });
 
-  // AC-009, E-7 - behavior: partial load surfaces skipped files in the console
+  // AC-009, E-7 - behavior: partial load surfaces skipped files in the logs
   it("should load the good nodes and surface a skipped malformed file", async () => {
+    const user = userEvent.setup();
     const files = {
       "purerequest.workspace.json": JSON.stringify({
         schemaVersion: 1,
@@ -272,7 +273,10 @@ describe("WorkspaceLoader", () => {
     renderLoader("/ws/partial", { "/ws/partial": files });
 
     expect(await screen.findByText("Good Request")).toBeInTheDocument();
-    expect(screen.getByText(/skipped malformed file/i)).toBeInTheDocument();
-    expect(screen.getByText(/broken\.req\.json/)).toBeInTheDocument();
+    const logsButton = await screen.findByRole("button", { name: /Logs/ });
+    await user.click(logsButton);
+    const logsList = await screen.findByRole("list", { name: /Application logs/ });
+    expect(logsList.textContent).toMatch(/skipped malformed file/i);
+    expect(await screen.findByText(/broken\.req\.json/)).toBeInTheDocument();
   });
 });

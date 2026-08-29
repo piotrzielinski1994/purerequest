@@ -97,6 +97,7 @@ type WorkspaceProviderProps = {
   children: ReactNode;
   tree?: TreeNode[];
   consoleLines?: string[];
+  initialLogLines?: string[];
   initialExpandedIds?: string[];
   initialActiveRequestId?: string;
   initialOpenRequestIds?: string[];
@@ -127,6 +128,7 @@ export function WorkspaceProvider({
   children,
   tree: initialTree = [],
   consoleLines: initialConsoleLines = [],
+  initialLogLines = [],
   initialExpandedIds = [],
   initialActiveRequestId,
   initialOpenRequestIds,
@@ -148,7 +150,9 @@ export function WorkspaceProvider({
   logStream,
 }: WorkspaceProviderProps) {
   const [tree, setTree] = useState<TreeNode[]>(initialTree);
-  const [logLines, setLogLines] = useState<LogLine[]>([]);
+  const [logLines, setLogLines] = useState<LogLine[]>(() =>
+    initialLogLines.map((raw) => parseLogLine(raw)),
+  );
   const [activeEnvironment, setActiveEnvironmentState] = useState<
     string | null
   >(initialActiveEnvironment ?? null);
@@ -537,6 +541,9 @@ export function WorkspaceProvider({
       setRenamingNodeId,
       consoleLines,
       setConsoleLines,
+      logLines,
+      setLogLines,
+      appendLogLine,
       requestOverrides,
       setRequestOverrides,
       draftRequests,
@@ -713,6 +720,8 @@ export function WorkspaceProvider({
       isWorkspaceWritable,
       consoleLines,
       clearConsole: () => setConsoleLines([]),
+      appendConsoleLine: (line: string) =>
+        setConsoleLines((prev) => [...prev, line]),
       expandedFolderIds,
       selectedNodeId,
       openRequestIds,

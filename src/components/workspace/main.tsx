@@ -24,7 +24,10 @@ import { Content } from "@/components/workspace/content";
 import { CurlImportDialog } from "@/components/workspace/curl-import-dialog";
 import { DeleteConfirmDialog } from "@/components/workspace/delete-confirm-dialog";
 import { RequestQuickOpen } from "@/components/workspace/request-quick-open";
-import { useWorkspace } from "@/components/workspace/workspace-context";
+import {
+  useLogLines,
+  useWorkspace,
+} from "@/components/workspace/workspace-context";
 import type { PanelGroupHandle } from "@/components/workspace/workspace-context/types";
 import type { BrunoCollectionReader } from "@/lib/bruno/reader";
 import type { OpenapiReader } from "@/lib/openapi/reader";
@@ -110,6 +113,7 @@ export function Main({
     registerPanelGroup,
     getPanelGroup,
   } = useWorkspace();
+  const { appendLogLine } = useLogLines();
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [isQuickOpenOpen, setIsQuickOpenOpen] = useState(false);
 
@@ -140,13 +144,26 @@ export function Main({
 
   const openWorkspace = () => {
     if (!picker) {
+      toast.error("Workspace picker not available");
       return;
     }
-    picker.pick().then((path) => {
-      if (path !== null) {
+    appendLogLine("[workspace] opening workspace picker...");
+    picker
+      .pick()
+      .then((path) => {
+        if (path === null) {
+          appendLogLine("[workspace] picker cancelled");
+          return;
+        }
+        appendLogLine(`[workspace] selected workspace: ${path}`);
+        toast(`Opening workspace: ${path}`);
         saveWorkspacePath(path);
-      }
-    });
+      })
+      .catch((error) => {
+        const msg = String(error);
+        appendLogLine(`[workspace] failed to pick workspace: ${msg}`);
+        toast.error(`Failed to open workspace: ${msg}`);
+      });
   };
 
   const importBrunoCollection = () => {

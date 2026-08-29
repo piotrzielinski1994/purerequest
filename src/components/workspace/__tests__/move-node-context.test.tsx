@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  useLogLines,
   useWorkspace,
   WorkspaceProvider,
 } from "@/components/workspace/workspace-context";
@@ -33,7 +34,6 @@ type ProbeMove = { dragId: string; parentId: string | null; index: number };
 function MoveProbe({ move }: { move: ProbeMove }) {
   const {
     tree,
-    consoleLines,
     expandedFolderIds,
     selectedNodeId,
     openRequestIds,
@@ -42,6 +42,7 @@ function MoveProbe({ move }: { move: ProbeMove }) {
     selectNode,
     toggleFolder,
   } = useWorkspace();
+  const { logLines } = useLogLines();
 
   const rootIds = tree.map((node) => node.id).join(",");
   const usersChildren = findFolderChildren(tree, "folder-users") ?? [];
@@ -60,7 +61,9 @@ function MoveProbe({ move }: { move: ProbeMove }) {
       <span data-testid="users-expanded">
         {String(expandedFolderIds.has("folder-users"))}
       </span>
-      <span data-testid="console">{consoleLines.join("\n")}</span>
+      <span data-testid="console">
+        {logLines.map((l) => l.message).join("\n")}
+      </span>
       <button
         type="button"
         onClick={() =>

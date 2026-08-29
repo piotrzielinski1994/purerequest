@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// The Tauri settings store defaults `workspacePath` to a collection dir under the
-// app data dir (appDataDir/collection) when nothing is persisted yet, so a fresh
+// The Tauri settings store defaults `workspacePath` to a workspace dir under the
+// app data dir (appDataDir/workspace) when nothing is persisted yet, so a fresh
 // install has a writable workspace without the user hand-editing settings.json. A
-// persisted workspacePath always wins. We fake the plugin-store LazyStore surface
-// (mirroring tauri-store-theme.test.ts) AND @tauri-apps/api/path's appDataDir/join.
+// persisted workspacePath always wins, with a migration from the legacy
+// appDataDir/collection default to appDataDir/workspace. We fake the plugin-store
+// LazyStore surface (mirroring tauri-store-theme.test.ts) AND
+// @tauri-apps/api/path's appDataDir/join.
 
 type FakeStore = {
   path: string;
@@ -66,12 +68,12 @@ beforeEach(() => {
 });
 
 describe("createTauriSettingsStore default workspacePath", () => {
-  it("should default workspacePath to appDataDir/collection if none is persisted", async () => {
+  it("should default workspacePath to appDataDir/workspace if none is persisted", async () => {
     const store = createTauriSettingsStore();
 
     const loaded = await store.load();
 
-    expect(loaded.workspacePath).toBe("/app/data/collection");
+    expect(loaded.workspacePath).toBe("/app/data/workspace");
   });
 
   it("should keep a persisted workspacePath over the default", async () => {
@@ -84,5 +86,17 @@ describe("createTauriSettingsStore default workspacePath", () => {
     const loaded = await store.load();
 
     expect(loaded.workspacePath).toBe("/my/own/collection");
+  });
+
+  it("should migrate a persisted legacy appDataDir/collection to appDataDir/workspace", async () => {
+    ensureStore(SETTINGS_FILE).data.set("settings", {
+      version: 1,
+      workspacePath: "/app/data/collection",
+    });
+    const store = createTauriSettingsStore();
+
+    const loaded = await store.load();
+
+    expect(loaded.workspacePath).toBe("/app/data/workspace");
   });
 });

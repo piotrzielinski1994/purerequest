@@ -13,7 +13,7 @@ export function createPersist(internals: WorkspaceInternals): PersistApi {
     setTree,
     setEnvText,
     setProcessEnv,
-    setConsoleLines,
+    appendLogLine,
     onTreeChangeRef,
     onEnvChangeRef,
   } = internals;
@@ -39,10 +39,7 @@ export function createPersist(internals: WorkspaceInternals): PersistApi {
         return;
       }
       toast(`Save failed: ${result.error}`);
-      setConsoleLines((lines) => [
-        ...lines,
-        `[workspace] failed to persist ${failLabel}: ${result.error}`,
-      ]);
+      appendLogLine(`[workspace] failed to persist ${failLabel}: ${result.error}`);
     });
   };
 

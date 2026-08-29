@@ -27,6 +27,7 @@ import type { CurlParseResult } from "@/lib/curl/parse-curl";
 import type { OpenapiExportWriter } from "@/lib/openapi/writer";
 import type { PostmanFileMap } from "@/lib/postman/postman-to-tree";
 import type { PostmanExportWriter } from "@/lib/postman/writer";
+import type { LogLine } from "@/lib/workspace/log-line";
 
 // A promoted-on-save "new request" tab: the pristine request plus where it lands
 // in the tree when saved.
@@ -66,6 +67,9 @@ export type WorkspaceInternals = {
   setRenamingNodeId: Dispatch<SetStateAction<string | null>>;
   consoleLines: string[];
   setConsoleLines: Dispatch<SetStateAction<string[]>>;
+  logLines: LogLine[];
+  setLogLines: Dispatch<SetStateAction<LogLine[]>>;
+  appendLogLine: (raw: string, level?: number) => void;
   requestOverrides: Map<string, RequestOverride>;
   setRequestOverrides: Dispatch<SetStateAction<Map<string, RequestOverride>>>;
   draftRequests: Map<string, DraftEntry>;
@@ -251,6 +255,7 @@ export type WorkspaceContextValue = {
   isWorkspaceWritable: boolean;
   consoleLines: string[];
   clearConsole: () => void;
+  appendConsoleLine: (line: string) => void;
   expandedFolderIds: Set<string>;
   selectedNodeId: string | null;
   // The sidebar multi-selection (node ids). Empty until the user Cmd/Shift-clicks
