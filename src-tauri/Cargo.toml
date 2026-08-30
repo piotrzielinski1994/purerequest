@@ -1,6 +1,6 @@
 [package]
 name = "purerequest"
-version = "0.1.0"
+version = "0.1.1"
 description = "purerequest - a keyboard-driven, file-based desktop HTTP client"
 authors = ["Piotr Zieliński"]
 edition = "2021"
@@ -29,7 +29,7 @@ tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-updater = { version = "2", default-features = false, features = ["rustls-tls"] }
 tauri-plugin-process = "2"
-tauri-plugin-log = "2"
+tauri-plugin-log = "2.9"
 log = "0.4"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 serde = { version = "1", features = ["derive"] }
