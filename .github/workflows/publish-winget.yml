@@ -19,5 +19,4 @@ jobs:
           identifier: pzielinski.purerequest
           installers-regex: '_x64-setup\.exe$'
           release-tag: ${{ github.event.release.tag_name || github.event.inputs.tag }}
-          release-repository: fork-winget-pkgs
           token: ${{ secrets.WINGET_TOKEN }}
