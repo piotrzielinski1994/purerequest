@@ -15,7 +15,26 @@ permissions:
   contents: write
 
 jobs:
+  decide:
+    runs-on: ubuntu-latest
+    outputs:
+      prerelease: ${{ steps.check.outputs.prerelease }}
+      draft: ${{ steps.check.outputs.draft }}
+    steps:
+      - name: Check if pre-release
+        id: check
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          if [[ "$TAG" =~ -(rc|alpha|beta) ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "draft=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "draft=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: decide
     strategy:
       fail-fast: false
       matrix:
@@ -61,6 +80,6 @@ jobs:
           tagName: ${{ github.event.inputs.tag }}
           releaseName: ${{ github.event.inputs.releaseName || github.event.inputs.tag }}
           releaseBody: 'Download the installer for your OS. Unsigned: on macOS right-click the app and choose Open; on Windows choose "More info -> Run anyway".'
-          releaseDraft: true
-          prerelease: false
+          releaseDraft: ${{ needs.decide.outputs.draft == 'true' }}
+          prerelease: ${{ needs.decide.outputs.prerelease == 'true' }}
           args: ${{ matrix.args }}
